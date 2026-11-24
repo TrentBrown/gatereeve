@@ -27,7 +27,7 @@ Wrap reviewer launches in `systemd-inhibit` on Linux; receipt field.
 - **Rubric criteria:** R2, R13
 - **Depends on:** none
 - **Branch:** `tb-convergence-and-retirement-02-metrics-repair` (PR A, with I-6)
-- **PR:** -
+- **PR:** #129 (PR A, merged at `9e1d708` outside GateReeve by human decision, run note `prA-outside-merge-note`)
 
 Test isolation and purge, capture conflict, status count, pending-decision
 time; D33 scratch lock and workflow robustness (`decisions.md`, check
@@ -40,8 +40,8 @@ replacement, `job.abandon`).
 - **Plan steps:** P3, P4
 - **Rubric criteria:** R3, R4, R5, R11
 - **Depends on:** I-2
-- **Branch:** `tb-convergence-and-retirement-03-reviewer-contract` (PR B)
-- **PR:** -
+- **Branch:** `tb-convergence-and-retirement-03-reviewer-contract` (PR B1)
+- **PR:** #130 (B1, merged at `2a23c1e`); sweep records and the remaining items moved by D36
 
 Severity, failure scenario, class statement, sweep records, repair turn,
 normalization, not-assessed, unavailable reasons, per-finding metrics; D32
@@ -55,8 +55,8 @@ and D33 substance/bookkeeping separation, per-request ID enums,
 - **Plan steps:** P5, P6, P7
 - **Rubric criteria:** R6, R7, R8
 - **Depends on:** I-3
-- **Branch:** `tb-convergence-and-retirement-04-round-policy` (PR C, with I-5)
-- **PR:** -
+- **Branch:** `tb-convergence-and-retirement-04-round-policy` (PR C1, with I-5)
+- **PR:** #131 (C1, round policy, merged at `ec2cfe6`); follow-ups (P6) and failure model (P7) moved by D36
 
 Round counter and schedule, goal wiring, follow-ups with defaults and the
 Completion decision, failure-model lint.
@@ -68,8 +68,8 @@ Completion decision, failure-model lint.
 - **Plan steps:** P8
 - **Rubric criteria:** R9
 - **Depends on:** I-4
-- **Branch:** delivered on the I-4 branch (PR C)
-- **PR:** -
+- **Branch:** delivered on the I-4 branch (PR C1)
+- **PR:** #131 (merged at `ec2cfe6`)
 
 Unpushed-head review, runner-role CI qualification, push warning, docs.
 
@@ -81,7 +81,7 @@ Unpushed-head review, runner-role CI qualification, push warning, docs.
 - **Rubric criteria:** R10
 - **Depends on:** none
 - **Branch:** `tb-convergence-and-retirement-06-worktree-sweep`, delivered on the I-2 branch (PR A)
-- **PR:** -
+- **PR:** #129 (PR A, merged at `9e1d708` outside GateReeve by human decision, run note `prA-outside-merge-note`)
 
 `gatereeve worktree sweep`.
 
@@ -93,6 +93,6 @@ Unpushed-head review, runner-role CI qualification, push warning, docs.
 - **Rubric criteria:** R11
 - **Depends on:** I-3, I-4
 - **Branch:** delivered within slices 3–5
-- **PR:** -
+- **PR:** docs and compatibility in #130 and #131; metrics and surfaces moved by D36
 
 D6 report, status and desktop surfaces, docs, packaging checks.

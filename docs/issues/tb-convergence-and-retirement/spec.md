@@ -10,9 +10,13 @@ silently dropping real defects, hosted CI runs once per review scope after the
 paired reviews converge, reviewers survive idle-stop automation, the shared
 metrics store becomes trustworthy and finding-level, and finished worktrees
 can be swept safely from outside any run. Controlling input: `design.md`
-(approved 2026-11-22) with `interview.md` D1–D33. Six slices (D24); each
+(approved 2026-11-22) with `interview.md` D1–D36. Six slices (D24); each
 criterion names its slice. After slice 1, the remaining slices ship as three
-PRs (D33): slices 2 and 6, slice 3, and slices 4 and 5.
+PRs (D33): slices 2 and 6, slice 3, and slices 4 and 5. D34 reordered them
+(B1, C1). D36 (2026-11-24) moves sweep records (AC4), follow-ups (AC7), the
+failure model (AC8), the remaining parts of AC5 and of AC11 and the retention
+part of AC12 into a follow-up feature (`follow-up-feature.md`); this feature
+ships slice 1, PR A, PR B1 and PR C1.
 
 ## Definition of Done
 
@@ -111,30 +115,17 @@ silent best effort:
     result uses the higher rating.
   - An implementer disposition may dispute a severity but cannot change the
     recorded one.
-- **AC4. Class-level fix records (slice 3).**
-  - A `fixed` disposition must carry a sweep record with `class`, `sites`
-    (path and line for each site, plus the search used), `fix`, `test` and
-    `dependents`; a `fixed` disposition without one is rejected naming the
-    missing field.
-  - `sites` with one entry plus its search is accepted.
-  - The next round's reviewers receive the sweep records, and their
-    instructions treat a missed site of a swept class as a regression of the
-    previous fix.
+- **AC4. Class-level fix records.** Moved to the follow-up feature (D36).
 - **AC5. Reviewer contract robustness (slice 3).**
   - A reviewer contract error triggers exactly one automatic format-repair
     turn with the same reviewer, given the exact validation errors; the
     existing format-repair validation rejects a repair that changes outcome,
     findings, evidence or mandate assessment. A repair that still fails, or
     changes substance, yields UNAVAILABLE.
-  - A known field in a wrong location with exactly one valid location (for
-    example `mandateAssessment` inside a per-gate verdict) is moved without a
-    model call and recorded as `normalized`.
-  - A verdict missing a disposition for a peer's finding is accepted, with that
-    disposition recorded as `not-assessed` and the finding left open.
   - Every UNAVAILABLE result carries one reason code: `contract`,
     `malformed-json`, `provider-error`, `timeout`, `missing-evidence` or
     `other`.
-  - Repair turns are not rounds; their tokens and duration are recorded.
+  - Repair turns are not rounds.
   - Substance and bookkeeping (D32, D33): each reviewer's input names the
     findings that need a disposition, computed by GateReeve from the supplied
     history, and the structured-output schema is built per request with the
@@ -147,13 +138,13 @@ silent best effort:
     for substantive contradictions only: PASS with a present blocking
     finding, a missing disposition for an open blocking finding, or an ID
     not disclosed anywhere.
-  - Reviewers can run a read-only `validate-verdict` command in their
-    sandbox that applies the same validation to a draft verdict.
   - Format repair compares substance (outcome, findings with severity and
     evidence, criteria outcomes, coverage decisions, dispositions); free
     text that depends on a repaired field may change.
-  - Contract rejections and normalizations are counted per rule in the
-    metrics store.
+  - Moved to the follow-up feature (D36): mechanical normalization of a
+    misplaced known field, `not-assessed` for a missing peer disposition,
+    repair-turn tokens and duration, the read-only `validate-verdict`
+    command, and per-rule rejection and normalization counts.
 - **AC6. Round policy (slice 4).**
   - Each review scope (slice PR, feature-final review, or one planning
     document) has a round counter: one paired review of one candidate revision
@@ -161,7 +152,8 @@ silent best effort:
     human-approved amendment resets it. `status` shows the scope and round.
   - Rounds 1–3: every in-scope finding with a failure scenario that is not low
     blocks. Rounds 4–5: only high findings and medium regressions of the
-    previous fix block; other findings become follow-ups. Low never blocks in
+    previous fix block; other findings stop blocking and stay visible on the
+    pair (recording them as follow-ups is AC7, moved by D36). Low never blocks in
     any round, including a low regression of the previous fix. At round 6 the review is not
     qualifying until the human records continue, amend, waive or split; in a
     goal run round 6 requires `goal.park` instead, and adjudication past round
@@ -171,33 +163,9 @@ silent best effort:
     when a light run's counter reaches 4.
   - PROTOCOL.md's "no fixed ratios or round cap" statement is replaced by this
     policy.
-- **AC7. Follow-ups and the Completion decision (slice 4).**
-  - Low findings, findings demoted in rounds 4–5 and out-of-model findings are
-    recorded as follow-ups in the workflow database with the original finding,
-    round, reviewer and reason; `follow-ups.md` is generated from that record.
-  - Completion is refused while any follow-up lacks a decision (accept risk,
-    new work, or reject), and decisions may be recorded in bulk.
-  - Default decisions are recorded under a `policy-default` authority kind,
-    never reported as human-confirmed, and listed by `status`: low → accept
-    risk, medium → new work. High has no default.
-  - A supervised run accepts "accept the defaults" as one human answer.
-  - A goal run applies the defaults itself at Completion; an open high
-    follow-up blocks the ready-PR terminal state and requires `goal.park`.
-  - In a goal run, medium follow-ups' new work is filed as GitHub issues when
-    the repository has issues enabled, otherwise recorded as seeds in
-    `follow-ups.md`.
-- **AC8. Failure model in specs (slice 4).**
-  - The spec template has a required `Failure model` section.
-  - `spec.validate` for full-rigor specs fails, naming the line, when the
-    section is missing or empty, or when an acceptance criterion or rubric
-    row uses `always`, `any`, `all cases`, `never fails`, `converges` or
-    `robust` without a numeric bound or a reference to the failure model on
-    the same line.
-  - Specs validated before this version produce a warning instead of a
-    failure on resume.
-  - The failure model is passed to code reviewers and planning reviewers, and
-    reviewer instructions classify out-of-model findings as low.
-  - Light briefs may omit a failure model; no lint applies then.
+- **AC7. Follow-ups and the Completion decision.** Moved to the follow-up
+  feature (D36).
+- **AC8. Failure model in specs.** Moved to the follow-up feature (D36).
 - **AC9. CI after review convergence (slice 5).**
   - `candidate.prepare`, `review.execute` and alternative Verification work on
     a candidate head that exists only as a local commit.
@@ -258,43 +226,28 @@ silent best effort:
   - The sweep never removes the main checkout, an open-PR worktree, the
     worktree containing its working directory, or a development branch with
     commits not on the remote.
-- **AC11. Measurement, surfaces and packaging (all slices).**
-  - The shared metrics store records per finding: severity, class ID, class
-    statement, criterion, blocking status, round, reviewer provider and model,
-    and follow-up status and disposition; per reviewer result, the UNAVAILABLE
-    reason; per scope, round numbers.
-  - A metrics report computes the four D6 measures from the store alone.
-  - CLI status, desktop views, PROTOCOL.md, WORKFLOW.md, the boundary
-    procedure and the user guide reflect the new behaviour; resource sync,
+- **AC11. Compatibility, surfaces and packaging (all slices).**
+  - CLI status shows the review scopes and rounds; PROTOCOL.md, WORKFLOW.md
+    and the boundary procedure reflect the new behaviour; resource sync,
     contract and plugin checks pass.
   - Runs and specs from earlier contracts keep working. The new finding fields
-    (AC3), sweep records (AC4) and round policy (AC6) apply only to reviews
-    executed under this version. Results, findings and dispositions retained
-    from an earlier version keep their recorded outcome and qualification on
-    resume; their findings read as severity `unrated` and block exactly as
-    under their original contract; a later review on a resumed run applies the
-    new contract, with its round count starting at 1.
-- **AC12. Reviewer input and activity retention (slice 3).**
-  - For every reviewer run (boundary, gate and planning reviews), the
-    instructions, input and output schema are stored as content-addressed
-    objects in the feature's workflow state, referenced from the receipt; the
-    exact prompt text the provider received is reconstructible byte for byte
-    from the workflow state alone, and its digest matches the receipt's.
-  - The Codex `--json` event stream is stored whole as an object referenced
-    from the receipt.
-  - The Claude reviewer runs with `--output-format stream-json --verbose`; its
-    event stream, including tool calls, is stored whole as an object referenced
-    from the receipt, and the structured result and context ID are read from
-    the stream's final `result` event.
-  - When a result is UNAVAILABLE because of a contract or malformed-output
-    error, the raw output text and the validation errors are stored and
-    referenced from that result.
-  - Retained objects are not truncated (D30); the isolation flags are
-    unchanged; receipts from earlier versions without these references remain
-    valid.
+    (AC3) and round policy (AC6) apply only to reviews executed under this
+    version. Results, findings and dispositions retained from an earlier
+    version keep their recorded outcome and qualification on resume; their
+    findings read as severity `unrated` and block exactly as under their
+    original contract; a later review on a resumed run applies the new
+    contract, with its round count starting at 1.
+  - Moved to the follow-up feature (D36): per-finding and per-reviewer metrics
+    fields, the four D6 measures from the store, desktop views and the user
+    guide.
+- **AC12. Unharvested workflow state in the sweep (slice 6, D31).**
   - The worktree sweep lists a worktree's `.gatereeve-current/` unless a harvest
     marker (`.gatereeve-current/harvested.json` with an ISO `harvestedAt`) is
     newer than every other file in it (D31).
+  - Moved to the follow-up feature (D36): reviewer input and activity
+    retention (stored instructions, input, schema and event streams,
+    reconstructible prompts, Claude stream-json, retained raw output on
+    contract failures).
 
 - **AC13. Workflow robustness (slice 2, D33).**
   - The feature's `decisions.md` is created with the other lifecycle
@@ -316,13 +269,18 @@ silent best effort:
 | R1 | AC1 idle lock | Tests show the wrapped command with the exact flags and a bounded secret-free `--why` when `systemd-inhibit` is present, a byte-identical command when absent or when the lock probe is refused (with `idleInhibitor: false`), stdin delivered, exit code preserved, timeout terminating the reviewer process, the size guard counting the added arguments, and `idleInhibitor` in the receipt; a live Linux run shows the lock in `systemd-inhibit --list` during a review | Any listed behaviour missing, a review failing because the lock was refused, or the command changed when absent | Adapter unit tests + live host check |
 | R2 | AC2 metrics repair | A full CLI test run, including suites run directly with `node --test` in parallel shards, leaves the shared store's row count and the host scratch root's run and report counts unchanged and never fails on lock contention; tests show run creation without the global lock, cleanup holding the lock only for the tombstone rename, a waiter on a live holder not timing out, and an interrupted lock still reported; purge previews then removes only test-suite rows; capture succeeds on duplicate observation times; status reports the real count; a decision's pending time precedes its answer; report retention removes only reports past the age or count limit whose runs are gone; previews and doctor show file counts; stranded runs are labeled with their count and command | Any shared-store or host-scratch write from tests, a non-test row purged, a report for an existing run removed, a missing file count or stranded label, or a listed bug reproducible | Metrics tests + before/after store counts |
 | R3 | AC3 severity and class | Contract tests reject findings missing severity, failure scenario, class ID or class statement in every gate and rigor; low never blocks; paired disagreement resolves to the higher rating; a disposition cannot change severity | Any missing field accepted, a low finding blocking, or severity changed by a disposition | Protocol contract tests |
-| R4 | AC4 sweep records | Tests reject a `fixed` disposition missing any sweep field (naming it), accept a one-site record with its search, and show the next round's input carrying the records | Any missing field accepted, a valid one-site record refused, or records absent from the next round | Protocol tests + reviewer input inspection |
-| R5 | AC5 robustness | Tests show one automatic repair turn on a contract error, UNAVAILABLE when repair fails or changes substance, mechanical normalization recorded as `normalized`, `not-assessed` for a missing peer disposition with the finding open, a reason code on every UNAVAILABLE, and repair turns excluded from the round count with tokens and time recorded; reviewer input naming the required dispositions; a per-request schema with finding-ID enums; a disclosed-but-not-required ID normalized rather than rejected (including IDs only inside earlier UNAVAILABLE results); a present-but-low historical finding not blocking; `validate-verdict` matching the contract validator; a repair with consistent rewording of dependent text accepted; per-rule rejection counts stored | A second repair attempt, a substantive repair accepted, a missing reason code, a repair counted as a round, a substantively valid verdict rejected for bookkeeping, or a present-but-low finding blocking | Protocol tests with fake reviewer adapters |
+| R5 | AC5 robustness | Tests show one automatic repair turn on a contract error for either provider, UNAVAILABLE when repair fails or changes substance, a reason code on every UNAVAILABLE, and repair turns not counted as rounds; reviewer input naming the required dispositions; a per-request schema with finding-ID enums; a disclosed-but-not-required ID normalized rather than rejected (including IDs only inside earlier UNAVAILABLE results); a present-but-low historical finding not blocking; a repair with consistent rewording of dependent text accepted | A second repair attempt, a substantive repair accepted, a missing reason code, a repair counted as a round, a substantively valid verdict rejected for bookkeeping, or a present-but-low finding blocking | Protocol tests with fake reviewer adapters |
 | R6 | AC6 round policy | Tests cover the counter per scope, UNAVAILABLE rounds counting, reset only by amendment, the three schedule bands (including a low regression of the previous fix not blocking and a medium one blocking in rounds 4–5), round 6 requiring a human decision (or `goal.park` in goal runs, with adjudication refused), planning and light runs following it, and the light-run advice at 4; PROTOCOL.md replaced | Any band mis-applied, a reset without amendment, round 6 passing without the required decision, or the old statement retained | Protocol tests + doc diff |
-| R7 | AC7 follow-ups | Tests show follow-up records and generated `follow-ups.md`, Completion refused with an undecided follow-up, bulk decisions, `policy-default` authority never reported as human-confirmed, the low/medium defaults and no high default, the supervised single answer, and goal runs applying defaults, filing or seeding medium work, and parking on open high | Any follow-up lost, Completion allowed undecided, a default reported as human, a high default applied, or a goal run reaching ready-PR with open high | Protocol tests + generated file inspection |
-| R8 | AC8 failure model | `spec.validate` fails naming the line for a missing or empty section and for each listed word without a bound or reference, passes with one; old validated specs warn; reviewer inputs carry the model; light briefs without one lint clean | A listed case passing or failing wrongly, or reviewers lacking the model | Spec-lint tests + reviewer input inspection |
 | R9 | AC9 CI after convergence | Tests show preparation and review on an unpushed local head, a Verification without a receipt on the candidate tree making the review not qualifying, reviewer instructions assessing changed-area and affected-suite receipts, a same-tree CI Verification with covered receipts qualified mechanically without invalidating converged reviews or launching reviewers, an uncovered consumed receipt failing the check by name, a different-tree CI Verification rejected naming both trees, acceptance refused on local evidence alone in a repository with hosted CI (D35), the CI-failure delta path, and the push warning without denial; docs updated | A paired re-review required after same-tree covered CI, an uncovered receipt or a different tree accepted, acceptance on local evidence alone in a repository with hosted CI, or a push denied solely because reviews have not converged | Protocol tests + hook tests + doc review |
 | R10 | AC10 sweep | Tests over fixture repositories cover discovery, every candidate rule, every skip with its reason, every listed item, exactly the listed regenerable directory names (and a git-config extension) not listed while any other ignored file such as `.env` is listed, `pr-state-unknown` skips, preview by default, confirmed removal with prune and merged-only branch deletion, untouched remote branches, and non-interactive removal limited to empty lists | Any protected worktree removed, a worktree with unknown PR state removed, a listed item omitted, a remote branch touched, or an interactive removal without confirmation, or a non-interactive removal of a worktree with a non-empty list | CLI tests with fixture repositories |
-| R12 | AC12 reviewer retention | Tests reconstruct a review round's exact prompt from the workflow state alone and match the receipt digests; show the Codex and Claude event streams stored whole and referenced (Claude parsed from stream-json, including a tool call); raw output and validation errors stored for a contract failure; a legacy receipt still valid; the sweep listing unharvested state and not listing state with a newer harvest marker | Any prompt not reconstructible, a stream missing or truncated, failed output lost, a legacy receipt rejected, or unharvested state deleted without being listed | Adapter and protocol tests + sweep fixture tests |
-| R11 | AC11 measurement and surfaces | Tests show each listed metrics field stored, a retained earlier-version result keeping its outcome and qualification on resume with `unrated` findings, a later review on that run applying the new contract from round 1, and the four D6 measures reported from the store alone; surfaces and docs updated; the existing suites pass with only the test edits these criteria require; sync, contract and plugin checks pass | A field missing, a measure needing a worktree, a surface or doc missing, or an existing test failing | Metrics tests + full suites + plugin checks |
+| R12 | AC12 unharvested state in the sweep | Sweep fixture tests list unharvested workflow state and do not list state with a newer harvest marker | Unharvested state deleted without being listed | Sweep fixture tests |
+| R11 | AC11 compatibility and surfaces | Tests show a retained earlier-version result keeping its outcome and qualification on resume with `unrated` findings, a later review on that run applying the new contract from round 1, and status showing review scopes and rounds; PROTOCOL.md, WORKFLOW.md and the boundary procedure updated; the existing suites pass with only the test edits these criteria require; sync, contract and plugin checks pass | A retained result losing its qualification, a resumed run not applying the new contract, a listed doc missing, or an existing test failing | Protocol tests + full suites + plugin checks |
 | R13 | AC13 workflow robustness | Tests show `decisions.md` created with the lifecycle documents and `candidate.prepare` failing by name without it; a declared check replacement accepted at acceptance after the consuming paired review passes its coverage decision and refused when it fails; `job.abandon` accepted for a gone runner or assessment job, refused for a live one or a delivery job, and older proof qualifying again after abandonment | A missing decisions log found only at review, a replacement needing a separate round or accepted without the review decision, or an abandoned delivery job | Protocol tests |
+
+## Moved to the follow-up feature (D36)
+
+Sweep records (AC4), follow-ups and the Completion decision (AC7), the
+failure model in specs (AC8), the listed parts of AC5 and AC11, and the
+retention part of AC12, with their former rubric rows R4, R7 and R8, are moved
+to the follow-up feature in `follow-up-feature.md`. Rubric row numbers are
+kept.

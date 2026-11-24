@@ -718,3 +718,25 @@ and the Fleet thread's reviewer idle-inhibitor request.
   mandate" (human, 2026-11-24, after both C1 round-2 reviewers asked for the
   decision in the pinned requirements). spec.md AC9 and R9 and design.md (CI
   after convergence) now carry the D35 reading.
+
+### D36 - Cut the remaining scope to a follow-up feature and ship
+
+- **Question:** After PR C1 merged, AC4, AC7, AC8, part of AC5 and AC11, and
+  the retention part of AC12 remained (about two more C1-sized PRs). Build them
+  here (B2, C2), or cut them to a follow-up feature and ship what is delivered
+  as a release?
+- **Answered by:** human
+- **Answer:** "Amend the spec to move AC4, the rest of AC5, AC7, AC8, the rest
+  of AC11 and AC12 into the follow-up feature and authorize implementation of
+  the amended spec; commit the docs directly to the integration branch; run
+  one feature-final review round" (2026-11-24), after: "I like the idea of
+  cutting and getting what we have deployed as a new version and published,
+  and then following up with further feature work."
+- **Decision:** spec.md, design.md, plan.md, issues.md and tracker.md move
+  that scope to `follow-up-feature.md`, which also records the recommendation
+  to do AC4 and AC8 first, for convergence speed. This feature ships slice 1,
+  PR A, PR B1 and PR C1. The amendment docs are committed directly to the
+  integration branch, and the feature-final paired review runs one round.
+  Non-blocking findings go to the follow-up brief; blocking findings return
+  to the human. Merging into main and the release remain separate human
+  instructions.
