@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:6d4bf582f35b8b2cf921d2db45bd1dbeecc410e7755abc3cdb3f568a506666b9",
+  "protocolHash": "sha256:c4a326acc076941921d2bd40f39b85883ffe42c1875204971cce6f0dc43dba35",
   "contract": "gatereeve/current/8",
-  "contractSha256": "7667d7eeff6381d189f3f19c835ebedbd3fc88650f80a735d39c68f3e1576823",
+  "contractSha256": "1df0afc21301595b72a5f9bdad3ab2aade7452ad1c5a4f97455bde354bf1120a",
   "files": [
     {
       "path": "agent-workflow.js",
@@ -37,13 +37,18 @@
     },
     {
       "path": "current/autonomous.js",
-      "size": 8268,
-      "sha256": "6d88de765a2ee0edf94585197f36e9eb1ab4b9f46334822bab46853bd4fddc58"
+      "size": 8480,
+      "sha256": "e14dcb0efa10f71ea409ef50a6123f62426e515abd656ec322e2552534a96d32"
     },
     {
       "path": "current/boundary-review.js",
-      "size": 15669,
-      "sha256": "255abc45cd9216d5bd9656ae80615e9b7a6ef1f2590a73b98e28653d289f2e02"
+      "size": 22941,
+      "sha256": "63d64c5c38ace936efcab4223bf11291baa74c83768d1c3294c2d15f0b8d0e1a"
+    },
+    {
+      "path": "current/ci-qualification.js",
+      "size": 6865,
+      "sha256": "94b6de90efa0318bc63ed3c8b8f69262e1d52e4cf302e35ae8a4ee56446c41e6"
     },
     {
       "path": "current/command-guard.js",
@@ -52,13 +57,13 @@
     },
     {
       "path": "current/contracts.js",
-      "size": 25959,
-      "sha256": "7667d7eeff6381d189f3f19c835ebedbd3fc88650f80a735d39c68f3e1576823"
+      "size": 26255,
+      "sha256": "1df0afc21301595b72a5f9bdad3ab2aade7452ad1c5a4f97455bde354bf1120a"
     },
     {
       "path": "current/core.js",
-      "size": 105481,
-      "sha256": "9b86c1af885924172a1b9d66bfcb00ee04962ec2aabf8fdfc3f3093ce5662bfb"
+      "size": 112088,
+      "sha256": "92c0c534dd89020715122eb00dc8b80c8c429cfcb2d32879f4b2ba5454dc9d6f"
     },
     {
       "path": "current/coverage.js",
@@ -67,8 +72,8 @@
     },
     {
       "path": "current/delegation.js",
-      "size": 38108,
-      "sha256": "da80bfbf9a840db3821a8e85808ab3e7c1efd44c2c6b0de98220485d874fec31"
+      "size": 42730,
+      "sha256": "2c21a2c7f0a4498df8d0ad4e4a9616bcf65e2dbee6085dd523e49e9a356c7cb6"
     },
     {
       "path": "current/delivery.js",
@@ -97,8 +102,8 @@
     },
     {
       "path": "current/execution.js",
-      "size": 90100,
-      "sha256": "ce34cdf7faa8aaf20cb481acf73e8efb0e51708783e41f7c9f7558679903cb65"
+      "size": 95131,
+      "sha256": "52eb82ee26a195fbffc62dc25d8e93ab2631f3d78afdebb9e60fcc5629153bfb"
     },
     {
       "path": "current/final-handoff.js",
@@ -142,8 +147,8 @@
     },
     {
       "path": "current/pre-tool-use.js",
-      "size": 8176,
-      "sha256": "64209807d93a09770cc830df938acbf7d98db741e971b732b50e368d53b0fa48"
+      "size": 10000,
+      "sha256": "7d811e2b141572bb41d206f026dc3dd94d2e0286e895ea4227047ee0571a1eaf"
     },
     {
       "path": "current/publication.js",
@@ -152,8 +157,8 @@
     },
     {
       "path": "current/review-findings.js",
-      "size": 4201,
-      "sha256": "5f6e116840e3c642e5ca572a218f6e9967a02fd52aa09ecf71cb65d9038499c4"
+      "size": 6773,
+      "sha256": "9777cf4c2131067e05a69e8c16354012438d588e3feb1b3c7c96de2a7668c3f0"
     },
     {
       "path": "current/review-history.js",
@@ -164,6 +169,11 @@
       "path": "current/reviewer-selection.js",
       "size": 4890,
       "sha256": "b5e721bf0aff67e0cb7a555579c6cc999dae883d87a8f470ec5e1027749c0e3c"
+    },
+    {
+      "path": "current/round-policy.js",
+      "size": 7981,
+      "sha256": "669fa6bfe5f9094df6862c4565d5b0e2bedb3a2fb8264a58a5c99b8e6182be92"
     },
     {
       "path": "current/runner-profile.js",
@@ -197,8 +207,8 @@
     },
     {
       "path": "current/validation-scope.js",
-      "size": 3637,
-      "sha256": "6be3a3715ef93c6e71886d0114afe2dca650ee54d097646575706438b1ae2a26"
+      "size": 5620,
+      "sha256": "fa4f6fff5c983bcb92215d195ea7da638b3b12605650a9782460057f7c21307a"
     },
     {
       "path": "current/workflow-database.js",

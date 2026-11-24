@@ -2,10 +2,12 @@ import { identity, requireThat, text, mandateRebuttal } from './contracts.js';
 import { boundaryReviews } from './boundary-review.js';
 import { checkCandidate } from './evidence.js';
 import { guardDelegatedAction, isAutonomous } from './delegation.js';
+import { refuseLateAdjudication } from './round-policy.js';
 
 export function eligibleResidualRisk(pair, mandate = null, rebuttal = null) {
   requireThat(pair.members.length === 2, 'Residual-risk acceptance requires both independent perspectives');
   requireThat(pair.initialEstablished !== false, 'Initial reviewer independence must be established before adjudication');
+  refuseLateAdjudication(pair.round?.round); // Round 6 hands back (spec AC6, D23).
   if (rebuttal) { requireThat(mandate, 'A rebuttal needs the fixed mandate'); mandateRebuttal(rebuttal, mandate); }
   for (const member of pair.members) {
     const { result } = member;
@@ -27,9 +29,9 @@ export function eligibleResidualRisk(pair, mandate = null, rebuttal = null) {
     }
     requireThat(!(result.coverageDecisions ?? []).some(row => row.outcome !== 'PASS'), 'Rejected verification coverage cannot be adjudicated');
     // A FAIL resting only on low findings is already recorded as PASS by the
-    // validator (AC3); any FAIL left without a material finding has another
-    // cause and needs reviewer clarification.
-    requireThat(result.outcome !== 'FAIL' || (member.materialFindings ?? result.findings).some(finding => finding.blocking),
+    // validator (AC3); a FAIL the round schedule demotes counts as PASS for the
+    // pair (AC6); any other FAIL without a material finding needs clarification.
+    requireThat(result.outcome !== 'FAIL' || member.outcome === 'PASS' || (member.materialFindings ?? result.findings).some(finding => finding.blocking),
       'An unexplained failed assessment needs reviewer clarification, not residual-risk acceptance');
   }
   const findings = new Map();

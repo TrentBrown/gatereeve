@@ -10,7 +10,7 @@ export const DIALS = Object.freeze({ rigor: Object.freeze(['full', 'light']), au
 export const LEGACY_AUTONOMY = Object.freeze({ autonomous: 'mandated' });
 export const autonomyAlias = value => Object.hasOwn(LEGACY_AUTONOMY, value) ? LEGACY_AUTONOMY[value] : value;
 // Normalize a recorded dial value (STARTED choice or DIAL_SET) on replay.
-export const DECISION_KINDS = Object.freeze(['approve-design', 'authorize-implementation', 'accept', 'waive', 'amend', 'policy-amend', 'authorize-merge', 'authorize-standing', 'revoke-standing', 'stay-light']);
+export const DECISION_KINDS = Object.freeze(['approve-design', 'authorize-implementation', 'accept', 'waive', 'amend', 'policy-amend', 'authorize-merge', 'authorize-standing', 'revoke-standing', 'stay-light', 'review-rounds']);
 // Spec AC2: a decision question is recorded when it is presented, so the
 // human's wait until the answer is measurable. It carries no authority.
 export function decisionQuestion(input) {
@@ -119,7 +119,8 @@ export function delegatedAuthority(value) {
 }
 export function decision(value) {
   object(value, 'Decision');
-  requireThat(Object.keys(value).every(key => ['kind', 'subject', 'authority', 'reason', 'consequences', 'actions', 'gates', 'findings', 'action', 'previousSubject', 'scope', 'waiverBasis'].includes(key)), 'Unsupported decision field; scope must be explicit in the supported contract');
+  requireThat(Object.keys(value).every(key => ['kind', 'subject', 'authority', 'reason', 'consequences', 'actions', 'gates', 'findings', 'action', 'previousSubject', 'scope', 'waiverBasis', 'reviewScope', 'choice'].includes(key)), 'Unsupported decision field; scope must be explicit in the supported contract');
+  requireThat((value.reviewScope === undefined && value.choice === undefined) || (value.kind === 'review-rounds' && typeof value.reviewScope === 'string' && typeof value.choice === 'string'), 'reviewScope and choice belong to a review-rounds decision');
   requireThat(DECISION_KINDS.includes(value.kind), 'Unknown decision kind');
   requireThat(value.scope === undefined || value.kind === 'authorize-standing', 'Scope is only supported on a standing grant');
   if (value.authority?.kind === AUTONOMOUS_AUTHORITY) {

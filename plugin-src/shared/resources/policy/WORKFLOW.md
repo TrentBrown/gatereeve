@@ -35,8 +35,13 @@ policy to satisfy a gate. Preserve source control for the application itself.
 
 Within the authorized phase the model chooses execution order, batching, tests,
 remediation and delegation consistent with user/host instructions. Readiness does
-not launch review. Explicit execution requests do. There is no automatic retry
-round cap; change approach when repeating a failure and respect human stop rules.
+not launch review. Explicit execution requests do. Review rounds follow the round
+policy (PROTOCOL.md): rounds 1-3 block non-low findings, rounds 4-5 only high
+findings and medium regressions of the previous fix, and round 6 hands back to the
+human (a goal run parks). Iterate rounds on local commits with local Verification,
+push once after the reviews converge, and record the hosted CI run as the final
+Verification; after a CI failure, run one paired delta round on the fix and rerun
+CI. Change approach when repeating a failure and respect human stop rules.
 Keep issues, tracker and decision notes useful without generating ceremony on
 each commit. Ordinary commits do not require milestone passage.
 

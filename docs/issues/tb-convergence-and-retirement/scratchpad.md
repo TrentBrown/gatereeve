@@ -150,6 +150,53 @@ round (round 4); then adjudicate.
 **Rationale:** Automatic deletion by name pattern kept failing review; human
 confirmation removes the risk class instead of narrowing it.
 
+## [8] PR C1: readings of AC6 and AC9
+
+[ ] **Promote**
+
+**Answered by:** agent (implementation sub-agent, 2026-11-24)
+
+**Confidence:** MEDIUM
+
+**Context:** AC6 and AC9 leave several mechanics open; PR B1's severity field
+lands in parallel.
+
+**Decision:**
+- (a) Scopes are `slice`, `feature-final` and `planning:<artifact>`. A round is
+  one reviewed candidate *content* revision; reviewing the same revision again
+  (for example after an UNAVAILABLE peer) is the same round. Observing a slice's
+  integration closes the `slice` scope, so the next slice PR starts at round 1.
+  In a light run, which has no `amend`, a human re-authorization of a changed
+  brief is the amendment that resets the counters.
+- (b) A "regression of the previous fix" is a finding new in the round on a path
+  (planning: a document) the previous round's revision changed. No reviewer
+  field is added.
+- (c) Rounds 4-5 demote findings mechanically; a reviewer FAIL explained only by
+  demoted findings counts as PASS for the pair, the original outcome is kept.
+  Until B1 lands, findings read `unrated` and block as before.
+- (d) Round 6: new decision kind `review-rounds` (`continue` or `split`, human
+  only); after it, later rounds keep the round 4-5 band. A new revision is not
+  reviewed past round 6 without it. `amend` resets; `waive` uses the existing
+  waiver. Adjudication at round 6 or later is refused in every autonomous mode.
+- (e) Acceptance (human decision D35, 2026-11-24, option A): a candidate
+  repository whose tree has hosted CI workflows (`.github/workflows/`) is
+  accepted only on a passing `ci` Verification for the exact candidate head;
+  local evidence alone never suffices there (AC9, R9). A repository with no
+  hosted CI keeps the independently assessed local `alternative`, as before,
+  because it has no CI to run. A latest local Verification the converged
+  reviews did not assess is refused either way. A `ci` Verification recorded
+  after convergence is qualified by the runner-role check, derived at each
+  milestone and at reuse (no model call, no separate event). A local receipt is
+  matched to a CI check through an optional `ciCheck` on the check (else its
+  `purpose`).
+- (f) A `ci` Verification may carry no local checks; a review consuming only
+  such a Verification has no receipt on the candidate tree and is not
+  qualifying.
+
+**Rationale:** Each reading fails safe or keeps existing proof; requiring CI for
+every acceptance would break every repository without hosted CI. Reversible by
+amendment.
+
 ## [9] PR B1: scope of the reviewer-contract speed-ups
 
 **Answered by:** agent (under the mandate and D34)

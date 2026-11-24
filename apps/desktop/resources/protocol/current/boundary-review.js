@@ -3,6 +3,58 @@ import { reviewerSelection, modelProvider } from './reviewer-selection.js';
 import { executeGates, changedPaths, findingSeverity, severityRank } from './execution.js';
 import { contentIdentity } from './evidence.js';
 import { findingObligations, retainedReviewScope } from './review-findings.js';
+import { boundaryScope, scheduledRound, currentRevision, assertRoundOpen, scheduledBlocking, roundHandBack, roundDecision, NARROW_FROM, ROUND_POLICY } from './round-policy.js';
+import { isGoal } from './delegation.js';
+
+// The schedule for the current revision of its scope (spec AC6). Regressions
+// of the previous fix are new findings on paths that fix changed.
+// Paths each counted revision changed relative to the revision of the round
+// before it, keyed by that revision's candidate hash. A finding is a
+// regression of the previous fix when it is on such a path in the round it was
+// raised, and it keeps that status in later rounds until it is resolved.
+async function regressionPathsByCandidate(core, state, scope) {
+  const revisions = state.reviewScopes?.[scope]?.revisions ?? [], paths = new Map();
+  for (const [index, row] of revisions.entries()) {
+    const before = revisions[index - 1];
+    if (!row.candidate || !before?.candidate) continue;
+    try { paths.set(row.candidate.hash, new Set(changedPaths(await core.store.json(before.candidate), await core.store.json(row.candidate)))); }
+    catch { /* An unreadable revision gives no regression evidence; such findings read as non-regressions. */ }
+  }
+  return paths;
+}
+async function roundSchedule(core, state, candidate) {
+  // Only the scope's latest revision keeps its counted round. Any other
+  // revision, never counted or restored from an earlier round, is reviewed as
+  // the next round, so retained proof of an earlier revision cannot qualify
+  // past the round 6 hand-back. Null only with no round under this policy.
+  const scope = boundaryScope(candidate), round = scheduledRound(state, scope, contentIdentity(candidate));
+  const byCandidate = round !== null && round >= NARROW_FROM ? await regressionPathsByCandidate(core, state, scope) : new Map();
+  const revisions = state.reviewScopes?.[scope]?.revisions ?? [];
+  const current = currentRevision(state, scope, contentIdentity(candidate)) ? revisions.at(-1)?.candidate?.hash : null;
+  let regressionPaths = byCandidate.get(current) ?? new Set();
+  // An uncounted revision's regressions are measured against the last counted one.
+  if (!current && round !== null && round >= NARROW_FROM && revisions.at(-1)?.candidate) {
+    try { regressionPaths = new Set(changedPaths(await core.store.json(revisions.at(-1).candidate), candidate)); } catch { /* no regression evidence */ }
+  }
+  return { scope, round, regressionPaths, handBack: roundHandBack(state, scope, round, isGoal(state)),
+    // `origin` is the candidate hash of the review that raised a prior finding.
+    blocks: (finding, prior, origin) => scheduledBlocking(finding, { round,
+      regression: prior ? Boolean(origin && byCandidate.get(origin)?.has(finding.path)) : regressionPaths.has(finding.path) }) };
+}
+// Spec AC9: the Verification a round consumes needs at least one runner receipt
+// executed on the candidate tree. Consumed proof is already qualified as current
+// for this candidate's content, so its receipts ran on this tree.
+async function consumedReceipts(core, inputs) {
+  let count = 0;
+  for (const ref of inputs.consumed ?? []) {
+    try {
+      const report = await core.store.json(ref);
+      if (report.gate !== 'verification' || !report.runner) continue;
+      count += ((await core.store.json(report.runner)).receipts ?? []).filter(item => item.outcome === 'PASS').length;
+    } catch { /* Unreadable proof contributes no receipt. */ }
+  }
+  return count;
+}
 
 async function initialPeerReport(core, ref, selected, candidate) {
   const report = await core.store.json(ref);
@@ -90,6 +142,7 @@ export async function selectReviewers(core, input, operation) {
 export async function boundaryReviews(core, state, candidate, memo = new Map(), { allowIncomplete = false } = {}) {
   const selected = state.reviewerSelection;
   requireThat(selected?.selection?.reviewers?.length === 2, 'Two boundary reviewers must be selected (review.select)');
+  const schedule = await roundSchedule(core, state, candidate);
   const members = [];
   for (const reviewer of selected.selection.reviewers) {
     let found = null;
@@ -116,11 +169,30 @@ export async function boundaryReviews(core, state, candidate, memo = new Map(), 
         const receipt = await core.store.json(result.receipt);
         requireThat(result.outcome === 'UNAVAILABLE' || modelProvider(receipt.evaluator?.provider) === reviewer.modelProvider,
           'Reviewer model provider differs from the selected perspective');
-        const obligations = await findingObligations(core, state, candidate, inputs, result);
+        const obligations = await findingObligations(core, state, candidate, inputs, result, schedule.blocks);
         if (result.outcome === 'PASS' && obligations.unreconciledFindings.length) qualification ??= 'Prior withheld findings require follow-up reconciliation';
+        // Rounds 4-5: a FAIL explained only by demoted findings stops blocking;
+        // demoted findings stay visible on the member.
+        const raised = [...(result.findings ?? []).filter(finding => finding.blocking),
+          ...(result.dispositions ?? []).filter(row => row.status === 'present').map(row => obligations.knownFindings.get(row.id)).filter(finding => finding?.blocking)];
+        const demoted = raised.filter(finding => !obligations.materialFindings.some(row => row.id === finding.id)).map(finding => finding.id);
+        // Reviewers receive the round and band (packet.roundPolicy) and apply
+        // it themselves. The mechanical demotion only corrects a blocking flag
+        // the band no longer allows: it applies when the FAIL rests on demoted
+        // findings alone, with every criterion, responsibility and coverage
+        // decision passing. Any failed row keeps the reviewer's FAIL, so an
+        // unrelated finding never excuses an independent failure.
+        const demotedRows = raised.filter(finding => demoted.includes(finding.id));
+        const explained = demotedRows.length > 0
+          && ['criteria', 'dimensions', 'coverageDecisions'].every(key => (result[key] ?? []).every(row => row.outcome === 'PASS'));
+        const outcome = result.outcome === 'FAIL' && schedule.round >= NARROW_FROM && explained && !obligations.materialFindings.length
+          && !obligations.unreconciledFindings.length && result.coverage?.complete === true && !result.coverage.limitations?.length
+          && (!result.mandateAssessment || result.mandateAssessment.outcome === 'PASS') ? 'PASS' : result.outcome;
+        if (result.outcome !== 'UNAVAILABLE' && !await consumedReceipts(core, inputs)) qualification ??= 'The consumed Verification has no runner receipt on the candidate tree';
+        if (schedule.handBack) qualification ??= schedule.handBack;
         const changes = result.mode === 'delta' ? changedPaths(await core.store.json(result.priorCandidate), candidate) : null;
         const incompleteDelta = Boolean(changes && (!changes.every(path => result.coverage.paths.includes(path)) || !result.coverage.interactions.length));
-        found = { ref, result, receipt, reviewer, qualification, ...obligations, incompleteDelta };
+        found = { ref, result, receipt, reviewer, qualification, ...obligations, incompleteDelta, outcome, demotedFindings: [...new Set(demoted)] };
         break;
       } catch (error) {
         // Matching exact candidate results that fail qualification are a proof
@@ -133,18 +205,36 @@ export async function boundaryReviews(core, state, candidate, memo = new Map(), 
     members.push(found);
   }
   requireThat(new Set(members.map(member => member.reviewer.modelProvider)).size === 2, 'Boundary review needs distinct model providers');
+  // Rounds 4-5: a concurrent peer FAIL that the schedule demotes to PASS is not
+  // newer blocking evidence against this member's PASS. Only that exact peer
+  // is excused: any other later review result keeps the qualification.
+  if (schedule.round !== null && schedule.round >= NARROW_FROM) for (const member of members) {
+    if (!member.ref || !member.qualification?.startsWith('Newer blocking review requires')) continue;
+    const peer = members.find(other => other !== member && other.ref);
+    if (!peer || peer.result.outcome !== 'FAIL' || peer.outcome !== 'PASS' || peer.qualification) continue;
+    const position = ref => state.results.findIndex(item => item.hash === ref.hash);
+    const later = state.results.slice(position(member.ref) + 1);
+    let others = false;
+    for (const ref of later) {
+      if (ref.hash === peer.ref.hash) continue;
+      try { if ((await core.store.json(ref)).gate === 'review') { others = true; break; } } catch { others = true; break; }
+    }
+    if (!others) member.qualification = null;
+  }
   const contexts = members.map(member => member.receipt.evaluator?.contextId).filter(Boolean);
   requireThat(new Set(contexts).size === contexts.length, 'Boundary reviewers must use separate fresh contexts');
   const initial = await initialRound(core, state, selected, memo);
   requireThat(initial || allowIncomplete || state.boundaryReviewHistory.some(round => round.selection === selected.event && round.round),
     'A coordinated independent initial review round is required (review.execute); serial individual reviews cannot establish it');
   if (!initial) for (const member of members) member.qualification ??= 'Coordinated initial independence is not established';
-  const outcome = members.some(member => member.result.outcome === 'FAIL') ? 'FAIL'
-    : members.every(member => member.result.outcome === 'PASS' && !member.qualification) ? 'PASS' : 'UNAVAILABLE';
+  const effective = member => member.outcome ?? member.result.outcome;
+  const outcome = members.some(member => effective(member) === 'FAIL') ? 'FAIL'
+    : members.every(member => effective(member) === 'PASS' && !member.qualification) ? 'PASS' : 'UNAVAILABLE';
   const severities = pairedSeverities(members);
   return { selection: selected, members, outcome, severities, initialEstablished: Boolean(initial), initialProof: initial,
+    round: { scope: schedule.scope, round: schedule.round, handBack: schedule.handBack, decision: roundDecision(state, schedule.scope) },
     identity: identity({ selection: selected.event, results: members.map(member => member.ref?.hash ?? null) }),
-    summary: members.map(member => `${member.reviewer.modelProvider}: ${member.result.outcome}: ${member.result.summary}${member.unreconciledFindings?.length ? ` Unreconciled prior findings: ${member.unreconciledFindings.join(', ')}.` : ''}${member.incompleteDelta ? ' Changed-path or interaction coverage is incomplete.' : ''}`).join('\n') };
+    summary: members.map(member => `${member.reviewer.modelProvider}: ${member.result.outcome}${effective(member) !== member.result.outcome ? ` (${effective(member)} under the round ${schedule.round} schedule; demoted: ${member.demotedFindings.join(', ')})` : ''}: ${member.result.summary}${member.unreconciledFindings?.length ? ` Unreconciled prior findings: ${member.unreconciledFindings.join(', ')}.` : ''}${member.incompleteDelta ? ' Changed-path or interaction coverage is incomplete.' : ''}`).join('\n') };
 }
 
 export async function executeBoundaryReviews(core, input, operation) {
@@ -158,6 +248,10 @@ export async function executeBoundaryReviews(core, input, operation) {
   const configuration = input.configuration ?? {};
   requireThat(!['provider', 'model', 'reasoningEffort', 'reviewerSelection'].some(key => Object.hasOwn(configuration, key)), 'Review identities come from the recorded selection');
   const begin = { id: `round_${identity(operation.id).slice(7)}`, hash: identity({ operation }) };
+  // Past round 6 a new revision is not reviewed until the human decides (AC6).
+  const reviewed = await core.store.json(state.candidate);
+  const roundPolicy = { policy: ROUND_POLICY, scope: boundaryScope(reviewed), revision: contentIdentity(reviewed) };
+  assertRoundOpen(state, roundPolicy.scope, roundPolicy.revision, isGoal(state));
   const initialEstablished = Boolean(await initialRound(core, state, selected, new Map()));
   let round = currentView.events.find(event => event.operation.id === begin.id);
   if (!round) {
@@ -208,7 +302,7 @@ export async function executeBoundaryReviews(core, input, operation) {
   const current = (await core.state()).state;
   requireThat(current.candidate?.hash === state.candidate?.hash && current.reviewerSelection?.event === selected.event,
     'Candidate or reviewer selection changed during boundary execution; results remain retained');
-  return core.append(current, 'BOUNDARY_REVIEWED', { candidate: state.candidate, selection: selected.event, round: round.hash,
+  return core.append(current, 'BOUNDARY_REVIEWED', { candidate: state.candidate, selection: selected.event, round: round.hash, roundPolicy,
     outcomes: outcomes.map((outcome, slot) => ({ provider: selected.selection.reviewers[slot].provider,
       ...(outcome.status === 'fulfilled' ? { status: 'completed', results: outcome.value.event?.payload.results ?? outcome.value.results ?? [] }
         : { status: 'unavailable', reason: outcome.reason?.message ?? String(outcome.reason) }) })) }, operation);

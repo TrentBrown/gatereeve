@@ -695,3 +695,26 @@ and the Fleet thread's reviewer idle-inhibitor request.
   the full suite. Self-review before paired rounds, one fix commit per round,
   delta rounds after the first. PR A was merged outside GateReeve by human
   decision (run note `prA-outside-merge-note`).
+
+### D35 - AC9 acceptance in repositories without hosted CI
+
+- **Question:** AC9 says acceptance of a candidate requires a passing `ci`
+  Verification on the exact candidate head and that local-only evidence never
+  satisfies acceptance by itself. Read literally, a repository without hosted
+  CI could never be accepted except by waiver. PR C1 reads AC9 as applying to
+  repositories with hosted CI (workflows under `.github/workflows/` in the
+  candidate tree), keeping the independently assessed local `alternative` for
+  repositories without hosted CI. Keep that reading (A), or apply AC9 literally
+  with a waiver for CI-less repositories (B)?
+- **Answered by:** human
+- **Answer:** "I choose your recommended option A above." (2026-11-24)
+- **Decision:** A candidate repository with hosted CI is accepted only on a
+  passing `ci` Verification for the exact candidate head; local evidence alone
+  never suffices there. A repository without hosted CI keeps the independently
+  assessed local alternative. These rules apply to reviews run under the round
+  policy; earlier-contract pairs keep their qualification (AC11).
+- **Amendment:** "Amend AC9/R9 and the design per D35, authorize implementation
+  of the amended spec, and restore full autonomy for this run under the same
+  mandate" (human, 2026-11-24, after both C1 round-2 reviewers asked for the
+  decision in the pinned requirements). spec.md AC9 and R9 and design.md (CI
+  after convergence) now carry the D35 reading.
