@@ -48,7 +48,7 @@ export function fixtureEvaluator(f, { malformed = false, inherited = false, bloc
       launches++;
       const output = { verdicts: request.input.gates.map(id => ({ gate: id, outcome,
         summary: 'Fixture assessment', criteria: criterionRows ?? request.input.criteria.map(id => ({ id, outcome, evidence: 'Fixture source and command receipt' })), coverage: coverage ?? { complete: true, paths: request.input.changedPaths ?? ['app/app.js'], interactions: ['app/app.js'], limitations: [] },
-        coverageDecisions: [], findings: blocking ? [{ id: findingId, classId: 'class-1', criterion: 'R1', path: 'app/app.js', evidence: 'Current defect', blocking: true }] : [], dispositions, historyAssessment })) };
+        coverageDecisions: [], findings: blocking ? [{ id: findingId, classId: 'class-1', classStatement: 'Fixture defect class', severity: 'high', failureScenario: 'Fixture input -> wrong observable output', criterion: 'R1', path: 'app/app.js', evidence: 'Current defect', blocking: true }] : [], dispositions, historyAssessment })) };
       if (malformed) output.verdicts.pop();
       const { sha256Digest } = await import('../../../plugin-src/shared/resources/protocol/agent-workflow.js');
       return { schemaVersion: 1, protocolVersion: request.protocolVersion, stageId: request.stage.id, status: 'completed', output, receipt: { schemaVersion: 1, kind: 'gatereeve-agent-workflow-receipt', protocolVersion: request.protocolVersion, module: request.module, stage: request.stage.id, capabilityProfile: request.capabilityProfile, startedAt: '2026-10-23T00:00:00Z', completedAt: '2026-10-23T00:00:01Z', status: 'completed', runId: request.runId, attemptId: request.attemptId,

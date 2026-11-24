@@ -581,6 +581,37 @@ implementer substitutes for this independent assessment. Historical reports from
 unselected repositories are rejected before export; expand the explicitly declared
 scope when that prior proof is needed.
 
+Reviewer verdicts separate substance from bookkeeping. GateReeve computes, from
+the supplied history, the earlier findings that need a disposition and gives
+them to each reviewer as `dispositionsRequired` (reason `open`, `claimed` or
+`reconsider`). The structured-output schema is built per request: dispositions
+and `historyAssessment.affected` enumerate the finding IDs that request
+disclosed. An ID disclosed anywhere in the supplied history (including inside an
+earlier UNAVAILABLE result) that appears where it is not required, and repeated
+IDs, are dropped and recorded under `normalized`, never rejected. Contract errors
+remain for substantive contradictions: a PASS with a present blocking finding, a
+missing disposition for an open or claimed finding, or an ID disclosed nowhere.
+
+Every finding carries `severity` (`high`, `medium` or `low`, defined by its
+`failureScenario`), a `classId` and a one-line `classStatement`. Low findings
+never block; a low finding marked blocking is recorded non-blocking under
+`normalized`. A historical finding still present but now rated low takes the
+`present-low` disposition, which no longer blocks. Findings retained from
+earlier contracts read as `unrated` and block exactly as recorded. When paired
+reviewers rate one class differently, the pair records the higher rating
+(`severities` on the boundary review).
+
+A reviewer contract error triggers exactly one automatic format-repair turn
+with the same reviewer, for either provider, given the validation error. The
+repair is judged by substance identity: outcome, mandate assessment, findings with
+severity and evidence, criterion outcomes, coverage completeness and
+limitations, coverage decisions, dispositions and responsibility outcomes. Text
+that depends on a repaired field may change, and a field the original omitted
+may be supplied. A repair that still fails or changes substance is UNAVAILABLE.
+Repair turns share the round's baseline and are not rounds. Every UNAVAILABLE
+result carries one `unavailableReason`: `contract`, `malformed-json`,
+`provider-error`, `timeout`, `missing-evidence` or `other`.
+
 Missing historical evidence is recorded in `historyGaps` and shown in status and
 desktop. It never qualifies proof. Fresh full evidence can replace its current
 role without recreating lost bytes; available old finding facts are labeled as

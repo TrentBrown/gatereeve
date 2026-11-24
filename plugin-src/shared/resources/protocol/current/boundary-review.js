@@ -57,6 +57,22 @@ async function initialRound(core, state, selected, memo) {
 }
 
 
+// When the paired reviewers rate the same finding class differently, the
+// higher rating is the qualifying one (AC3, D8). Keyed by classId.
+const RANK = { low: 1, unrated: 2, medium: 2, high: 3 };
+export function pairedSeverities(members) {
+  const classes = new Map();
+  for (const member of members) for (const finding of member.result?.findings ?? []) {
+    if (typeof finding?.classId !== 'string') continue;
+    const severity = ['high', 'medium', 'low'].includes(finding.severity) ? finding.severity : 'unrated';
+    const row = classes.get(finding.classId) ?? { classId: finding.classId, severity, ratings: [] };
+    row.ratings.push({ provider: member.reviewer.provider, findingId: finding.id, severity });
+    if ((RANK[severity] ?? 0) > (RANK[row.severity] ?? 0)) row.severity = severity;
+    classes.set(finding.classId, row);
+  }
+  return [...classes.values()].map(row => ({ ...row, disagreement: new Set(row.ratings.map(item => item.severity)).size > 1 }));
+}
+
 export async function selectReviewers(core, input, operation) {
   const { state } = await core.state();
   requireThat(!state.paused && ['IMPLEMENTING', 'ACCEPTING'].includes(state.phase), 'Select reviewers within the authorized implementation phase');
@@ -126,7 +142,8 @@ export async function boundaryReviews(core, state, candidate, memo = new Map(), 
   if (!initial) for (const member of members) member.qualification ??= 'Coordinated initial independence is not established';
   const outcome = members.some(member => member.result.outcome === 'FAIL') ? 'FAIL'
     : members.every(member => member.result.outcome === 'PASS' && !member.qualification) ? 'PASS' : 'UNAVAILABLE';
-  return { selection: selected, members, outcome, initialEstablished: Boolean(initial), initialProof: initial,
+  const severities = pairedSeverities(members);
+  return { selection: selected, members, outcome, severities, initialEstablished: Boolean(initial), initialProof: initial,
     identity: identity({ selection: selected.event, results: members.map(member => member.ref?.hash ?? null) }),
     summary: members.map(member => `${member.reviewer.modelProvider}: ${member.result.outcome}: ${member.result.summary}${member.unreconciledFindings?.length ? ` Unreconciled prior findings: ${member.unreconciledFindings.join(', ')}.` : ''}${member.incompleteDelta ? ' Changed-path or interaction coverage is incomplete.' : ''}`).join('\n') };
 }
@@ -173,14 +190,16 @@ export async function executeBoundaryReviews(core, input, operation) {
   const baseline = { state: retained.state, events: currentView.events, round: round.hash,
     initialEstablished };
   const outcomes = await Promise.allSettled(selected.selection.reviewers.map(async (reviewer, slot) => {
-    const { modelProvider: family, reason, ...execution } = reviewer;
+    const { modelProvider: _family, reason: _reason, ...execution } = reviewer;
     const request = { gates: ['review'], configuration: { ...configuration, ...execution, reviewerSelection: selected.event },
       ...Object.fromEntries(['consumed', 'history', 'claims', 'coverageClaims'].filter(key => input[key] !== undefined).map(key => [key, input[key]])),
       ...(priors[reviewer.provider] ? { prior: priors[reviewer.provider] } : {}) };
     const first = await executeGates(core, request,
       { id: `review_${identity([operation.id, slot]).slice(7)}`, hash: identity({ operation, request }) }, baseline);
     const reference = (first.event?.payload.results ?? first.results)?.[0];
-    if (family !== 'anthropic' || !reference) return first;
+    // Exactly one automatic repair turn per reviewer, either provider (AC5).
+    // It reuses the round's baseline, so it is not a further round.
+    if (!reference) return first;
     const verdict = await core.store.json(reference);
     if (!verdict.invalidVerdictContract) return first;
     const correction = verdict.unvalidatedVerdict ? { ...request, repair: reference } : request;

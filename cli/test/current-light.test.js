@@ -215,13 +215,13 @@ test('light review rejects rubric criteria and accepts brief findings', async t 
   const f = await fixture(t); await authorizeBrief(f); await prepare(f); await verify(f);
   const scored = await review(f, 'rubric-row', { criteria: [{ id: 'R1', outcome: 'PASS', evidence: 'Rubric row' }] });
   assert.equal(scored.result.outcome, 'UNAVAILABLE'); assert.match(scored.result.summary, /every selected criterion/);
-  const rubricFinding = await review(f, 'rubric-finding', { outcome: 'FAIL', findings: [{ id: 'f-1', classId: 'scope', criterion: 'R1', path: 'app/app.js', evidence: 'Out of scope', blocking: true }] });
+  const rubricFinding = await review(f, 'rubric-finding', { outcome: 'FAIL', findings: [{ id: 'f-1', classId: 'scope', classStatement: 'Fixture defect class', severity: 'high', failureScenario: 'Fixture input -> wrong observable output', criterion: 'R1', path: 'app/app.js', evidence: 'Out of scope', blocking: true }] });
   assert.equal(rubricFinding.result.outcome, 'UNAVAILABLE'); assert.match(rubricFinding.result.summary, /approved criterion/);
-  const specPath = await review(f, 'spec-path', { outcome: 'FAIL', findings: [{ id: 'f-2', classId: 'scope', criterion: 'brief', path: 'requirements/spec.md', evidence: 'No spec', blocking: true }] });
+  const specPath = await review(f, 'spec-path', { outcome: 'FAIL', findings: [{ id: 'f-2', classId: 'scope', classStatement: 'Fixture defect class', severity: 'high', failureScenario: 'Fixture input -> wrong observable output', criterion: 'brief', path: 'requirements/spec.md', evidence: 'No spec', blocking: true }] });
   assert.equal(specPath.result.outcome, 'UNAVAILABLE'); assert.match(specPath.result.summary, /source in scope/);
-  const briefFinding = await review(f, 'brief-finding', { outcome: 'FAIL', findings: [{ id: 'f-3', classId: 'scope', criterion: 'brief', path: 'requirements/brief.md', evidence: 'Goal is ambiguous', blocking: true }] });
+  const briefFinding = await review(f, 'brief-finding', { outcome: 'FAIL', findings: [{ id: 'f-3', classId: 'scope', classStatement: 'Fixture defect class', severity: 'high', failureScenario: 'Fixture input -> wrong observable output', criterion: 'brief', path: 'requirements/brief.md', evidence: 'Goal is ambiguous', blocking: true }] });
   assert.equal(briefFinding.result.outcome, 'FAIL', briefFinding.result.summary);
-  const codeFinding = await review(f, 'code-finding', { outcome: 'FAIL', findings: [{ id: 'f-4', classId: 'bug', criterion: 'gate:review', path: 'app/app.js', evidence: 'Defect', blocking: true }] });
+  const codeFinding = await review(f, 'code-finding', { outcome: 'FAIL', findings: [{ id: 'f-4', classId: 'bug', classStatement: 'Fixture defect class', severity: 'high', failureScenario: 'Fixture input -> wrong observable output', criterion: 'gate:review', path: 'app/app.js', evidence: 'Defect', blocking: true }] });
   assert.equal(codeFinding.result.outcome, 'FAIL', codeFinding.result.summary);
 });
 
