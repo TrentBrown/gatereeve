@@ -3,7 +3,7 @@ import { reviewerSelection, modelProvider } from './reviewer-selection.js';
 import { executeGates, changedPaths, findingSeverity, severityRank } from './execution.js';
 import { contentIdentity } from './evidence.js';
 import { findingObligations, retainedReviewScope } from './review-findings.js';
-import { boundaryScope, roundOf, currentRevision, scheduledBlocking, roundHandBack, roundDecision, NARROW_FROM, HANDBACK_AT, ROUND_POLICY } from './round-policy.js';
+import { boundaryScope, roundOf, scheduledRound, assertRoundOpen, scheduledBlocking, roundHandBack, roundDecision, NARROW_FROM, ROUND_POLICY } from './round-policy.js';
 import { isGoal } from './delegation.js';
 
 // The schedule for the current revision of its scope (spec AC6). Regressions
@@ -23,10 +23,17 @@ async function regressionPathsByCandidate(core, state, scope) {
   return paths;
 }
 async function roundSchedule(core, state, candidate) {
-  const scope = boundaryScope(candidate), round = roundOf(state, scope, contentIdentity(candidate));
+  // An uncounted new revision (for example reviewed only by individual
+  // selection-tagged reviews) is the next round, never legacy.
+  const scope = boundaryScope(candidate), round = roundOf(state, scope, contentIdentity(candidate)) ?? scheduledRound(state, scope, contentIdentity(candidate));
   const byCandidate = round !== null && round >= NARROW_FROM ? await regressionPathsByCandidate(core, state, scope) : new Map();
-  const current = state.reviewScopes?.[scope]?.revisions.findLast(row => row.revision === contentIdentity(candidate))?.candidate?.hash;
-  const regressionPaths = byCandidate.get(current) ?? new Set();
+  const revisions = state.reviewScopes?.[scope]?.revisions ?? [];
+  const current = revisions.findLast(row => row.revision === contentIdentity(candidate))?.candidate?.hash;
+  let regressionPaths = byCandidate.get(current) ?? new Set();
+  // An uncounted revision's regressions are measured against the last counted one.
+  if (!current && round !== null && round >= NARROW_FROM && revisions.at(-1)?.candidate) {
+    try { regressionPaths = new Set(changedPaths(await core.store.json(revisions.at(-1).candidate), candidate)); } catch { /* no regression evidence */ }
+  }
   return { scope, round, regressionPaths, handBack: roundHandBack(state, scope, round, isGoal(state)),
     // `origin` is the candidate hash of the review that raised a prior finding.
     blocks: (finding, prior, origin) => scheduledBlocking(finding, { round,
@@ -167,15 +174,15 @@ export async function boundaryReviews(core, state, candidate, memo = new Map(), 
         const raised = [...(result.findings ?? []).filter(finding => finding.blocking),
           ...(result.dispositions ?? []).filter(row => row.status === 'present').map(row => obligations.knownFindings.get(row.id)).filter(finding => finding?.blocking)];
         const demoted = raised.filter(finding => !obligations.materialFindings.some(row => row.id === finding.id)).map(finding => finding.id);
-        // Only a FAIL that rests on the demoted findings themselves stops
-        // blocking: failed criteria must each be named by a demoted finding,
-        // evidence, scope and every coverage decision must pass, and nothing
-        // else may fail. An unrelated finding never excuses an independent failure.
+        // Reviewers receive the round and band (packet.roundPolicy) and apply
+        // it themselves. The mechanical demotion only corrects a blocking flag
+        // the band no longer allows: it applies when the FAIL rests on demoted
+        // findings alone, with every criterion, responsibility and coverage
+        // decision passing. Any failed row keeps the reviewer's FAIL, so an
+        // unrelated finding never excuses an independent failure.
         const demotedRows = raised.filter(finding => demoted.includes(finding.id));
         const explained = demotedRows.length > 0
-          && (result.criteria ?? []).every(row => row.outcome === 'PASS' || row.outcome === 'FAIL' && demotedRows.some(finding => finding.criterion === row.id))
-          && (result.dimensions ?? []).every(row => row.outcome === 'PASS' || row.outcome === 'FAIL' && ['code', 'requirements', 'findings'].includes(row.name))
-          && (result.coverageDecisions ?? []).every(row => row.outcome === 'PASS');
+          && ['criteria', 'dimensions', 'coverageDecisions'].every(key => (result[key] ?? []).every(row => row.outcome === 'PASS'));
         const outcome = result.outcome === 'FAIL' && schedule.round >= NARROW_FROM && explained && !obligations.materialFindings.length
           && !obligations.unreconciledFindings.length && result.coverage?.complete === true && !result.coverage.limitations?.length
           && (!result.mandateAssessment || result.mandateAssessment.outcome === 'PASS') ? 'PASS' : result.outcome;
@@ -242,9 +249,7 @@ export async function executeBoundaryReviews(core, input, operation) {
   // Past round 6 a new revision is not reviewed until the human decides (AC6).
   const reviewed = await core.store.json(state.candidate);
   const roundPolicy = { policy: ROUND_POLICY, scope: boundaryScope(reviewed), revision: contentIdentity(reviewed) };
-  const scoped = state.reviewScopes?.[roundPolicy.scope];
-  requireThat(!scoped || scoped.round < HANDBACK_AT || currentRevision(state, roundPolicy.scope, roundPolicy.revision) || roundDecision(state, roundPolicy.scope),
-    roundHandBack(state, roundPolicy.scope, scoped?.round ?? 0, isGoal(state)) ?? 'Review round hand-back');
+  assertRoundOpen(state, roundPolicy.scope, roundPolicy.revision, isGoal(state));
   const initialEstablished = Boolean(await initialRound(core, state, selected, new Map()));
   let round = currentView.events.find(event => event.operation.id === begin.id);
   if (!round) {

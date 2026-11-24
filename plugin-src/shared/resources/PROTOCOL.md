@@ -296,14 +296,17 @@ are not counted. `status.rounds` shows each scope, its round and band, and advic
   blocks (the reviewer's `blocking` flag).
 - Rounds 4-5: only `high` findings and `medium` regressions of the previous fix
   block. A regression is a finding new in this round on a path (planning: a
-  document) the previous round's fix changed; it keeps that status in later
-  rounds until it is resolved. Other findings stop blocking and stay visible on
-  the pair member (`demotedFindings`). A reviewer FAIL counts as PASS for the pair
-  only when it rests on demoted findings: every failed criterion is named by a
-  demoted finding, evidence, scope and every coverage decision pass, coverage is
-  complete and the mandate passes; an unrelated finding never excuses an
-  independent failure. Such a demoted peer FAIL is not newer blocking evidence
-  against the other reviewer's PASS in the same round.
+  document) the previous round's fix changed; it keeps the status of the round
+  that first raised it, even when re-reported, until it is resolved. Reviewers
+  receive `packet.roundPolicy` (scope, round, band and the previous fix's changed
+  paths) and apply the band themselves. Other findings stop blocking and stay
+  visible on the pair member (`demotedFindings`). The mechanical demotion only
+  corrects a blocking flag the band no longer allows: a reviewer FAIL counts as
+  PASS for the pair only when it rests on demoted findings alone, with every
+  criterion, responsibility and coverage decision passing, complete coverage and
+  a passing mandate; any failed row keeps the FAIL. Such a demoted peer FAIL is
+  not newer blocking evidence against the other reviewer's PASS in the same
+  round.
 - Low never blocks in any round, including a low regression. Findings without a
   severity (earlier contracts) read as `unrated` and block exactly as before.
 - Round 6: the review is not qualifying until the human records
@@ -315,6 +318,11 @@ are not counted. `status.rounds` shows each scope, its round and band, and advic
   6 until then. In a goal run the hand-back is `goal.park` with the PR and round
   evidence. `review.adjudicate` (and autonomous planning judgment) at round 6 or
   later is refused.
+
+Individual selection-tagged `gate.execute` reviews follow the same policy: a
+revision not yet counted is the next round (never legacy), and a new revision
+past round 6 is refused without the human decision. A review run under this
+policy records `roundPolicy` in its input.
 
 Planning reviews and light runs follow the same schedule; when a light run's
 counter reaches 4, `status` advises raising rigor (advice only).
@@ -353,9 +361,12 @@ test suite; reviewers assess that coverage in the evidence dimension and report 
 missing receipt as an evidence finding. After the scope converges, push once and
 record a `ci` Verification for the exact head (`checks` may be empty for a `ci`
 Verification). A runner-role check, with no model call, qualifies it against the
-converged reviews: every required check passed, every other job of the run
-succeeded or was skipped (no reviewer assesses the post-convergence scope, so the
-declared list is not trusted alone), and every local receipt the reviews
+converged reviews: the run is on the exact candidate head (a same-tree other
+commit never qualifies); every CI job the converged reviews' consumed local
+Verification planned in `validation.ciRequiredChecks` (assessed by the
+reviewers during the rounds) is a passing required check; every required check
+passed, every other job of the run succeeded or was skipped; and every local
+receipt the reviews
 consumed is covered, either because its `ciCheck` (else its `purpose`) is among
 the run's passing required checks, or because the final Verification carries a
 passing receipt of the same check on the identical tree. An uncovered receipt
@@ -370,7 +381,7 @@ evidence). A candidate repository with hosted CI (workflows under
 `.github/workflows/` in its tree) is accepted only on a passing `ci`
 Verification for the exact candidate head; local evidence alone never suffices
 there. A repository without hosted CI keeps the independently assessed local
-alternative. These acceptance rules apply once a pair member was reviewed under
+alternative (interview D35). These acceptance rules apply once a pair member was reviewed under
 the round policy; a pair retained from an earlier contract keeps its recorded
 qualification (spec AC11). After a hosted CI failure, fix locally, run one paired delta review of
 the fix (one round), then rerun hosted CI. The PreToolUse guard warns, without

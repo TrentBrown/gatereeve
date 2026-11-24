@@ -142,7 +142,10 @@ for (const band of bands) test(`schedule band: ${band.name}`, async t => {
   const f = await lightRun(t);
   await seedRounds(f, band.round - 1);
   await revise(f, { 'app.js': 'export const answer = 42; // fix\n' }, 'fix');
-  reviewers(f, { findings: { codex: band.codex, ...(band.claude ? { 'claude-code': band.claude } : {}) } });
+  // A demoting band: the reviewer kept a blocking flag the band no longer
+  // allows, while every criterion and responsibility passed.
+  const passRows = verdict => { verdict.dimensions.forEach(row => { row.outcome = 'PASS'; }); verdict.criteria.forEach(row => { row.outcome = 'PASS'; }); };
+  reviewers(f, { findings: { codex: band.codex, ...(band.claude ? { 'claude-code': band.claude } : {}) }, patch: band.demoted ? { codex: passRows } : {} });
   await f.request('review.execute', {}, 'band-round');
   const reviewed = await pair(f);
   assert.equal(reviewed.round.round, band.round);
@@ -217,6 +220,10 @@ test('rounds 4-5 never demote a FAIL that rests on an independent failure', asyn
   for (const [label, change] of [
     ['an evidence dimension FAIL', verdict => { verdict.dimensions.find(row => row.name === 'evidence').outcome = 'FAIL'; }],
     ['a criterion FAIL no demoted finding names', verdict => { verdict.criteria[0].outcome = 'FAIL'; verdict.findings[0].criterion = 'gate:review'; }],
+    // Round 1 (C1): a failed code or requirements responsibility is not excused either.
+    ['a code dimension FAIL', () => {}],
+    ['a requirements dimension FAIL', verdict => { verdict.dimensions.find(row => row.name === 'requirements').outcome = 'FAIL'; }],
+    ['a criterion FAIL named by the demoted finding', verdict => { verdict.criteria[0].outcome = 'FAIL'; }],
   ]) {
     const f = await lightRun(t);
     await seedRounds(f, 3);
@@ -267,4 +274,32 @@ test('a split ends the scope, so each part starts at round 1', () => {
   assert.equal(state.reviewScopeHistory.at(-1).closed.reason, 'split');
   countRound(state, 'slice', 'G', {});
   assert.equal(state.reviewScopes.slice.round, 1);
+});
+
+test('a regression re-reported under the same ID keeps its original round', async t => {
+  const f = await lightRun(t);
+  await seedRounds(f, 3);
+  await revise(f, { 'app.js': 'export const answer = 42; // fix\n' }, 'r4');
+  const regression = [{ path: 'app/app.js', evidence: '[medium] The fix broke the export contract.' }];
+  reviewers(f, { findings: { codex: regression } });
+  await f.request('review.execute', {}, 'round-4');
+  // Round 5 changes an unrelated file; the reviewer reports the same finding again.
+  await revise(f, { 'other.js': 'export const other = 2;\n' }, 'r5');
+  reviewers(f, { findings: { codex: regression } });
+  await f.request('review.execute', {}, 'round-5');
+  const reviewed = await pair(f);
+  assert.equal(reviewed.round.round, 5);
+  assert.equal(reviewed.outcome, 'FAIL', reviewed.summary);
+});
+
+test('an individual selection-tagged review cannot bypass the round 6 hand-back', async t => {
+  const f = await lightRun(t);
+  await seedRounds(f, 6);
+  await revise(f, { 'app.js': 'export const answer = 42; // round 7\n' }, 'r7');
+  const launches = reviewers(f);
+  const { state } = await f.core.state();
+  const reviewer = state.reviewerSelection.selection.reviewers[0];
+  await assert.rejects(f.request('gate.execute', { gates: ['review'], configuration: { provider: reviewer.provider, model: reviewer.model,
+    reasoningEffort: reviewer.reasoningEffort, reviewerSelection: state.reviewerSelection.event } }, 'individual-round-7'), /reached round 6/);
+  assert.equal(launches(), 0);
 });

@@ -17,7 +17,12 @@ export async function validationScope(configuration, candidate, fetchRun = fetch
   if (!scope) return { kind: 'unknown', limitation: 'No broad CI scope or independently assessed local alternative is recorded.' };
   if (scope.kind === 'alternative') {
     text(scope.reason, 'Alternative coverage reason'); text(scope.scope, 'Alternative coverage scope');
-    return { kind: 'alternative', reason: scope.reason, scope: scope.scope, assurance: 'Proposed by implementer; actual local receipts and sufficiency require independent assessment.' };
+    // The hosted CI jobs planned for after convergence (spec AC9): reviewers
+    // assess this scope during the rounds; CI qualification requires it.
+    const planned = scope.ciRequiredChecks;
+    requireThat(planned === undefined || Array.isArray(planned) && planned.every(name => typeof name === 'string' && name.trim()), 'ciRequiredChecks must name CI jobs');
+    return { kind: 'alternative', reason: scope.reason, scope: scope.scope, ...(planned ? { ciRequiredChecks: [...new Set(planned)] } : {}),
+      assurance: 'Proposed by implementer; actual local receipts and sufficiency require independent assessment.' };
   }
   requireThat(scope.kind === 'ci' && Array.isArray(scope.runs) && scope.runs.length > 0, 'Validation scope needs CI runs or an explicit alternative');
   const runs = [];

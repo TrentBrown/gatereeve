@@ -1102,8 +1102,12 @@ export class CurrentCore {
     const verified = outcomes.find(item => item.id === 'verification' && item.outcome === 'PASS' && item.result);
     // Reviews retained from an earlier contract keep their qualification (spec
     // AC11): these rules apply once a pair member ran under the round policy.
-    const currentContract = Boolean(reviewPair?.members.some(member => member.ref && state.boundaryReviewHistory.some(round => round.roundPolicy
-      && round.outcomes?.some(row => row.results?.some(ref => ref.hash === member.ref.hash)))));
+    // A review that ran under the round policy records roundPolicy in its own
+    // input, whether it came from review.execute or an individual gate.execute.
+    let currentContract = false;
+    for (const member of reviewPair?.members ?? []) if (member.ref && member.result?.input) {
+      try { if ((await this.store.json(member.result.input)).roundPolicy) currentContract = true; } catch { /* lost input: legacy */ }
+    }
     if (candidate && verified && currentContract && reviewPair?.members.every(member => member.ref)) {
       try {
         const consumed = [...new Map((await Promise.all(reviewPair.members.map(async member => (await this.store.json(member.result.input)).consumed ?? [])))
@@ -1121,13 +1125,20 @@ export class CurrentCore {
         } else if (!assessed) missing.push('verification: the latest Verification is local evidence the converged reviews did not assess; record a ci Verification for the exact candidate head or review the new evidence');
       } catch (error) { missing.push(`verification: ${error.message}`); }
     }
-    // Spec AC9: a repository with hosted CI (workflows in its candidate tree)
-    // is accepted only on a passing ci Verification for the exact candidate
-    // head; local evidence alone never suffices there. A repository without
-    // hosted CI keeps the independently assessed local alternative.
-    if (candidate && verified && currentContract) {
-      const hosted = candidate.repositories.filter(repo => (repo.files ?? []).some(file => file.path.startsWith('.github/workflows/')));
-      if (hosted.length && !await isCiVerification(this, verified.result)) missing.push(`verification: ${hosted.map(repo => repo.alias).join(', ')} has hosted CI (.github/workflows); acceptance needs a passing ci Verification on the exact candidate head, not local evidence alone`);
+    // Spec AC9 with interview D35: acceptance of a candidate reviewed under this
+    // contract, in a repository with hosted CI, needs a passing ci Verification
+    // on the exact candidate head; local evidence alone never suffices there.
+    const hostedCi = candidate?.repositories.some(repo => (repo.files ?? []).some(file => file.path.startsWith('.github/workflows/')));
+    // Interview D35: hosted-CI repositories only; others keep the assessed alternative.
+    if (candidate && verified && currentContract && hostedCi) {
+      if (!await isCiVerification(this, verified.result)) missing.push('verification: this repository has hosted CI (.github/workflows); acceptance needs a passing ci Verification on the exact candidate head; local evidence alone never satisfies acceptance (interview D35)');
+      else {
+        const runs = (await this.store.json((await this.store.json(verified.result)).runner)).validation.runs;
+        for (const run of runs) {
+          const head = candidate.repositories.find(repo => repo.alias === run.alias)?.head;
+          if (run.head !== head) missing.push(`verification: CI ran on ${run.head}, not the exact candidate head ${head}`);
+        }
+      }
     }
     if (['merge', 'completion'].includes(name)) {
       const acceptances = await qualifyingDecisions(this, state, 'accept', state.candidate?.hash, candidate);

@@ -8,7 +8,7 @@ import { test } from 'node:test';
 import { git } from '../../plugin-src/shared/resources/protocol/current/evidence.js';
 import { boundaryReviews } from '../../plugin-src/shared/resources/protocol/current/boundary-review.js';
 import { preToolUse, PREMATURE_PUSH } from '../../plugin-src/shared/resources/protocol/current/pre-tool-use.js';
-import { fixture } from './helpers/lightweight-fixture.js';
+import { fixture, candidate } from './helpers/lightweight-fixture.js';
 import { selection } from './helpers/paired-review-fixture.js';
 import { revise, reviewers, focusedCheck, localVerification } from './helpers/round-fixture.js';
 
@@ -146,7 +146,7 @@ test('a repository with hosted CI is never accepted on local evidence alone', as
   const workflow = { '.github/workflows/ci.yml': 'on: push\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps: [{ run: npm test }]\n' };
   const { f, head } = await converged(t, [focusedCheck('Unit tests', { ciCheck: 'test' })], workflow);
   // The converged reviews assessed this local Verification, yet hosted CI exists.
-  assert.match(verificationMissing(await acceptance(f)).join('\n'), /app has hosted CI .*needs a passing ci Verification on the exact candidate head/);
+  assert.match(verificationMissing(await acceptance(f)).join('\n'), /acceptance needs a passing ci Verification on the exact candidate head; local evidence alone never satisfies acceptance/);
   hostedCi(f, { head, treeId: await tree(f, head) });
   await ciVerification(f, 'verify-ci-hosted');
   assert.deepEqual(verificationMissing(await acceptance(f)), []);
@@ -157,4 +157,30 @@ test('a failed CI job outside the declared required checks fails the qualificati
   hostedCi(f, { head, treeId: await tree(f, head), jobs: [job('test'), job('lint', 'failure')] });
   await ciVerification(f, 'verify-ci-red-lint');
   assert.match(verificationMissing(await acceptance(f)).join('\n'), /CI job app: lint \(completed\/failure\) did not succeed/);
+});
+
+test('CI for another commit with the same tree never qualifies the candidate', async t => {
+  const { f, head } = await converged(t);
+  hostedCi(f, { head, treeId: await tree(f, head) });
+  await ciVerification(f, 'verify-ci-a');
+  // An empty amend keeps the tree but makes a different commit.
+  await git(f.repo, ['commit', '--amend', '-q', '--no-edit', '--date=2026-11-25T00:00:00Z']);
+  const amended = (await git(f.repo, ['rev-parse', 'HEAD'])).trim();
+  assert.notEqual(amended, head);
+  await candidate(f, 'SLICE', amended, 'candidate-amended');
+  const missing = verificationMissing(await acceptance(f)).join('\n');
+  assert.match(missing, new RegExp(`CI ran on ${head}, not the (exact )?candidate head ${amended}`));
+});
+
+test('CI qualification fails when the converged reviews assessed no planned CI scope', async t => {
+  const f = await fixture(t, { rigor: 'light' });
+  const head = await revise(f, { 'app.js': 'export const answer = 42;\n' }, 'r1', []);
+  await f.request('gate.execute', { gates: ['verification'], configuration: {
+    validation: { kind: 'alternative', reason: 'Local round evidence', scope: 'Focused suites' }, checks: [focusedCheck('Unit tests', { ciCheck: 'test' })] } }, 'verify-unplanned');
+  await f.request('review.select', selection(), 'select');
+  reviewers(f);
+  await f.request('review.execute', {}, 'round-1');
+  hostedCi(f, { head, treeId: await tree(f, head) });
+  await ciVerification(f, 'verify-ci-unplanned');
+  assert.match(verificationMissing(await acceptance(f)).join('\n'), /assessed no planned CI scope/);
 });

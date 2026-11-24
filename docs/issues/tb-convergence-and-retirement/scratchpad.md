@@ -178,7 +178,7 @@ lands in parallel.
   only); after it, later rounds keep the round 4-5 band. A new revision is not
   reviewed past round 6 without it. `amend` resets; `waive` uses the existing
   waiver. Adjudication at round 6 or later is refused in every autonomous mode.
-- (e) Acceptance (parent decision after review of this entry): a candidate
+- (e) Acceptance (human decision D35, 2026-11-24, option A): a candidate
   repository whose tree has hosted CI workflows (`.github/workflows/`) is
   accepted only on a passing `ci` Verification for the exact candidate head;
   local evidence alone never suffices there (AC9, R9). A repository with no

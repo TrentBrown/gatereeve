@@ -29,6 +29,23 @@ export async function qualifyCi(core, state, candidate, ciRef, consumedRefs, mem
   const runner = await core.store.json(ci.runner);
   requireThat(runner.validation?.kind === 'ci', 'CI qualification needs a ci Verification');
   const trees = runner.validation.runs.map(run => ({ alias: run.alias, head: run.head, tree: run.tree ?? null }));
+  // The run must be on the exact candidate head: a same-tree other commit
+  // (amended or empty commit) is not the candidate (spec AC9).
+  const wrongHead = runner.validation.runs.filter(run => candidate.repositories.find(repo => repo.alias === run.alias)?.head !== run.head)
+    .map(run => `${run.alias}: CI ran on ${run.head}, not the candidate head ${candidate.repositories.find(repo => repo.alias === run.alias)?.head ?? 'unknown'}`);
+  // The CI scope the converged reviews assessed: every planned job declared by
+  // the consumed local Verifications must be required and successful here.
+  const planned = new Set();
+  for (const ref of consumedRefs) {
+    if (ref.hash === ciRef.hash) continue;
+    try {
+      const report = await core.store.json(ref);
+      if (report.gate === 'verification' && report.runner) for (const name of (await core.store.json(report.runner)).validation?.ciRequiredChecks ?? []) planned.add(name);
+    } catch { /* unreadable consumed proof is reported below as uncovered */ }
+  }
+  const unplanned = planned.size ? [] : ['the converged reviews assessed no planned CI scope (validation.ciRequiredChecks on the consumed Verification)'];
+  const missingPlanned = [...planned].filter(name => !runner.validation.runs.some(run => run.requiredChecks.includes(name)
+    && run.jobs.some(job => job.name === name && job.status === 'completed' && job.conclusion === 'success')));
   const failedRequired = runner.validation.runs.flatMap(run => run.requiredChecks.filter(name =>
     !run.jobs.some(job => job.name === name && job.status === 'completed' && job.conclusion === 'success')).map(name => `${run.alias}: ${name}`));
   const passing = new Map(runner.validation.runs.map(run => [run.alias, new Set(run.requiredChecks.filter(name =>
@@ -50,7 +67,8 @@ export async function qualifyCi(core, state, candidate, ciRef, consumedRefs, mem
   // succeed or be skipped (spec AC9 "every required check passed").
   const failedJobs = runner.validation.runs.flatMap(run => run.jobs.filter(job => !(job.status === 'completed' && ['success', 'skipped'].includes(job.conclusion)))
     .map(job => `${run.alias}: ${job.name} (${job.status}/${job.conclusion ?? 'none'})`));
-  const reasons = [...failedRequired.map(name => `required CI check ${name} did not pass`),
+  const reasons = [...wrongHead, ...unplanned, ...missingPlanned.map(name => `planned CI check ${name} is not a passing required check of the run`),
+    ...failedRequired.map(name => `required CI check ${name} did not pass`),
     ...failedJobs.map(name => `CI job ${name} did not succeed`),
     ...uncovered.map(row => `consumed local receipt ${row.receipt} from Verification ${row.verification} is not covered by a passing required CI check or a same-tree receipt in the final Verification`)];
   return { policy: CI_QUALIFICATION, outcome: reasons.length ? 'FAIL' : 'PASS', ci: ciRef.hash, consumed: consumedRefs.map(ref => ref.hash),

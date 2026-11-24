@@ -16,12 +16,23 @@ import { ROUND_POLICY, planningScope, roundOf, scheduledBlocking, roundHandBack,
 // Planning reviews follow the round schedule (spec AC6): from round 4 only
 // high findings and medium regressions (findings on a document the previous
 // round's fix changed) block; at round 6 the review hands back.
-function planningSchedule(state, artifact, cited, result) {
+// A finding keeps the regression status of the round that first raised it.
+async function planningSchedule(core, state, artifact, cited, result) {
   const scope = planningScope(artifact), round = roundOf(state, scope, cited.subject);
-  const previous = round === null ? null : state.reviewScopes[scope].revisions.find(row => row.round === round - 1);
-  const before = previous ? state.planningReviews.find(item => item.event === previous.event)?.documents ?? {} : {};
-  const changed = name => before[name]?.hash !== cited.documents[name]?.hash;
-  const blockers = result.findings.filter(finding => scheduledBlocking(finding, { round, regression: changed(finding.document.replace(/^requirements\//u, '')) }));
+  const revisions = state.reviewScopes?.[scope]?.revisions ?? [];
+  const reviewAt = row => row ? state.planningReviews.find(item => item.event === row.event) : null;
+  const changedSince = (row, documents, name) => { const before = reviewAt(revisions.find(item => item.round === row.round - 1))?.documents ?? {}; return before[name]?.hash !== documents[name]?.hash; };
+  const firstRaised = new Map();
+  for (const row of revisions) {
+    const review = reviewAt(row);
+    if (!review || review.event === cited.event) continue;
+    let earlier; try { earlier = await core.store.json(review.result); } catch { continue; }
+    for (const finding of earlier.findings ?? []) if (!firstRaised.has(finding.id))
+      firstRaised.set(finding.id, changedSince(row, review.documents, finding.document.replace(/^requirements\//u, '')));
+  }
+  const current = revisions.find(row => row.event === cited.event) ?? { round };
+  const regression = finding => firstRaised.get(finding.id) ?? (round !== null && changedSince(current, cited.documents, finding.document.replace(/^requirements\//u, '')));
+  const blockers = result.findings.filter(finding => scheduledBlocking(finding, { round, regression: regression(finding) }));
   const outcome = result.outcome === 'FAIL' && round !== null && round >= NARROW_FROM && !blockers.length
     && result.findings.some(finding => finding.blocking) ? 'PASS' : result.outcome;
   return { round, blockers, outcome, handBack: roundHandBack(state, scope, round, isGoal(state)) };
@@ -311,7 +322,7 @@ export async function delegatedPlanningAuthority(core, state, value) {
   requireThat(cited, `Delegated ${value.kind} needs an independent ${artifact} review of this exact ${artifact === 'design' ? 'design' : 'commitment'} identity (run planning.review with artifact ${artifact}) and must cite its event`);
   requireThat(reviews.at(-1).event === cited.event, `A later ${artifact} review of the same identity supersedes the cited PASS`);
   const result = await core.store.json(cited.result);
-  const schedule = planningSchedule(state, artifact, cited, result);
+  const schedule = await planningSchedule(core, state, artifact, cited, result);
   requireThat(!schedule.handBack, schedule.handBack ?? '');
   requireThat(schedule.outcome === 'PASS' || autonomous && cited.outcome === 'FAIL' && value.authority.judgment,
     `The cited ${artifact} review is ${cited.outcome}, not PASS; only explicit autonomous judgment may settle a completed negative assessment`);

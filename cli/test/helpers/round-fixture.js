@@ -14,7 +14,7 @@ export const focusedCheck = (purpose = 'Focused fixture check', extra = {}) => (
 
 export async function localVerification(f, operationId, checks = [focusedCheck()]) {
   return f.request('gate.execute', { gates: ['verification'], configuration: {
-    validation: { kind: 'alternative', reason: 'Local round evidence before the single push', scope: 'Focused and affected suites' }, checks } }, operationId);
+    validation: { kind: 'alternative', reason: 'Local round evidence before the single push', scope: 'Focused and affected suites', ciRequiredChecks: ['test'] }, checks } }, operationId);
 }
 
 // Commit a change locally (no push), prepare it as the candidate and record

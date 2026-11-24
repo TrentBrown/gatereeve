@@ -44,7 +44,9 @@ export async function findingObligations(core, state, candidate, inputs, result,
     try { origin = report.input ? (await core.store.json(report.input)).candidate?.hash ?? null : null; } catch { /* Lost input: no regression evidence. */ }
     for (const finding of report.findings ?? []) if ((candidate.criteria.includes(finding.criterion) || finding.criterion === 'gate:review')
       && (candidate.repositories.some(repo => finding.path.startsWith(`${repo.alias}/`)) || /^(requirements|planning)\//u.test(finding.path))) {
-      known.set(finding.id, { finding, origin, open: blocks(finding, true, origin) });
+      // The first review that raised an ID keeps its origin (regression status).
+      const first = known.get(finding.id)?.origin ?? origin;
+      known.set(finding.id, { finding, origin: first, open: blocks(finding, true, first) });
     }
     for (const disposition of report.dispositions ?? []) if (known.has(disposition.id)) {
       if (['resolved', 'unsupported', 'present-low'].includes(disposition.status)) known.get(disposition.id).open = false;

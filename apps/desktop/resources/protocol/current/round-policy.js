@@ -51,6 +51,21 @@ export function roundOf(state, scope, revision) {
 }
 // Whether a revision is the scope's current round (a re-review of it is not a new round).
 export const currentRevision = (state, scope, revision) => state.reviewScopes?.[scope]?.revisions.at(-1)?.revision === revision;
+// The round a review of this revision belongs to: its counted round, or the
+// next round when the revision is new to an open scope (a review not yet
+// counted, such as an individual gate.execute review, never reads as legacy).
+// Null only when no round of the scope ran under this policy (spec AC11).
+export function scheduledRound(state, scope, revision) {
+  const scoped = state.reviewScopes?.[scope];
+  if (!scoped) return null;
+  return currentRevision(state, scope, revision) ? scoped.round : scoped.round + 1;
+}
+// A new revision past round 6 is not reviewed until the human decides (AC6).
+export function assertRoundOpen(state, scope, revision, goal = false) {
+  const scoped = state.reviewScopes?.[scope];
+  requireThat(!scoped || scoped.round < HANDBACK_AT || currentRevision(state, scope, revision) || roundDecision(state, scope),
+    roundHandBack(state, scope, scoped?.round ?? 0, goal) ?? 'Review round hand-back');
+}
 export function previousRevision(state, scope, round) {
   return state.reviewScopes?.[scope]?.revisions.find(row => row.round === round - 1) ?? null;
 }
