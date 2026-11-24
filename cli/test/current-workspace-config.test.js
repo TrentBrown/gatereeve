@@ -1,3 +1,4 @@
+import './helpers/private-scratch.js';
 import { selection, pairExistingEvaluator } from './helpers/paired-review-fixture.js';
 // Workspace configuration for delivery (spec AC6 "Workspace configuration for
 // delivery", R8; design and spec Changes 2026-11-17). Only GitHub transport

@@ -1,3 +1,4 @@
+import './helpers/private-scratch.js';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';

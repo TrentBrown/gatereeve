@@ -1,3 +1,4 @@
+import './helpers/private-scratch.js';
 // Delegated autonomy (spec AC5, AC6 delegated parts; R7, R8 delegated paths):
 // the protection precondition, the delegated-evaluator authority kind, delegated
 // SLICE delivery, hand-back triggers, and tripwires under delegation.

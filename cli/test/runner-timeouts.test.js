@@ -1,3 +1,4 @@
+import './helpers/private-scratch.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { runCheckProcess } from '../../plugin-src/shared/resources/protocol/current/execution.js';

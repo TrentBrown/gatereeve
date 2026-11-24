@@ -1,3 +1,4 @@
+import './helpers/private-scratch.js';
 // Escalation tripwires (spec AC4, R6): built-in category classifiers,
 // repository configuration, and supervised dispositions. Delegated hits are in
 // current-delegation.test.js.

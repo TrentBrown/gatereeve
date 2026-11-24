@@ -1,3 +1,4 @@
+import './helpers/private-scratch.js';
 import { selection, pairExistingEvaluator } from './helpers/paired-review-fixture.js';
 // Synthetic evaluator transport tests; these are not independent product reviews.
 import assert from 'node:assert/strict';

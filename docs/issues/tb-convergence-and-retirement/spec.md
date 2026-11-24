@@ -10,8 +10,9 @@ silently dropping real defects, hosted CI runs once per review scope after the
 paired reviews converge, reviewers survive idle-stop automation, the shared
 metrics store becomes trustworthy and finding-level, and finished worktrees
 can be swept safely from outside any run. Controlling input: `design.md`
-(approved 2026-11-22) with `interview.md` D1–D27. Delivered as six slices
-(D24); each criterion names its slice.
+(approved 2026-11-22) with `interview.md` D1–D33. Six slices (D24); each
+criterion names its slice. After slice 1, the remaining slices ship as three
+PRs (D33): slices 2 and 6, slice 3, and slices 4 and 5.
 
 ## Definition of Done
 
@@ -90,6 +91,14 @@ silent best effort:
     is shown as `stranded`, with its file count and the exact
     `gatereeve cleanup --run <id> --apply` command; removal still requires the
     existing eligibility checks.
+  - Scratch lock (D33): every isolated test shard and every suite run
+    directly with `node --test` uses a private scratch root, so parallel
+    shards never share a maintenance lock. Creating a run takes no global
+    lock. Cleanup holds the maintenance lock only while renaming an eligible
+    run to a tombstone and deletes the tombstone outside the lock. A process
+    waiting on a lock whose holder is verified alive keeps waiting and never
+    fails on elapsed time alone; a lock whose holder is gone is still
+    reported as interrupted and never removed by age.
 - **AC3. Finding severity, failure scenario and class (slice 3).**
   - The reviewer contract (code, spec, review and planning gates, both rigors)
     requires each finding to carry `severity` (`high|medium|low`), a
@@ -126,6 +135,25 @@ silent best effort:
     `malformed-json`, `provider-error`, `timeout`, `missing-evidence` or
     `other`.
   - Repair turns are not rounds; their tokens and duration are recorded.
+  - Substance and bookkeeping (D32, D33): each reviewer's input names the
+    findings that need a disposition, computed by GateReeve from the supplied
+    history, and the structured-output schema is built per request with the
+    allowed finding IDs as enums in every list that names findings. An ID
+    disclosed anywhere in the supplied history (including inside an earlier
+    UNAVAILABLE result) that appears in a bookkeeping list where it is not
+    required is dropped and recorded as `normalized`, never a contract
+    error. A historical blocking finding that is still present but now rated
+    low takes a disposition that no longer blocks. Contract errors remain
+    for substantive contradictions only: PASS with a present blocking
+    finding, a missing disposition for an open blocking finding, or an ID
+    not disclosed anywhere.
+  - Reviewers can run a read-only `validate-verdict` command in their
+    sandbox that applies the same validation to a draft verdict.
+  - Format repair compares substance (outcome, findings with severity and
+    evidence, criteria outcomes, coverage decisions, dispositions); free
+    text that depends on a repaired field may change.
+  - Contract rejections and normalizations are counted per rule in the
+    metrics store.
 - **AC6. Round policy (slice 4).**
   - Each review scope (slice PR, feature-final review, or one planning
     document) has a round counter: one paired review of one candidate revision
@@ -266,15 +294,28 @@ silent best effort:
     marker (`.gatereeve-current/harvested.json` with an ISO `harvestedAt`) is
     newer than every other file in it (D31).
 
+- **AC13. Workflow robustness (slice 2, D33).**
+  - The feature's `decisions.md` is created with the other lifecycle
+    documents, and `candidate.prepare` fails naming the file when it is
+    missing.
+  - A verification may declare, per check, the earlier check identities it
+    replaces and why. Acceptance treats a replaced identity as covered when
+    the paired review that consumed that verification passes the matching
+    coverage decision; no separate review round is needed.
+  - `job.abandon` records, with a reason, that a runner or
+    independent-assessment job whose process is verifiably gone will never
+    finish. An abandoned job no longer invalidates proof recorded before it.
+    Delivery jobs cannot be abandoned and still require reconciliation.
+
 ## Rubric
 
 | # | Criterion | Pass | Fail | Evidence |
 |---|-----------|------|------|----------|
 | R1 | AC1 idle lock | Tests show the wrapped command with the exact flags and a bounded secret-free `--why` when `systemd-inhibit` is present, a byte-identical command when absent or when the lock probe is refused (with `idleInhibitor: false`), stdin delivered, exit code preserved, timeout terminating the reviewer process, the size guard counting the added arguments, and `idleInhibitor` in the receipt; a live Linux run shows the lock in `systemd-inhibit --list` during a review | Any listed behaviour missing, a review failing because the lock was refused, or the command changed when absent | Adapter unit tests + live host check |
-| R2 | AC2 metrics repair | A full CLI test run leaves the shared store's row count and the host scratch root's run and report counts unchanged; purge previews then removes only test-suite rows; capture succeeds on duplicate observation times; status reports the real count; a decision's pending time precedes its answer; report retention removes only reports past the age or count limit whose runs are gone; previews and doctor show file counts; stranded runs are labeled with their count and command | Any shared-store or host-scratch write from tests, a non-test row purged, a report for an existing run removed, a missing file count or stranded label, or a listed bug reproducible | Metrics tests + before/after store counts |
+| R2 | AC2 metrics repair | A full CLI test run, including suites run directly with `node --test` in parallel shards, leaves the shared store's row count and the host scratch root's run and report counts unchanged and never fails on lock contention; tests show run creation without the global lock, cleanup holding the lock only for the tombstone rename, a waiter on a live holder not timing out, and an interrupted lock still reported; purge previews then removes only test-suite rows; capture succeeds on duplicate observation times; status reports the real count; a decision's pending time precedes its answer; report retention removes only reports past the age or count limit whose runs are gone; previews and doctor show file counts; stranded runs are labeled with their count and command | Any shared-store or host-scratch write from tests, a non-test row purged, a report for an existing run removed, a missing file count or stranded label, or a listed bug reproducible | Metrics tests + before/after store counts |
 | R3 | AC3 severity and class | Contract tests reject findings missing severity, failure scenario, class ID or class statement in every gate and rigor; low never blocks; paired disagreement resolves to the higher rating; a disposition cannot change severity | Any missing field accepted, a low finding blocking, or severity changed by a disposition | Protocol contract tests |
 | R4 | AC4 sweep records | Tests reject a `fixed` disposition missing any sweep field (naming it), accept a one-site record with its search, and show the next round's input carrying the records | Any missing field accepted, a valid one-site record refused, or records absent from the next round | Protocol tests + reviewer input inspection |
-| R5 | AC5 robustness | Tests show one automatic repair turn on a contract error, UNAVAILABLE when repair fails or changes substance, mechanical normalization recorded as `normalized`, `not-assessed` for a missing peer disposition with the finding open, a reason code on every UNAVAILABLE, and repair turns excluded from the round count with tokens and time recorded | A second repair attempt, a substantive repair accepted, a missing reason code, or a repair counted as a round | Protocol tests with fake reviewer adapters |
+| R5 | AC5 robustness | Tests show one automatic repair turn on a contract error, UNAVAILABLE when repair fails or changes substance, mechanical normalization recorded as `normalized`, `not-assessed` for a missing peer disposition with the finding open, a reason code on every UNAVAILABLE, and repair turns excluded from the round count with tokens and time recorded; reviewer input naming the required dispositions; a per-request schema with finding-ID enums; a disclosed-but-not-required ID normalized rather than rejected (including IDs only inside earlier UNAVAILABLE results); a present-but-low historical finding not blocking; `validate-verdict` matching the contract validator; a repair with consistent rewording of dependent text accepted; per-rule rejection counts stored | A second repair attempt, a substantive repair accepted, a missing reason code, a repair counted as a round, a substantively valid verdict rejected for bookkeeping, or a present-but-low finding blocking | Protocol tests with fake reviewer adapters |
 | R6 | AC6 round policy | Tests cover the counter per scope, UNAVAILABLE rounds counting, reset only by amendment, the three schedule bands (including a low regression of the previous fix not blocking and a medium one blocking in rounds 4–5), round 6 requiring a human decision (or `goal.park` in goal runs, with adjudication refused), planning and light runs following it, and the light-run advice at 4; PROTOCOL.md replaced | Any band mis-applied, a reset without amendment, round 6 passing without the required decision, or the old statement retained | Protocol tests + doc diff |
 | R7 | AC7 follow-ups | Tests show follow-up records and generated `follow-ups.md`, Completion refused with an undecided follow-up, bulk decisions, `policy-default` authority never reported as human-confirmed, the low/medium defaults and no high default, the supervised single answer, and goal runs applying defaults, filing or seeding medium work, and parking on open high | Any follow-up lost, Completion allowed undecided, a default reported as human, a high default applied, or a goal run reaching ready-PR with open high | Protocol tests + generated file inspection |
 | R8 | AC8 failure model | `spec.validate` fails naming the line for a missing or empty section and for each listed word without a bound or reference, passes with one; old validated specs warn; reviewer inputs carry the model; light briefs without one lint clean | A listed case passing or failing wrongly, or reviewers lacking the model | Spec-lint tests + reviewer input inspection |
@@ -282,3 +323,4 @@ silent best effort:
 | R10 | AC10 sweep | Tests over fixture repositories cover discovery, every candidate rule, every skip with its reason, every listed item, exactly the listed regenerable directory names (and a git-config extension) not listed while any other ignored file such as `.env` is listed, `pr-state-unknown` skips, preview by default, confirmed removal with prune and merged-only branch deletion, untouched remote branches, and non-interactive removal limited to empty lists | Any protected worktree removed, a worktree with unknown PR state removed, a listed item omitted, a remote branch touched, or an interactive removal without confirmation, or a non-interactive removal of a worktree with a non-empty list | CLI tests with fixture repositories |
 | R12 | AC12 reviewer retention | Tests reconstruct a review round's exact prompt from the workflow state alone and match the receipt digests; show the Codex and Claude event streams stored whole and referenced (Claude parsed from stream-json, including a tool call); raw output and validation errors stored for a contract failure; a legacy receipt still valid; the sweep listing unharvested state and not listing state with a newer harvest marker | Any prompt not reconstructible, a stream missing or truncated, failed output lost, a legacy receipt rejected, or unharvested state deleted without being listed | Adapter and protocol tests + sweep fixture tests |
 | R11 | AC11 measurement and surfaces | Tests show each listed metrics field stored, a retained earlier-version result keeping its outcome and qualification on resume with `unrated` findings, a later review on that run applying the new contract from round 1, and the four D6 measures reported from the store alone; surfaces and docs updated; the existing suites pass with only the test edits these criteria require; sync, contract and plugin checks pass | A field missing, a measure needing a worktree, a surface or doc missing, or an existing test failing | Metrics tests + full suites + plugin checks |
+| R13 | AC13 workflow robustness | Tests show `decisions.md` created with the lifecycle documents and `candidate.prepare` failing by name without it; a declared check replacement accepted at acceptance after the consuming paired review passes its coverage decision and refused when it fails; `job.abandon` accepted for a gone runner or assessment job, refused for a live one or a delivery job, and older proof qualifying again after abandonment | A missing decisions log found only at review, a replacement needing a separate round or accepted without the review decision, or an abandoned delivery job | Protocol tests |

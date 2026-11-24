@@ -71,10 +71,20 @@ After success or failure a compact diagnostic receipt (bounded error/output,
 no environment or full command arguments) is written to `gatereeve/reports/`
 before bulk becomes eligible. Governed checks keep raw captured output out of these
 reports and pass it to the existing redacted evidence pipeline instead. These temporary diagnostics are not permanent gate
-evidence or backups. They are outside automatic run cleanup. Export required
+evidence or backups. They are outside automatic run cleanup: `gatereeve cleanup
+--apply` removes reports older than 30 days and, beyond those, all but the newest
+5,000, never a report whose run folder still exists. Export required
 evidence to the feature record. Consider sensitive tool output before retaining
 diagnostics. A failed receipt write protects bulk. Cleanup failures remain visible
 alongside the original error.
+
+Previews and `gatereeve doctor` count files (inodes) per run and in total, and
+the diagnostic reports, alongside allocated bytes; a hard-linked file's bytes are
+counted once. A run older than 7 days whose owner and children are gone is shown
+as `stranded` with its file count and its exact `gatereeve cleanup --run <id>
+--apply` command; removal still needs the ordinary eligibility checks. Repository
+tests run with a private scratch root (`cli/scripts/isolated-test.js`) and never
+use the host scratch area.
 
 An explicit hold protects bulk until its expiry. Expiry only permits a later
 on-demand cleanup; there is no scheduler. `plugin smoke-install --keep` holds its
@@ -82,8 +92,15 @@ owned workspace for 24 hours. A caller's explicit `--workspace` remains caller
 owned. Normal completion cleans the command's own scratch where safety checks
 permit. Retained paths and reasons are reported.
 
-Cleanup rechecks run/root ownership and directory identities under a maintenance
-lock. Symlinked roots/records, malformed or missing owners, active owners or child
+Creating a run takes no lock: its folder name is unique and its owner record is
+published by an atomic rename (until then cleanup treats the run as uncertain).
+Cleanup probes activity outside the lock, then rechecks run/root ownership and
+directory identities under the maintenance lock only while renaming an eligible
+run to a `.removing-` tombstone, whose owner record names the deleting process; the tombstone is deleted outside the lock. A tombstone left by an interrupted deletion is reclaimed by a later `cleanup --apply` once its deleter is verifiably gone. A run that a concurrent cleanup already removed is reported as skipped, not as a failure. A
+process waiting on a lock whose holder is verified alive keeps waiting; a holder
+verified gone, or a lock left without an owner record, is reported as interrupted
+and never removed by age. Each isolated test shard and each test file run directly
+with `node --test` gets its own private scratch root (`cli/test/helpers`). Symlinked roots/records, malformed or missing owners, active owners or child
 groups, mounted directories and uncertain OS observations are protected. PID reuse
 alone does not establish inactivity. Full checks use POSIX `ps`, `mount` and
 `lsof`. On Linux, a process-handle inventory avoids recursively scanning the
@@ -115,6 +132,34 @@ For local desktop packaging verification, use the maintained
 hash and verification receipt before cleaning its temporary application/fixture.
 `--keep` provides a 24-hour debugging hold. Production builds continue through
 Release Conductor with separate, explicitly retained outputs.
+
+## Finished worktrees
+
+`gatereeve worktree sweep [repositories...] [--root <dir>]` previews git
+worktrees that look finished: the branch is merged into the remote default
+branch, its PR is merged or closed, or its GateReeve run recorded completion.
+Worktrees with no commits or changes for 30 days are shown separately as
+`stale`. Discovery uses `git worktree list` for the named main checkouts, or for
+every repository directly under `--root` (default `~/Code`) or one level below.
+
+It always skips, with the reason: the main checkout, the worktree holding the
+current directory, a branch with an open PR, a branch whose PR state cannot be
+read (`pr-state-unknown`), and a `development`/`development-*` branch with
+commits not on the remote. For every candidate it lists what might matter:
+untracked files, modified tracked files, ignored files outside the regenerable
+set, commits not on any remote, a branch with no remote, and workflow state
+(`.gatereeve-current/`) that the telemetry harvester has not copied since its
+last change (`.gatereeve-current/harvested.json` with a newer `harvestedAt`).
+The regenerable set is the git-ignored directories `node_modules`, `dist`,
+`build`, `out`, `.next`, `.turbo`, `.cache`, `coverage`, `__pycache__`,
+`.pytest_cache`, `.venv` and `target`; a repository adds names only with
+`git config --add gatereeve.sweepRegenerable <name>`.
+
+`--apply` asks once per worktree, re-checks it, deletes it completely (there is
+no archive or Trash), runs `git worktree prune`, and deletes the local branch
+only when it is merged into the remote default branch. `--apply --yes` removes
+only worktrees with nothing listed. Remote branches are never touched. Deleting
+a worktree deletes its review audit trail; committed docs remain in git.
 
 ## Default producer coverage
 

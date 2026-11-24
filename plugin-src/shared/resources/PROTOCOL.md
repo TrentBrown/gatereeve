@@ -30,10 +30,12 @@ identity and exact input after an uncertain response. Conflicting reuse fails.
 | `delegation.apply` | `action`: the exact prepared `SLICE` merge action into the integration branch. Under delegation only: records `accept` + `authorize-merge` with the `delegated-evaluator` authority when every required gate PASSes and the review summary is published |
 | `run.resume-current` | Same run identity; optional `planning.design` and `planning.implementation` observed human decisions. Establishes current authority without interpreting old journals. When nothing is retained to resume (no current run and no earlier activation), it starts a fresh run under the `run.start` workspace rules, including `workspace`; resuming an existing run or activation refuses `workspace` and writes nothing |
 | `human.decide` | See decisions below |
+| `decision.ask` | `kind`, optional `subject`, `question` (at most 500 characters): record that a decision question is being presented to the human, as a `DECISION_PENDING` event with `asked: true`. It carries no authority and is not a pending decision; metrics measure the human's wait from it to the human-confirmed answer of the same kind |
 | `spec.validate` | Run trusted spec lint after the model's semantic review of AC, rubric and boundary feasibility |
-| `candidate.prepare` | `repositories: [{alias,base,head,target?}]` full commit IDs, `scope: SLICE|FEATURE`, `criteria: ["R1", ...]`; FEATURE requires every rubric row. A light run has no rubric: `criteria` is exactly `["brief"]` for either scope, and its change is classified by the tripwires (result `tripwires`) |
+| `candidate.prepare` | `repositories: [{alias,base,head,target?}]` full commit IDs, `scope: SLICE|FEATURE`, `criteria: ["R1", ...]`; FEATURE requires every rubric row. A full-rigor run fails naming `decisions.md` when the feature's decisions log is missing. A light run has no rubric: `criteria` is exactly `["brief"]` for either scope, and its change is classified by the tripwires (result `tripwires`) |
 | `candidate.ready` | Declare the pinned candidate ready; launches nothing |
 | `gate.execute` | `gates: [id]` or `["code","spec"]`, explicit `configuration`, typed `consumed`, bounded `history`, labeled `claims`, optional `prior` for a delta |
+| `job.abandon` | `jobId`, `reason`: records `JOB_ABANDONED` for a pending verification or acceptance-assessment job whose owning process is verifiably gone (its recorded process identity no longer matches). An abandoned job no longer invalidates proof recorded before it. Refused for a live process, a job with a retained outcome (reconcile it), a job without an owner record, and delivery (completion) jobs |
 | `milestone.check` | `name: implementation|acceptance|merge|completion`; reports missing proof/authority without writing |
 | `milestone.pass` | Record an allowed milestone; merge must use its protected action |
 | `merge.prepare` | `repository`, PR `number`, `method`; derive the exact source/target action, including `deliveryTarget: integration|release`, to present for authorization. Rejects a PR whose candidate scope does not match its target (see Delivery targets). Without a workspace configuration it fails naming `workspace.configure` |
@@ -277,7 +279,13 @@ changes, uncertain findings, repeated misses or divergent conclusions. Record a
 short strategy/reason through `workflow.observe`, preferably at an existing work
 boundary. Ordinary implementer self-review is not another mandatory gate.
 
-Runner configuration is `checks: [{repository,command,args,purpose,timeoutMs?}]`.
+Runner configuration is `checks: [{repository,command,args,purpose,timeoutMs?,replaces?}]`.
+`replaces: [{repository?,command,args,reason}]` declares earlier check identities
+the check replaces (the repository defaults to the check's own). Each declaration
+becomes a `check-replacement` coverage claim in any review, spec or judge
+assessment that consumes the verification; acceptance counts the replaced identity
+as covered once that assessment passes the matching coverage decision, with no
+extra round. A rejected replacement leaves the identity uncovered.
 No dependency directory, toolchain or external runtime-tree fingerprint is taken.
 `externalRuntimeInputs` from older configurations is historical declaration only;
 it creates no equivalence assurance. Declared controlled environment, runtime

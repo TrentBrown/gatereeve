@@ -1,3 +1,4 @@
+import './helpers/private-scratch.js';
 import assert from 'node:assert/strict';
 import { isolatedTests } from './helpers/isolated-tests.js';
 import { mkdtemp, mkdir, writeFile, readFile, rm, realpath } from 'node:fs/promises';

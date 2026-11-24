@@ -1,3 +1,4 @@
+import './helpers/private-scratch.js';
 import assert from 'node:assert/strict';
 import { execFileSync, spawn } from 'node:child_process';
 import { mkdtemp, rm, writeFile, chmod, readFile } from 'node:fs/promises';

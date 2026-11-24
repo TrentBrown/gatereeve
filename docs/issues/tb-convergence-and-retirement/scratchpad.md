@@ -108,3 +108,44 @@ folder still exists. Stranded runs: older than 7 days with dead owners.
 **Rationale:** Reports are 4 KiB each and useful for a few weeks of diagnosis;
 5,000 covers several full test-heavy weeks if tests ever leak again. Seven days
 outlives any review or release job. Reversible.
+
+## [6] PR A: a third, delta-only paired round for blocking fixes
+
+**Answered by:** human (2026-11-23, "Fix + one delta round")
+
+**Context:** After the two paired rounds D33 allows, round 2 still raised four
+blocking findings (purge name pattern matching real folders, unreachable
+tombstone reclaim, global git config in the sweep skip list, check replacement
+not bound to a recorded boundary pair). D33 says blocking findings are still
+fixed, and acceptance needs a passing pair on the current candidate, so any
+fix needs a further round.
+
+**Decision:** Fix all four (plus the cheap non-blocking bury-failure and
+mounted-count findings), verify once, and run one delta paired round limited
+to these fixes. Non-blocking findings after it are adjudicated; no further
+rounds for PR A.
+
+**Rationale:** Two of the four could delete real data; accepting them as risk
+contradicts D33. One short delta round costs about 45 minutes.
+
+## [7] PR A: purge deletes only human-named workflows; full-suite isolation evidence
+
+**Answered by:** human (2026-11-23, "Descope purge apply")
+
+**Context:** After the delta round, Codex still held that any folder-name rule
+can classify a real `/tmp` workspace as test data, and Claude returned
+UNAVAILABLE because no receipt showed a full CLI run leaving the shared metrics
+store and host scratch counts unchanged.
+
+**Decision:** `metrics purge-test-data` previews candidates by fixture shape
+(exact suite prefixes and `mkdtemp`/`tempfile` suffixes, folder gone), but
+`--apply` removes only the workflows the human names from the preview
+(`--workflow`, `--workflows-file`). AC2's purge is met as "previews by default,
+removes the confirmed fixture rows, leaves every other row unchanged".
+Tombstones are shown in cleanup and doctor output. Verification adds
+`node cli/scripts/isolation-evidence.js` (full CLI suite with before/after
+shared-store workflows and host scratch run/report counts). One final paired
+round (round 4); then adjudicate.
+
+**Rationale:** Automatic deletion by name pattern kept failing review; human
+confirmation removes the risk class instead of narrowing it.

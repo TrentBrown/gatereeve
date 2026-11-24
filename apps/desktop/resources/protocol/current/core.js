@@ -10,8 +10,9 @@ import { HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-w
 import { executionEnvironment, assertEnvironmentCurrent } from './environment.js';
 import { patternInputs } from './pattern-inputs.js';
 import { randomUUID } from 'node:crypto';
+import { processIdentity } from '../../storage/scratch.js';
 import { ID, CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, DIALS, LOWERING_REFUSED, DELEGATED_AUTHORITY, AUTONOMOUS_AUTHORITY, startDial, dialChange, automaticDial, requireThat, identity,
-  identifier, text, decision, gate, authority, decisionHas, waiverFor, waiverPolicyAllows, latestImplementation, currentAuthorityDecisions, currentDesignApproval, unattendedValue, normalizedDial, autonomyAlias } from './contracts.js';
+  identifier, text, decision, gate, authority, decisionHas, waiverFor, waiverPolicyAllows, latestImplementation, currentAuthorityDecisions, currentDesignApproval, unattendedValue, normalizedDial, autonomyAlias, decisionQuestion } from './contracts.js';
 import { CurrentStore } from './store.js';
 import { requirements, sourceCandidate, assertSourceIsolation, checkCandidate, checkSource, contentIdentity, briefBased } from './evidence.js';
 import { validatePlanning, assertPlanningProof, planningBinding } from './planning.js';
@@ -33,6 +34,8 @@ const LIVE_PROOFS = Symbol('qualified live proof inputs');
 const RETAINED_CLOSURE = Symbol('retained bytes verified in this observation');
 const admissions = new WeakMap();
 const lightRun = state => state.dials.rigor.value === 'light';
+// The decisions log a full-rigor paired review reads as supporting input (execution.js).
+const REVIEW_SUPPORT_DOCUMENTS = ['decisions.md'];
 const GOAL_READY_STALE = new Set(['DECIDED', 'SPEC_VALIDATED', 'REVIEWERS_SELECTED', 'REVIEW_ROUND_STARTED', 'BOUNDARY_REVIEWED', 'REVIEW_ADJUDICATED', 'CANDIDATE', 'JOB_FINISHED', 'INTEGRATED', 'DIAL_SET']);
 // A human stay-light decision covers the current tripwire hits only when every
 // current hit was named in it; a new hit needs a new decision (spec AC4).
@@ -94,7 +97,9 @@ export function project(events) {
   for (const event of events.slice(1)) {
     const value = event.payload;
     switch (event.type) {
-      case 'DECISION_PENDING': state.pendingDecisions.push({ ...value, event: event.hash }); break;
+      // An asked question (decision.ask) only times the human's wait; the
+      // recovery record for an interrupted decision is the unflagged form.
+      case 'DECISION_PENDING': if (!value.asked) state.pendingDecisions.push({ ...value, event: event.hash }); break;
       case 'VALIDATION_FAILED': state.validationFailures.push(value); state.specValidation = null; break;
       case 'DECIDED':
         state.pendingDecisions = state.pendingDecisions.filter(item => item.operation.id !== value.requestId);
@@ -127,6 +132,7 @@ export function project(events) {
       case 'ACTION_CLAIMED': state.actions[value.id] = { ...value, running: true }; break;
       case 'ACTION_RELEASED': if (state.actions[value.id]?.owner === value.owner) state.actions[value.id].running = false; break;
       case 'JOB_STARTED': state.jobs[value.jobId] = { ...value, sequence: event.sequence, finished: false }; break;
+      case 'JOB_ABANDONED': state.jobs[value.jobId] = { ...state.jobs[value.jobId], abandoned: { reason: value.reason, sequence: event.sequence } }; break;
       case 'JOB_OUTCOME_READY': state.jobs[value.jobId] = { ...state.jobs[value.jobId], ready: value }; break;
       case 'JOB_FINISHED': state.jobs[value.jobId] = { ...state.jobs[value.jobId], ...value, finishedSequence: event.sequence, finished: true }; state.results.push(...value.results); break;
       case 'MILESTONE':
@@ -536,6 +542,15 @@ export class CurrentCore {
     const { state } = await this.state();
     requireThat((await this.check('implementation')).allowed && state.phase !== 'COMPLETE', 'Current implementation authority is required');
     const current = await this.commitments({ state });
+    // Spec AC13 (D33): the paired review reads these lifecycle documents; a
+    // missing one fails here by name, not later as an unavailable review.
+    if (!lightRun(state)) {
+      const missing = [];
+      for (const name of REVIEW_SUPPORT_DOCUMENTS) {
+        try { await this.store.fingerprint(name); } catch (error) { if (error.code !== 'ENOENT') throw error; missing.push(name); }
+      }
+      requireThat(!missing.length, `Missing lifecycle document${missing.length > 1 ? 's' : ''} ${missing.join(', ')} in the feature folder; create ${missing.length > 1 ? 'them' : 'it'} (workflow-branch-bootstrap) before candidate.prepare`);
+    }
     const authorization = findDecision(state, 'authorize-implementation', current.subject);
     const preparation = await sourcePreparation(this.store, this.context, input, state.runId, operation);
     const pendingId = `source_${preparation.id}`;
@@ -616,6 +631,7 @@ export class CurrentCore {
         for (const id of ids) covered.set(id, result.outcome === 'PASS');
       } catch { /* Historical success cannot fill current coverage. */ }
     }
+    const pairedReplacements = new Map();
     // Semantic supersession is established by an existing independent spec or
     // Judge result. A model-authored claim alone never satisfies coverage.
     for (const ref of [...state.results].reverse()) {
@@ -629,6 +645,23 @@ export class CurrentCore {
       } catch { continue; }
       for (const claim of inputs.coverageClaims) {
         if (!report.coverageDecisions?.some(item => item.id === claim.id && item.outcome === 'PASS')) continue;
+        if (claim.kind === 'check-replacement') {
+          // Spec AC13 (D33): the declared replacement counts once both members
+          // of one recorded paired boundary round (BOUNDARY_REVIEWED) accepted
+          // it and its verification is still current and passing. A standalone
+          // spec, judge or review decision, or reviews from different rounds,
+          // are not enough.
+          if (report.gate !== 'review') continue;
+          const round = state.boundaryReviewHistory.find(entry => entry.outcomes?.some(outcome => outcome.results?.some(item => item.hash === ref.hash)));
+          if (!round) continue;
+          const provider = round.outcomes.find(outcome => outcome.results?.some(item => item.hash === ref.hash)).provider;
+          try { if ((await this.currentResult(claim.verification, candidate, state, new Set(), memo, false)).outcome !== 'PASS') continue; }
+          catch { continue; } // A stale replacement cannot cover prior behavior.
+          const key = `${round.event}:${claim.verification.hash}:${checkIdentity(claim.replaces)}`;
+          const entry = pairedReplacements.get(key) ?? pairedReplacements.set(key, { identity: checkIdentity(claim.replaces), providers: new Set(), required: round.outcomes.length }).get(key);
+          entry.providers.add(provider);
+          continue;
+        }
         let applicable = true;
         for (const replacement of claim.replacements) {
           try { if ((await this.currentResult(replacement, candidate, state, new Set(), memo, false)).outcome !== 'PASS') applicable = false; }
@@ -641,6 +674,7 @@ export class CurrentCore {
         }
       }
     }
+    for (const { identity: replaced, providers, required } of pairedReplacements.values()) if (providers.size >= 2 && providers.size === required) covered.set(replaced, true);
     requireThat([...required].every(id => covered.get(id) === true), 'Verification has uncovered prior behavior; rerun checks or qualify replacement coverage in the existing independent review');
   }
   async recordedResult(ref, state) {
@@ -679,7 +713,7 @@ export class CurrentCore {
     const { result, receipt } = await this.recordedResult(ref, state);
     if (!historicalAncestry && result.outcome === 'PASS') {
       const started = state.jobs[receipt.jobId].sequence;
-      for (const pending of Object.values(state.jobs)) if (!pending.finished && pending.gates?.includes(result.gate)) {
+      for (const pending of Object.values(state.jobs)) if (!pending.finished && !pending.abandoned && pending.gates?.includes(result.gate)) {
         const known = await this.store.job(pending.jobId);
         requireThat(!known && !pending.ready && pending.sequence < started, 'Pending execution requires retained-outcome reconciliation or fresh proof after unknown work');
       }
@@ -1168,7 +1202,7 @@ export class CurrentCore {
   async reconcileCompletedJobs() {
     let { state } = await this.state();
     for (const pending of Object.values(state.jobs)) {
-      if (pending.finished) continue;
+      if (pending.finished || pending.abandoned) continue;
       let saved = await this.store.job(pending.jobId);
       if (pending.ready) {
         const ready = { runId: state.runId, operation: pending.ready.operation, results: pending.ready.results };
@@ -1191,6 +1225,26 @@ export class CurrentCore {
       }, completion);
       state = recorded.state;
     }
+  }
+  // Spec AC13 (D33): a runner or independent-assessment job whose owning
+  // process is verifiably gone will never finish; abandoning it stops it from
+  // invalidating proof recorded before it. Delivery jobs still need reconciliation.
+  async abandonJob(input, operation) {
+    requireThat(input && Object.keys(input).every(key => ['jobId', 'reason'].includes(key)), 'job.abandon accepts only jobId and reason');
+    requireThat(typeof input.reason === 'string' && input.reason.trim().length > 0 && input.reason.length <= 4096, 'job.abandon needs a reason');
+    await this.reconcileCompletedJobs();
+    const { state } = await this.state();
+    const job = state.jobs[input.jobId];
+    requireThat(job, 'Unknown job');
+    requireThat(!job.finished, 'The job already finished; its outcome is recorded');
+    requireThat(!job.abandoned, 'The job is already abandoned');
+    requireThat(job.gates.every(id => { const definition = gate(id); return definition.at === 'acceptance' && ['runner', 'independent', 'assessment'].includes(definition.role); }),
+      'Delivery jobs cannot be abandoned; reconcile their retained outcome');
+    requireThat(!job.ready && !await this.store.job(input.jobId), 'The job has a retained outcome; reconcile it instead');
+    requireThat(job.owner, 'The job predates owner records; its process cannot be verified gone');
+    const observed = await processIdentity(job.owner.processId);
+    requireThat(observed !== job.owner.processStartedAt, 'The job\'s process is still running');
+    return this.append(state, 'JOB_ABANDONED', { jobId: input.jobId, reason: input.reason, owner: job.owner, observedAt: new Date().toISOString() }, operation);
   }
   async setDial(input, operation) {
     const { state } = await this.state();
@@ -1224,7 +1278,7 @@ export class CurrentCore {
   async cleanupSource() {
     const { state } = await this.state();
     if (state.phase !== 'COMPLETE' || state.sourceCleanup?.status === 'released') return;
-    const pending = Object.values(state.jobs).some(job => !job.finished);
+    const pending = Object.values(state.jobs).some(job => !job.finished && !job.abandoned);
     const result = pending ? { status: 'pending', errors: [{ reason: 'Active or unresolved jobs still own source references' }] }
       : await releasePins(this.context, state.sourcePreparations);
     if (identity(result) !== identity(state.sourceCleanup)) await this.append((await this.state()).state, 'SOURCE_CLEANUP', result,
@@ -1283,6 +1337,12 @@ export class CurrentCore {
       case 'spec.validate': return this.validateSpec(operation);
       case 'candidate.prepare': return this.prepare(input, operation);
       case 'candidate.ready': return this.readiness(operation);
+      case 'job.abandon': return this.abandonJob(input, operation);
+      case 'decision.ask': {
+        const question = decisionQuestion(input);
+        const { state } = await this.state();
+        return this.append(state, 'DECISION_PENDING', question, operation);
+      }
       case 'workflow.observe': {
         const note = workflowObservation(input);
         const { state } = await this.state();

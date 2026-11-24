@@ -1,3 +1,4 @@
+import './helpers/private-scratch.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, realpath, rm } from 'node:fs/promises';

@@ -25,6 +25,10 @@ export function metricsCommands() {
     for(const key of ['enabled','diagnosticDetails'])if(key in options){if(!['true','false'].includes(options[key]))throw new Error(`${key} must be true or false`);options[key]=options[key]==='true';}
     output(Object.keys(options).length?await metricsRequest('config',options):(await metricsRequest('status')).settings);
   });
+  root.command('purge-test-data').description('Preview test-suite fixture workflows; --apply removes only the workflows you name from the preview').option('--apply','remove the named workflows').option('--workflow <id...>','workflow IDs from the preview to remove (with --apply)').option('--workflows-file <path>','file with one previewed workflow ID per line (with --apply)').action(async options=>{
+    const ids=[...(options.workflow??[]),...(options.workflowsFile?(await readFile(options.workflowsFile,'utf8')).split('\n').map(line=>line.trim()).filter(Boolean):[])];
+    output(await metricsRequest('purge-test-data',options.apply===true?{apply:true,workflows:ids}:{}));
+  });
   root.command('cleanup').option('--apply','remove eligible owned metrics').action(async options=>output(await metricsRequest('cleanup',{apply:options.apply===true})));
   root.command('run').description('Run argv transparently; separate command with --').option('--execution <id>','stable identity for this actual execution').option('--project <identity>').option('--feature <identity>').option('--category <category>').option('--reason <reason>').option('--scope <scope>','declared full or focused coverage').argument('<command>').argument('[args...]').passThroughOptions().action(async(command,args,options)=>{
     const result=await runMeasured(command,args,options);

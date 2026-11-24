@@ -1,3 +1,4 @@
+import './helpers/private-scratch.js';
 import { selection, pairExistingEvaluator } from './helpers/paired-review-fixture.js';
 import assert from 'node:assert/strict';
 import { isolatedTests } from './helpers/isolated-tests.js';

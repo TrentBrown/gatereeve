@@ -597,3 +597,82 @@ and the Fleet thread's reviewer idle-inhibitor request.
 - **Decision:** Amends D17 item 3. A worktree's `.gatereeve-current/` is listed
   as something that might matter unless a harvest marker shows it was copied
   after its last change; non-interactive mode therefore skips it.
+
+### D32 - Fleet reviewer-contract bug report (amends slice 3)
+- **Question:** The Fleet thread reported reviewer verdicts rejected for
+  bookkeeping reasons (a historical blocking finding still present but now
+  rated low had no valid disposition; format repair changed more than labels;
+  findings shown only inside earlier UNAVAILABLE results were treated as
+  undisclosed). Where does the fix go?
+- **Answered by:** human
+- **Answer:** "Fold into slice 3 (Recommended)".
+- **Decision:** Slice 3 adds a disposition for a historical blocking finding
+  that is still present but now rated low (it no longer blocks); counts every
+  finding in the supplied history as disclosed, including findings inside
+  earlier UNAVAILABLE results; and reproduces each case with fixtures (the
+  Mac evidence folder is never copied).
+
+### D33 - Make GateReeve runs converge fast (amends slices 2, 3 and the plan)
+- **Question:** This run's slice 1 needed seven paired review rounds and
+  about a day of wall time. The causes: the parallel core suite fails on
+  this host because test shards contend for one scratch maintenance lock
+  (a waiter gives up after 90 s even while the holder is alive), so local
+  verification ran serially for about an hour; reviewers returned
+  substantively valid PASS verdicts that the contract rejected for
+  bookkeeping (`historyAssessment.affected` naming a non-blocking prior
+  finding) and format repair then rejected a consistent rewording; a missing
+  `decisions.md` surfaced only when both reviewers failed; acceptance
+  required every check identity ever run to pass again in that exact form;
+  and a verification job stopped by a time limit left a pending execution
+  that invalidated older proof. What changes?
+- **Answered by:** human
+- **Answer:** "1) Approved. 2) Approved. 3) Approved. 4) Approved." to the
+  four proposals below, plus "I also assume that as part of your slices, you
+  will do the other things you mentioned above to fix our problems. For
+  example, the issue of review verdicts mixing substance. And also the
+  scratch lock fixes you describe above." (2026-11-23).
+- **Decision:**
+  1. **Scratch lock (slice 2).** Every test process and every isolated test
+     shard uses its own scratch root, including suites invoked directly with
+     `node --test` (not only through `npm test`). Creating a run takes no
+     global lock: the run folder has a unique name and its owner record is
+     written atomically. Cleanup holds the maintenance lock only to rename an
+     eligible run to a tombstone name; deletion of the tombstone happens
+     outside the lock. A process waiting on a lock whose holder is verified
+     alive keeps waiting and never fails on elapsed time alone; an
+     interrupted lock (holder gone) is still reported, never stolen by age.
+  2. **Reviewer verdicts separate substance from bookkeeping (slice 3).**
+     GateReeve computes the set of findings that need a disposition from the
+     supplied history and gives it to each reviewer explicitly. The
+     structured-output schema is built per request, with the allowed finding
+     IDs as enums in every list that names findings. Extra IDs that are
+     disclosed in the history are dropped from bookkeeping lists and recorded
+     as `normalized`, never rejected; rejection is reserved for substantive
+     contradictions (a PASS with a present blocking finding, a missing
+     disposition for an open blocking finding, an unknown ID). Reviewers can
+     run a read-only `validate-verdict` command inside their sandbox before
+     answering. Format repair is judged by substance identity (outcome,
+     findings, severity, evidence, criteria, coverage decisions,
+     dispositions); text that depends on a repaired field may change.
+     Contract rejections are counted per rule in the metrics store.
+  3. **Workflow robustness (slice 2).** The feature's `decisions.md` is
+     created with the other lifecycle documents, and `candidate.prepare`
+     fails naming it if it is missing. A verification may declare that a
+     check replaces an earlier check identity, with a reason; the replacement
+     is accepted when the paired review that consumes that verification
+     passes its coverage decision, without a dedicated extra round. A runner
+     or independent-assessment job whose process is verifiably gone can be
+     abandoned with a reason (`job.abandon`); an abandoned job no longer
+     invalidates proof recorded before it. Delivery jobs still require
+     reconciliation.
+  4. **Plan (approved proposal 2).** The remaining slices ship as three PRs:
+     PR A = slices 2 and 6 plus items 1 and 3; PR B = slice 3 plus item 2;
+     PR C = slices 4 and 5.
+  5. **Review rounds (approved proposal 3).** Until slice 4's round policy
+     exists, each PR gets at most two paired review rounds; after that,
+     remaining non-blocking findings become follow-ups and residual risk is
+     recorded with `review.adjudicate` under the mandate. Blocking findings
+     are still fixed.
+  6. **Dogfooding (approved proposal 4).** Once PRs A and B are merged into
+     the integration branch, this run's GateReeve operations use the adapter
+     from the integration branch checkout instead of the installed plugin.
