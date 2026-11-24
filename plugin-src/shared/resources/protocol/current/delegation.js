@@ -17,20 +17,28 @@ import { ROUND_POLICY, planningScope, roundOf, scheduledBlocking, roundHandBack,
 // high findings and medium regressions (findings on a document the previous
 // round's fix changed) block; at round 6 the review hands back.
 // A finding keeps the regression status of the round that first raised it.
-async function planningSchedule(core, state, artifact, cited, result) {
+export async function planningSchedule(core, state, artifact, cited, result) {
   const scope = planningScope(artifact), round = roundOf(state, scope, cited.subject);
   const revisions = state.reviewScopes?.[scope]?.revisions ?? [];
   const reviewAt = row => row ? state.planningReviews.find(item => item.event === row.event) : null;
   // A round-1 finding has no previous fix, so it is never a regression.
+  // The previous round's documents come from its completed review, or from the
+  // round count when that review failed at the provider.
   const changedSince = (row, documents, name) => {
-    const previous = reviewAt(revisions.find(item => item.round === row.round - 1));
-    return Boolean(previous) && previous.documents?.[name]?.hash !== documents[name]?.hash;
+    const before = revisions.find(item => item.round === row.round - 1);
+    const previous = reviewAt(before)?.documents ?? before?.documents ?? null;
+    return Boolean(previous) && previous[name]?.hash !== documents[name]?.hash;
   };
+  // A finding keeps the regression status of the round that raised it until a
+  // later completed review no longer reports it (resolved); a reintroduction
+  // is judged afresh.
   const firstRaised = new Map();
   for (const row of revisions) {
     const review = reviewAt(row);
     if (!review || review.event === cited.event) continue;
     let earlier; try { earlier = await core.store.json(review.result); } catch { continue; }
+    const present = new Set((earlier.findings ?? []).map(finding => finding.id));
+    for (const id of [...firstRaised.keys()]) if (!present.has(id)) firstRaised.delete(id);
     for (const finding of earlier.findings ?? []) if (!firstRaised.has(finding.id))
       firstRaised.set(finding.id, changedSince(row, review.documents, finding.document.replace(/^requirements\//u, '')));
   }
@@ -258,7 +266,7 @@ export async function reviewPlanning(core, input, operation) {
       timeoutSeconds: configuration.timeoutSeconds ?? 900 };
     // Count the planning round before the provider runs: an error, timeout or
     // malformed output still uses the round (spec AC6, failure model).
-    await countReviewRound(core, planningScope(input.artifact), subject);
+    await countReviewRound(core, planningScope(input.artifact), subject, null, documents);
     const result = await adapter.runStage(request);
     retained = [await core.store.putJson(result.receipt), await core.store.putJson(result.output)];
     validateAgentWorkflowStageResult(result);

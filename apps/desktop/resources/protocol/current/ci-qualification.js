@@ -40,7 +40,11 @@ export async function qualifyCi(core, state, candidate, ciRef, consumedRefs, mem
     if (ref.hash === ciRef.hash) continue;
     try {
       const report = await core.store.json(ref);
-      if (report.gate === 'verification' && report.runner) for (const name of (await core.store.json(report.runner)).validation?.ciRequiredChecks ?? []) planned.add(name);
+      if (report.gate !== 'verification' || !report.runner) continue;
+      // The plan is bound in the Verification's input; runners recorded by an
+      // earlier version may not repeat it (spec AC11).
+      for (const name of (await core.store.json(report.runner)).validation?.ciRequiredChecks ?? []) planned.add(name);
+      for (const name of (await core.store.json(report.input)).configuration?.validation?.ciRequiredChecks ?? []) if (typeof name === 'string' && name.trim()) planned.add(name);
     } catch { /* unreadable consumed proof is reported below as uncovered */ }
   }
   const unplanned = planned.size ? [] : ['the converged reviews assessed no planned CI scope (validation.ciRequiredChecks on the consumed Verification)'];

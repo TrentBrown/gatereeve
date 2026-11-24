@@ -184,3 +184,15 @@ test('CI qualification fails when the converged reviews assessed no planned CI s
   await ciVerification(f, 'verify-ci-unplanned');
   assert.match(verificationMissing(await acceptance(f)).join('\n'), /assessed no planned CI scope/);
 });
+
+test('a CI plan bound in a retained Verification input counts when its runner omits it', async t => {
+  const { f, head } = await converged(t);
+  // Runners recorded by an earlier version do not repeat validation.ciRequiredChecks.
+  const read = f.core.store.json.bind(f.core.store);
+  f.core.store.json = async ref => { const value = await read(ref);
+    if (value?.validation?.kind === 'alternative' && value.validation.ciRequiredChecks) { const { ciRequiredChecks, ...validation } = value.validation; return { ...value, validation }; }
+    return value; };
+  hostedCi(f, { head, treeId: await tree(f, head) });
+  await ciVerification(f, 'verify-ci-retained-plan');
+  assert.deepEqual(verificationMissing(await acceptance(f)), []);
+});

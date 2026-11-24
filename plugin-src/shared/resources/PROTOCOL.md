@@ -297,7 +297,9 @@ are not counted. `status.rounds` shows each scope, its round and band, and advic
 - Rounds 4-5: only `high` findings and `medium` regressions of the previous fix
   block. A regression is a finding new in this round on a path (planning: a
   document) the previous round's fix changed; it keeps the status of the round
-  that first raised it, even when re-reported, until it is resolved. Reviewers
+  that first raised it, even when re-reported, until it is resolved; a finding
+  fixed and later reintroduced is judged afresh. A planning round that failed at
+  the provider keeps its documents as the next round's regression baseline. Reviewers
   receive `packet.roundPolicy` (scope, round, band and the previous fix's changed
   paths) and apply the band themselves. Other findings stop blocking and stay
   visible on the pair member (`demotedFindings`). The mechanical demotion only

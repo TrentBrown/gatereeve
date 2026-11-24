@@ -145,7 +145,7 @@ export function project(events) {
         }
         break;
       // The round of a review counted when it started (spec AC6).
-      case 'ROUND_COUNTED': countRound(state, value.roundPolicy.scope, value.roundPolicy.revision, { ...(value.candidate ? { candidate: value.candidate } : {}), event: event.hash, at: event.recordedAt }); break;
+      case 'ROUND_COUNTED': countRound(state, value.roundPolicy.scope, value.roundPolicy.revision, { ...(value.candidate ? { candidate: value.candidate } : {}), ...(value.documents ? { documents: value.documents } : {}), event: event.hash, at: event.recordedAt }); break;
       case 'READY': state.ready = true; break;
       case 'TRANSITION_RECORDED': state.transition = value; break;
       case 'ACTION_CLAIMED': state.actions[value.id] = { ...value, running: true }; break;

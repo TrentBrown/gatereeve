@@ -50,6 +50,8 @@ export async function findingObligations(core, state, candidate, inputs, result,
     }
     for (const disposition of report.dispositions ?? []) if (known.has(disposition.id)) {
       if (['resolved', 'unsupported', 'present-low'].includes(disposition.status)) known.get(disposition.id).open = false;
+      // A resolved finding that is raised again later is judged afresh.
+      if (['resolved', 'unsupported'].includes(disposition.status)) known.get(disposition.id).origin = null;
       if (disposition.status === 'present') known.get(disposition.id).open = blocks(known.get(disposition.id).finding, true, known.get(disposition.id).origin);
     }
   }

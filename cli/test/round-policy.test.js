@@ -14,6 +14,7 @@ import { git } from '../../plugin-src/shared/resources/protocol/current/evidence
 import { scheduledBlocking, roundHandBack, roundStatus, ROUND_POLICY, countRound, roundOf, currentRevision, recordRoundDecision } from '../../plugin-src/shared/resources/protocol/current/round-policy.js';
 import { fixture, human, evaluator, reviewConfig, delegate } from './helpers/lightweight-fixture.js';
 import { retainedContractQualifies, REVIEW_CONTRACT_VERSION } from '../../plugin-src/shared/resources/protocol/current/execution.js';
+import { planningSchedule } from '../../plugin-src/shared/resources/protocol/current/delegation.js';
 import { selection } from './helpers/paired-review-fixture.js';
 import { revise, seedRounds, reviewers } from './helpers/round-fixture.js';
 
@@ -338,4 +339,45 @@ test('a result retained from an earlier review contract keeps its qualification 
   assert.equal(retainedContractQualifies({ reviewContract: 'sha256:old', reviewContractVersion: 'gatereeve-review/earlier' }, 'sha256:new'), true);
   assert.equal(retainedContractQualifies({ reviewContract: 'sha256:same', reviewContractVersion: REVIEW_CONTRACT_VERSION }, 'sha256:same'), true);
   assert.equal(retainedContractQualifies({ reviewContract: 'sha256:old', reviewContractVersion: REVIEW_CONTRACT_VERSION }, 'sha256:new'), false, 'same version, changed rules');
+});
+
+// Planning regressions (C1 round 3): a failed round keeps its documents, and a
+// fixed-then-reintroduced finding is judged afresh.
+const planningState = rounds => {
+  const state = { dials: { autonomy: { value: 'mandated' } }, planningReviews: [], reviewScopes: { 'planning:brief': { scope: 'planning:brief', round: rounds.length, revisions: [], decisions: [] } } };
+  const results = new Map();
+  rounds.forEach((row, index) => {
+    const documents = { 'brief.md': { hash: row.doc } }, event = `event-${index + 1}`;
+    state.reviewScopes['planning:brief'].revisions.push({ round: index + 1, revision: `subject-${index + 1}`, event, ...(row.failed ? { documents } : {}) });
+    if (!row.failed) { state.planningReviews.push({ event, documents, result: { hash: `result-${index + 1}` } }); results.set(`result-${index + 1}`, { findings: row.findings ?? [] }); }
+  });
+  const core = { store: { json: async ref => results.get(ref.hash) } };
+  return { state, core };
+};
+const medium = id => ({ id, document: 'requirements/brief.md', evidence: 'e', blocking: true, severity: 'medium', failureScenario: 'a -> b', classId: 'c', classStatement: 's' });
+const scheduleAt = async (rounds, findings) => {
+  const { state, core } = planningState(rounds);
+  const last = state.reviewScopes['planning:brief'].revisions.at(-1);
+  const cited = { event: last.event, subject: last.revision, documents: { 'brief.md': { hash: rounds.at(-1).doc } } };
+  state.planningReviews.push({ event: last.event, documents: cited.documents, result: { hash: 'current' } });
+  return planningSchedule(core, state, 'brief', cited, { outcome: 'FAIL', findings });
+};
+
+test('a planning round that failed at the provider keeps the regression baseline', async () => {
+  // Round 3 timed out on doc v3; round 4 changed the document and raised a medium finding.
+  const schedule = await scheduleAt([{ doc: 'v1' }, { doc: 'v2' }, { doc: 'v3', failed: true }, { doc: 'v4' }], [medium('M1')]);
+  assert.equal(schedule.round, 4);
+  assert.deepEqual(schedule.blockers.map(row => row.id), ['M1'], 'a medium regression blocks in round 4');
+  assert.equal(schedule.outcome, 'FAIL');
+  // Unchanged since the failed round: not a regression, so it is demoted.
+  assert.equal((await scheduleAt([{ doc: 'v1' }, { doc: 'v2' }, { doc: 'v3', failed: true }, { doc: 'v3' }], [medium('M1')])).outcome, 'PASS');
+});
+
+test('a planning finding fixed and later reintroduced is judged afresh', async () => {
+  // M1 raised in round 1 (never a regression), fixed in round 2, reintroduced by the round-4 change.
+  const schedule = await scheduleAt([{ doc: 'v1', findings: [medium('M1')] }, { doc: 'v2', findings: [] }, { doc: 'v2' }, { doc: 'v4' }], [medium('M1')]);
+  assert.deepEqual(schedule.blockers.map(row => row.id), ['M1']);
+  // Still present since round 1 without a fix: it keeps its round-1 status and is demoted.
+  const kept = await scheduleAt([{ doc: 'v1', findings: [medium('M1')] }, { doc: 'v2', findings: [medium('M1')] }, { doc: 'v3', findings: [medium('M1')] }, { doc: 'v4' }], [medium('M1')]);
+  assert.equal(kept.outcome, 'PASS');
 });

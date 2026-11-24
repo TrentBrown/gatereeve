@@ -64,12 +64,14 @@ export function scheduledRound(state, scope, revision) {
 // path (review.execute, an individual selection-tagged gate.execute, a planning
 // review), so provider failures and individual reviews advance the counter.
 // Idempotent: concurrent peers of one round record it once.
-export async function countReviewRound(core, scope, revision, candidate = null) {
+export async function countReviewRound(core, scope, revision, candidate = null, documents = null) {
   while (true) {
     const { state } = await core.state();
     if (currentRevision(state, scope, revision)) return state;
     const after = state.reviewScopes?.[scope]?.round ?? 0;
-    const payload = { roundPolicy: { policy: ROUND_POLICY, scope, revision }, candidate, after };
+    // A planning round keeps its documents, so a provider failure still leaves
+    // the next round's regression baseline.
+    const payload = { roundPolicy: { policy: ROUND_POLICY, scope, revision }, candidate, after, ...(documents ? { documents } : {}) };
     try { return (await core.append(state, 'ROUND_COUNTED', payload, { id: `round_count_${identity({ scope, revision, after }).slice(7, 71)}`, hash: identity(payload) })).state; }
     catch (error) { if (!/^Concurrent update;/u.test(error.message)) throw error; }
   }

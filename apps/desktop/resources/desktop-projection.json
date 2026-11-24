@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:ddbec61f3a8fa924982e475dcf1e0d872afa441423f0d084ebbe36fff579e4f8",
+  "protocolHash": "sha256:c5ad9d371842cdc37435528067491336d2fc63ee800ca60b5cfa2b44f2497530",
   "contract": "gatereeve/current/8",
   "contractSha256": "1df0afc21301595b72a5f9bdad3ab2aade7452ad1c5a4f97455bde354bf1120a",
   "files": [
@@ -47,8 +47,8 @@
     },
     {
       "path": "current/ci-qualification.js",
-      "size": 5847,
-      "sha256": "1805bad04b4312f50e7b4518e3f4c0a72dc1567d5ac3e761c2723f6c144fe97e"
+      "size": 6177,
+      "sha256": "7eb945694aaea54479f039da813074850057eff6722ae550c2cf96d6482288d4"
     },
     {
       "path": "current/command-guard.js",
@@ -62,8 +62,8 @@
     },
     {
       "path": "current/core.js",
-      "size": 112028,
-      "sha256": "5c789f0fb301e7a115fa14a7b92481399fc608176b58be0845ee783244a7d847"
+      "size": 112088,
+      "sha256": "92c0c534dd89020715122eb00dc8b80c8c429cfcb2d32879f4b2ba5454dc9d6f"
     },
     {
       "path": "current/coverage.js",
@@ -72,8 +72,8 @@
     },
     {
       "path": "current/delegation.js",
-      "size": 41105,
-      "sha256": "55f69ce749d82942925bf92d72380de7c968873ea958b1c733cf989318060119"
+      "size": 41676,
+      "sha256": "6b098a2a76eb7da5ac63a89b644baa299c36068e1aaf19c57ccc806f935141e8"
     },
     {
       "path": "current/delivery.js",
@@ -157,8 +157,8 @@
     },
     {
       "path": "current/review-findings.js",
-      "size": 5153,
-      "sha256": "875a2c18cade712947503ce69233f94b01832d7ece79214cd6ca6b3c80f7a340"
+      "size": 5335,
+      "sha256": "2270fd6783f3b5dd45ad7c8c90092d0b4b166b7c7b47c449e7e45e87a2a29daa"
     },
     {
       "path": "current/review-history.js",
@@ -172,8 +172,8 @@
     },
     {
       "path": "current/round-policy.js",
-      "size": 7801,
-      "sha256": "4a8b76905c72222d358f54c9519fdc3d8c782694195f35ce41a518ed16261a88"
+      "size": 7981,
+      "sha256": "669fa6bfe5f9094df6862c4565d5b0e2bedb3a2fb8264a58a5c99b8e6182be92"
     },
     {
       "path": "current/runner-profile.js",
