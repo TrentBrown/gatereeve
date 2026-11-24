@@ -2,7 +2,7 @@ import { identity, requireThat } from './contracts.js';
 import { contentIdentity } from './evidence.js';
 
 // Low never blocks; findings from earlier contracts (no severity) keep their flag (AC3, AC11).
-const blocks = finding => Boolean(finding?.blocking) && finding?.severity !== 'low';
+const severityBlocks = finding => Boolean(finding?.blocking) && finding?.severity !== 'low';
 
 // Recovery context is finding evidence, never replacement execution proof.
 // Copy scope facts while the original inputs can still be read, so later
@@ -20,7 +20,10 @@ export async function retainedReviewScope(core, report) {
   return reviewScope(await core.store.json(input.candidate), input.configuration);
 }
 
-export async function findingObligations(core, state, candidate, inputs, result) {
+// `blocks(finding, prior)` applies the round schedule (round-policy.js); prior
+// is true for findings already disclosed in supplied history. The default is
+// the reviewer's blocking flag, where low never blocks (legacy and rounds 1-3).
+export async function findingObligations(core, state, candidate, inputs, result, blocks = severityBlocks) {
   const known = new Map(), provided = new Set();
   const withheld = state.reviewRounds.find(round => round.event === inputs.reviewRound)?.withheld ?? [];
   const history = await Promise.all([...new Map([...withheld, ...(inputs.history ?? [])].map(ref => [ref.hash, ref])).values()]
@@ -38,21 +41,22 @@ export async function findingObligations(core, state, candidate, inputs, result)
     if (scope && !scope.repositories.some(repo => candidate.repositories.some(selected => identity(repo.identity) === identity(selected.identity)))) continue;
     for (const finding of report.findings ?? []) if ((candidate.criteria.includes(finding.criterion) || finding.criterion === 'gate:review')
       && (candidate.repositories.some(repo => finding.path.startsWith(`${repo.alias}/`)) || /^(requirements|planning)\//u.test(finding.path))) {
-      known.set(finding.id, { finding, open: blocks(finding) });
+      known.set(finding.id, { finding, open: blocks(finding, true) });
     }
     for (const disposition of report.dispositions ?? []) if (known.has(disposition.id)) {
       if (['resolved', 'unsupported', 'present-low'].includes(disposition.status)) known.get(disposition.id).open = false;
-      if (disposition.status === 'present') known.get(disposition.id).open = blocks(known.get(disposition.id).finding);
+      if (disposition.status === 'present') known.get(disposition.id).open = blocks(known.get(disposition.id).finding, true);
     }
   }
   const unreconciled = [...known.values()].filter(row => row.open && !result.findings?.some(finding => finding.id === row.finding.id && blocks(finding))
     && !result.dispositions?.some(disposition => provided.has(disposition.id) && disposition.id === row.finding.id
     && ['resolved', 'unsupported', 'present', 'present-low'].includes(disposition.status))).map(row => row.finding.id);
-  const material = new Map((result.findings ?? []).filter(blocks).map(finding => [finding.id, finding]));
+  const material = new Map((result.findings ?? []).filter(finding => blocks(finding, known.has(finding.id))).map(finding => [finding.id, finding]));
   for (const disposition of result.dispositions ?? []) if (disposition.status === 'present' && !material.has(disposition.id)) {
     const original = result.findings?.find(finding => finding.id === disposition.id) ?? known.get(disposition.id)?.finding;
     requireThat(original, 'A present finding needs retained identity in the supplied reviewer history');
-    if (blocks(original)) material.set(disposition.id, { ...original, evidence: disposition.evidence });
+    if (blocks(original, true)) material.set(disposition.id, { ...original, evidence: disposition.evidence });
   }
-  return { materialFindings: [...material.values()], unreconciledFindings: unreconciled };
+  return { materialFindings: [...material.values()], unreconciledFindings: unreconciled,
+    knownFindings: new Map([...known].map(([id, row]) => [id, row.finding])) };
 }

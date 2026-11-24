@@ -66,6 +66,31 @@ async function directoryReasons(push, directory, runtime, contextFor) {
   return reasons;
 }
 
+// Spec AC9, D27: a push to a PR (topic) branch before the current review scope
+// converges is warned about, never denied. Tags-only pushes carry no branch.
+// Fails open: an unreadable run state gives no warning.
+export const PREMATURE_PUSH = 'GateReeve: the current review scope has not converged (the paired boundary review of the current candidate is not a qualifying PASS). '
+  + 'Review rounds run on local commits with local Verification; push once after the reviews converge so hosted CI runs once per scope. This is a warning; the push is not blocked.';
+async function convergenceWarning(cwd, runtime, contextFor) {
+  try {
+    const { CurrentCore } = await import('./core.js');
+    const { boundaryReviews } = await import('./boundary-review.js');
+    const { checkCandidate } = await import('./evidence.js');
+    const core = await CurrentCore.at(await contextFor({ cwd }), runtime.core ?? {});
+    if (!await core.store.active()) return null;
+    const { state } = await core.state();
+    if (!state.candidate || !['IMPLEMENTING', 'ACCEPTING'].includes(state.phase)) return null;
+    try {
+      const candidate = await checkCandidate(core.store, core.context, state.candidate, { live: false });
+      if ((await boundaryReviews(core, state, candidate)).outcome === 'PASS') return null;
+    } catch { /* Missing or unqualified reviews have not converged. */ }
+    return PREMATURE_PUSH;
+  } catch { return null; }
+}
+export function warn(message) {
+  return { systemMessage: message, hookSpecificOutput: { hookEventName: 'PreToolUse', additionalContext: message } };
+}
+
 async function mergeReason(event) {
   try {
     const { CurrentCore } = await import('./core.js');
@@ -111,7 +136,11 @@ export async function preToolUse(event, runtime = {}) {
   const { contextFor } = await import('./adapter.js');
   const reasons = pushes.length ? await pushReasons(pushes, cwd, runtime, contextFor) : [];
   if (merges.length) reasons.unshift(await mergeReason(event));
-  if (!reasons.length) return {};
+  if (!reasons.length) {
+    const branchPush = pushes.some(push => push.all || !push.tags || push.refspecs.length);
+    const warning = branchPush ? await convergenceWarning(cwd, runtime, runtime.contextFor ?? contextFor) : null;
+    return warning ? warn(warning) : {};
+  }
   const entry = await resolveEntryPoints({ env: runtime.env ?? process.env, ...(runtime.adapterPath !== undefined ? { adapterPath: runtime.adapterPath } : {}) });
   const { alias } = await protectedBranches(cwd, contextFor);
   const number = merges.find(item => item.number)?.number;

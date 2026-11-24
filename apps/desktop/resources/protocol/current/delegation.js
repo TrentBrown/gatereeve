@@ -11,6 +11,21 @@ import { localPath } from './store.js';
 import { HIGH_CAPABILITY_PROFILE, AGENT_WORKFLOW_PROTOCOL_VERSION, sha256Digest, validateAgentWorkflowStageResult, validateEvaluatorCapability } from '../agent-workflow.js';
 import { createCodexAgentAdapter, createClaudeCodeAgentAdapter } from '../local-agent-adapters.js';
 import { allowedRunOutcome } from './autonomous.js';
+import { ROUND_POLICY, planningScope, roundOf, scheduledBlocking, roundHandBack, NARROW_FROM } from './round-policy.js';
+
+// Planning reviews follow the round schedule (spec AC6): from round 4 only
+// high findings and medium regressions (findings on a document the previous
+// round's fix changed) block; at round 6 the review hands back.
+function planningSchedule(state, artifact, cited, result) {
+  const scope = planningScope(artifact), round = roundOf(state, scope, cited.subject);
+  const previous = round === null ? null : state.reviewScopes[scope].revisions.find(row => row.round === round - 1);
+  const before = previous ? state.planningReviews.find(item => item.event === previous.event)?.documents ?? {} : {};
+  const changed = name => before[name]?.hash !== cited.documents[name]?.hash;
+  const blockers = result.findings.filter(finding => scheduledBlocking(finding, { round, regression: changed(finding.document.replace(/^requirements\//u, '')) }));
+  const outcome = result.outcome === 'FAIL' && round !== null && round >= NARROW_FROM && !blockers.length
+    && result.findings.some(finding => finding.blocking) ? 'PASS' : result.outcome;
+  return { round, blockers, outcome, handBack: roundHandBack(state, scope, round, isGoal(state)) };
+}
 
 // Delegated autonomy (spec AC5, design §4). A human delegates one named run
 // after its release branch is observed as protected. While delegated:
@@ -247,7 +262,7 @@ export async function reviewPlanning(core, input, operation) {
       ...(normalized.length ? { normalized } : {}),
       summary: result.output.summary, findings: result.output.findings, ...(packet.mandate ? { mandate: packet.mandate, mandateAssessment: result.output.mandateAssessment } : {}),
       ...(packet.agentDecisions ? { agentDecisions: packet.agentDecisions } : {}), evaluator, receipt: retained[0], output: retained[1] });
-    return core.append(state, 'PLANNING_REVIEWED', { artifact: input.artifact, subject, documents, outcome: result.output.outcome, result: reference, evaluator }, operation);
+    return core.append(state, 'PLANNING_REVIEWED', { artifact: input.artifact, subject, documents, outcome: result.output.outcome, result: reference, evaluator, roundPolicy: ROUND_POLICY }, operation);
   } catch (error) { error.artifacts = [...new Set([...(error.artifacts ?? []), ...retained])]; throw error; }
   finally { await view.close(); }
 }
@@ -294,12 +309,14 @@ export async function delegatedPlanningAuthority(core, state, value) {
   const reviews = state.planningReviews.filter(item => item.artifact === artifact && item.subject === value.subject);
   const cited = reviews.find(item => item.event === value.authority.evaluation);
   requireThat(cited, `Delegated ${value.kind} needs an independent ${artifact} review of this exact ${artifact === 'design' ? 'design' : 'commitment'} identity (run planning.review with artifact ${artifact}) and must cite its event`);
-  requireThat(cited.outcome === 'PASS' || autonomous && cited.outcome === 'FAIL' && value.authority.judgment,
-    `The cited ${artifact} review is ${cited.outcome}, not PASS; only explicit autonomous judgment may settle a completed negative assessment`);
   requireThat(reviews.at(-1).event === cited.event, `A later ${artifact} review of the same identity supersedes the cited PASS`);
   const result = await core.store.json(cited.result);
+  const schedule = planningSchedule(state, artifact, cited, result);
+  requireThat(!schedule.handBack, schedule.handBack ?? '');
+  requireThat(schedule.outcome === 'PASS' || autonomous && cited.outcome === 'FAIL' && value.authority.judgment,
+    `The cited ${artifact} review is ${cited.outcome}, not PASS; only explicit autonomous judgment may settle a completed negative assessment`);
   requireThat(result.kind === 'planning-review' && result.contract === CONTRACT && result.runId === state.runId && result.artifact === artifact
-    && result.subject === value.subject && ['PASS', ...(autonomous ? ['FAIL'] : [])].includes(result.outcome) && result.reviewContract === planningReviewContract(artifact, raisedFromLight(state))
+    && result.subject === value.subject && ['PASS', ...(autonomous || schedule.outcome === 'PASS' ? ['FAIL'] : [])].includes(result.outcome) && result.reviewContract === planningReviewContract(artifact, raisedFromLight(state))
     && !state.implementers.includes(result.evaluator?.contextId), 'The cited planning review is not a qualifying independent PASS');
   if (autonomous) requireThat(result.mandate && identity(result.mandate) === identity(delegation.mandate)
     && ['PASS', 'FAIL'].includes(result.mandateAssessment?.outcome), 'The independent planning review must assess the fixed human mandate');
@@ -315,8 +332,8 @@ export async function delegatedPlanningAuthority(core, state, value) {
     requireThat(proposed && Object.keys(proposed).every(key => ['reason', 'mandateRebuttal', 'dispositions', 'evidence', 'stopReason'].includes(key)), 'Unsupported autonomous planning judgment');
     text(proposed.reason, 'Planning judgment rationale');
     mandateRebuttal(proposed.mandateRebuttal, delegation.mandate);
-    const blockers = result.findings.filter(finding => finding.blocking);
-    requireThat(result.outcome !== 'FAIL' || blockers.length > 0, 'An unexplained planning failure needs reviewer clarification');
+    const { blockers } = schedule;
+    requireThat(schedule.outcome !== 'FAIL' || blockers.length > 0, 'An unexplained planning failure needs reviewer clarification');
     requireThat(Array.isArray(proposed.dispositions) && proposed.dispositions.length === blockers.length
       && new Set(proposed.dispositions.map(row => row.findingId)).size === blockers.length, 'Disposition every material planning finding');
     for (const row of proposed.dispositions) {
@@ -331,7 +348,7 @@ export async function delegatedPlanningAuthority(core, state, value) {
     if (proposed.stopReason !== undefined) text(proposed.stopReason, 'Planning iteration stop reason');
     judgment = structuredClone(proposed);
   }
-  requireThat(!autonomous || result.outcome === 'PASS' && result.mandateAssessment.outcome === 'PASS' || judgment,
+  requireThat(!autonomous || schedule.outcome === 'PASS' && result.mandateAssessment.outcome === 'PASS' || judgment,
     'Autonomous planning must establish mandate compliance or record an explicit evidence-backed rebuttal');
   // A raised run's review must have checked the commitments against the delegated brief.
   requireThat(!raisedFromLight(state) || cited.documents['brief.md']?.hash === (await delegatedBrief(core, state)).hash,
@@ -340,7 +357,7 @@ export async function delegatedPlanningAuthority(core, state, value) {
   await documentsCurrent(core, state, cited.documents);
   return { kind: value.authority.kind, basis: judgment ? 'autonomous-judgment' : 'planning-review', ...(judgment ? { judgment } : {}),
     delegation: { event: delegation.event, at: delegation.at, authority: delegation.authority },
-    evaluation: { event: cited.event, artifact, outcome: result.outcome, result: cited.result, evaluator: cited.evaluator,
+    evaluation: { event: cited.event, artifact, outcome: result.outcome, ...(schedule.round !== null ? { round: schedule.round, scheduledOutcome: schedule.outcome } : {}), result: cited.result, evaluator: cited.evaluator,
       ...(judgment ? { summary: result.summary, findings: result.findings, mandateAssessment: result.mandateAssessment } : {}) } };
 }
 // Whether a light re-authorization changes the brief outside its findings

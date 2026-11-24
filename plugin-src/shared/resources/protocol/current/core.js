@@ -21,6 +21,8 @@ import { prepareMerge, merge, observeIntegration } from './actions.js';
 import { captureStanding, applyStanding, standingValidity, standingReleaseRefusal, qualifyingDecisions, requireUnexpired } from './authorization.js';
 import { publishReview, requirePublishedReview } from './publication.js';
 import { selectReviewers, executeBoundaryReviews, boundaryReviews } from './boundary-review.js';
+import { qualifyCi, isCiVerification } from './ci-qualification.js';
+import { countRound, resetRounds, closeScope, recordRoundDecision, planningScope, roundStatus, HANDBACK_AT, ROUND_CHOICES } from './round-policy.js';
 import { adjudicateReview, currentAdjudication, allowedRunOutcome } from './autonomous.js';
 import { parkGoal, readyRecord, goalStatus, captureInterview, interviewDrift, agentDecisions, AGENT_DECISION_RULE } from './goal.js';
 import { evaluateTripwires, describeHits, hitKey } from './tripwires.js';
@@ -88,7 +90,7 @@ export function project(events) {
     decisions: [], pendingDecisions: [], validationFailures: [], results: [], jobs: {}, actions: {}, expectations: {}, candidate: null, specValidation: null, integrated: null, integrations: {},
     sourcePreparations: [], sourcePreparationStatus: {}, sourceCleanup: null, ready: false, paused: false, eventCount: events.length,
     externalBlockers: [], externalBlocker: null, park: null, goalReady: null, interviewPin: null, tripwires: null, tripwireHistory: [], planningReviews: [], handBack: null, delegationBlocked: null,
-    reviewerSelection: null, reviewRounds: [], boundaryReviewHistory: [], adjudications: [],
+    reviewerSelection: null, reviewRounds: [], boundaryReviewHistory: [], adjudications: [], reviewScopes: {}, reviewScopeHistory: [],
     // Workspace configuration observed or written at run start (spec AC6), or later by workspace.configure.
     workspace: first.workspace ? { ...first.workspace, at: events[0].recordedAt, event: events[0].hash } : null };
   state.dials = Object.fromEntries(Object.keys(DIALS).map(dial => [dial,
@@ -103,6 +105,11 @@ export function project(events) {
       case 'VALIDATION_FAILED': state.validationFailures.push(value); state.specValidation = null; break;
       case 'DECIDED':
         state.pendingDecisions = state.pendingDecisions.filter(item => item.operation.id !== value.requestId);
+        // Only a human-approved amendment resets review rounds (spec AC6). A
+        // light run amends by re-authorizing a changed brief.
+        if (value.authority?.kind === 'human-confirmed' && (value.kind === 'amend' || (value.kind === 'authorize-implementation'
+          && state.dials.rigor.value === 'light' && latestImplementation(state) && latestImplementation(state).subject !== value.subject))) resetRounds(state, event.hash);
+        if (value.kind === 'review-rounds') recordRoundDecision(state, value, event.hash);
         state.decisions.push({ ...value, event: event.hash });
         if (value.interview?.hash && ['approve-design', 'amend'].includes(value.kind)) state.interviewPin = value.interview;
         // A hand-back stops for the human until a human decision is observed.
@@ -116,7 +123,9 @@ export function project(events) {
       case 'SPEC_VALIDATED': state.specValidation = value; if (['SPECIFYING', 'PLANNING'].includes(state.phase)) state.phase = 'PLANNING'; break;
       case 'REVIEWERS_SELECTED': state.reviewerSelection = { ...value, event: event.hash, at: event.recordedAt }; break;
       case 'REVIEW_ROUND_STARTED': state.reviewRounds.push({ ...value, event: event.hash, at: event.recordedAt }); break;
-      case 'BOUNDARY_REVIEWED': state.boundaryReviewHistory.push({ ...value, event: event.hash, at: event.recordedAt }); break;
+      case 'BOUNDARY_REVIEWED': state.boundaryReviewHistory.push({ ...value, event: event.hash, at: event.recordedAt });
+        if (value.roundPolicy) countRound(state, value.roundPolicy.scope, value.roundPolicy.revision, { candidate: value.candidate, event: event.hash, at: event.recordedAt });
+        break;
       case 'REVIEW_ADJUDICATED': state.adjudications.push({ ...value, event: event.hash, at: event.recordedAt }); break;
       case 'SOURCE_PREPARING': state.sourcePreparations.push(value); state.sourcePreparationStatus[value.id] = { status: 'preparing', reason: 'Preparation has not published a candidate; owned references are retained for retry.' }; break;
       case 'SOURCE_PREPARATION_FAILED': state.sourcePreparationStatus[value.id] = { status: 'retry-required', reason: value.reason }; break;
@@ -126,7 +135,9 @@ export function project(events) {
       // dispositions are separate decisions or dial events.
       case 'TRIPWIRES_EVALUATED': { const recorded = { ...value, at: event.recordedAt, event: event.hash }; state.tripwireHistory.push(recorded); if (value.candidate?.hash === state.candidate?.hash) state.tripwires = recorded; break; }
       // Independent planning review; a delegated planning decision cites a PASS.
-      case 'PLANNING_REVIEWED': state.planningReviews.push({ ...value, at: event.recordedAt, event: event.hash }); break;
+      case 'PLANNING_REVIEWED': state.planningReviews.push({ ...value, at: event.recordedAt, event: event.hash });
+        if (value.roundPolicy) countRound(state, planningScope(value.artifact), value.subject, { event: event.hash, at: event.recordedAt });
+        break;
       case 'READY': state.ready = true; break;
       case 'TRANSITION_RECORDED': state.transition = value; break;
       case 'ACTION_CLAIMED': state.actions[value.id] = { ...value, running: true }; break;
@@ -139,7 +150,8 @@ export function project(events) {
         if (value.name === 'acceptance') state.phase = 'ACCEPTING';
         if (value.name === 'completion') { state.phase = 'COMPLETE'; state.sourceCleanup = { status: 'pending', errors: [{ reason: 'Completion recorded; owned source reference release has not been reconciled.' }] }; }
         break;
-      case 'INTEGRATED': state.integrated = value; state.integrations[value.repository] = value; state.externalBlocker = null; state.phase = 'INTEGRATED'; break;
+      case 'INTEGRATED': state.integrated = value; state.integrations[value.repository] = value; state.externalBlocker = null; state.phase = 'INTEGRATED';
+        closeScope(state, 'slice', 'integrated', event.hash); break; // The next slice PR is a new review scope.
       // A hosting rule refused an authorized merge. Reported, never a gate failure.
       case 'MERGE_BLOCKED': { const blocked = { ...value, at: event.recordedAt, event: event.hash }; state.externalBlockers.push(blocked); state.externalBlocker = blocked;
         // Fail closed: a blocker under delegation ends that delegation's authority
@@ -462,6 +474,15 @@ export class CurrentCore {
       requireThat(value.subject === evaluation.subject, `Stay-light must bind the current tripwire hit set (subject ${evaluation.subject}); new hits need a new decision`);
       value.hits = [...new Set(evaluation.hits.map(hitKey))].sort();
       value.candidate = state.candidate;
+    } else if (value.kind === 'review-rounds') {
+      // Round 6 hand-back (spec AC6): the human continues or splits; amend and
+      // waive are their own decisions. Never delegated or autonomous.
+      requireThat(value.authority.kind === 'human-confirmed', 'A review-rounds decision needs an observed human instruction');
+      requireThat(ROUND_CHOICES.includes(value.choice), `Choose ${ROUND_CHOICES.join(' or ')} (amend and waive are separate decisions)`);
+      const scope = state.reviewScopes[value.reviewScope];
+      requireThat(scope && scope.round >= HANDBACK_AT, `Review scope ${value.reviewScope} has not reached round ${HANDBACK_AT}`);
+      const subject = value.reviewScope.startsWith('planning:') ? scope.revisions.at(-1).revision : state.candidate?.hash;
+      requireThat(value.subject === subject, `A review-rounds decision binds the scope's current revision (subject ${subject})`);
     } else if (value.kind === 'authorize-standing') {
       value = await captureStanding(this, state, value);
     } else if (value.kind === 'revoke-standing') {
@@ -814,7 +835,7 @@ export class CurrentCore {
     for (const dependency of inputs.consumed ?? []) await this.currentResult(dependency, candidate, state, new Set(seen), memo, requireCoverage);
     if (definition.role === 'runner' && result.outcome === 'PASS') {
       const runner = result.runner ? await this.store.json(result.runner) : null;
-      requireThat(Array.isArray(inputs.configuration.checks) && inputs.configuration.checks.length > 0
+      requireThat(Array.isArray(inputs.configuration.checks) && (inputs.configuration.checks.length > 0 || runner?.validation?.kind === 'ci')
         && runner?.receipts?.length === inputs.configuration.checks.length
         && runner.receipts.every((item, index) => item.outcome === 'PASS' && item.exitCode === 0
           && identity({ repository: item.repository, command: item.command, args: item.args })
@@ -1023,6 +1044,7 @@ export class CurrentCore {
       } catch (error) { missing.push(`tripwire evaluation unavailable: ${error.message}`); }
     }
     const outcomes = [];
+    let reviewPair = null;
     const selectedSupplemental = new Set([...Object.values(state.jobs).flatMap(job => job.gates ?? []), ...state.decisions.flatMap(item => item.gates ?? [])]);
     const definitions = [...enabled(state, 'acceptance'), ...(name === 'completion' ? enabled(state, 'completion') : []),
       ...GATES.filter(item => item.supplemental && selectedSupplemental.has(item.id))];
@@ -1054,7 +1076,7 @@ export class CurrentCore {
       }
       let pair = null;
       if (candidate && definition.id === 'review') {
-        try { pair = await boundaryReviews(this, state, candidate, memo); accepted = { outcome: pair.outcome, summary: pair.summary, findings: pair.members.flatMap(member => member.result.findings ?? []) }; acceptedRef = null; }
+        try { pair = reviewPair = await boundaryReviews(this, state, candidate, memo); accepted = { outcome: pair.outcome, summary: pair.summary, findings: pair.members.flatMap(member => member.result.findings ?? []) }; acceptedRef = null; }
         catch (failure) { accepted = null; acceptedRef = null; error = failure.message; }
         if ((!pair || pair.outcome === 'UNAVAILABLE') && waiver?.findings) waiver = null;
         else if (pair && state.decisions.some(item => decisionHas(item, 'waive') && item.gates.includes('review'))) {
@@ -1073,6 +1095,27 @@ export class CurrentCore {
     }
     if (candidate && outcomes.some(item => item.id === 'verification' && item.outcome === 'PASS')) {
       try { await this.verificationCoverage(candidate, state, memo); } catch (error) { missing.push(error.message); }
+    }
+    // Spec AC9: the accepted Verification is the one the converged reviews
+    // assessed, or a ci Verification qualified by the runner-role CI check
+    // (no model call). Local evidence the reviews never assessed is not enough.
+    const verified = outcomes.find(item => item.id === 'verification' && item.outcome === 'PASS' && item.result);
+    if (candidate && verified && reviewPair?.members.every(member => member.ref)) {
+      try {
+        const consumed = [...new Map((await Promise.all(reviewPair.members.map(async member => (await this.store.json(member.result.input)).consumed ?? [])))
+          .flat().map(ref => [ref.hash, ref])).values()];
+        // The same checks rerun on the same tree are the evidence the reviews assessed.
+        const same = async ref => ref.hash === verified.result.hash
+          || await this.evidenceIdentity(ref, candidate, state, memo).catch(() => null) === await this.evidenceIdentity(verified.result, candidate, state, memo);
+        const assessed = (await Promise.all(reviewPair.members.map(async member => {
+          for (const ref of (await this.store.json(member.result.input)).consumed ?? []) if (await same(ref)) return true;
+          return false;
+        }))).every(Boolean);
+        if (!assessed && await isCiVerification(this, verified.result)) {
+          verified.ciQualification = await qualifyCi(this, state, candidate, verified.result, consumed, memo);
+          if (verified.ciQualification.outcome !== 'PASS') missing.push(`verification: ${verified.ciQualification.reason}`);
+        } else if (!assessed) missing.push('verification: the latest Verification is local evidence the converged reviews did not assess; record a ci Verification for the exact candidate head or review the new evidence');
+      } catch (error) { missing.push(`verification: ${error.message}`); }
     }
     if (['merge', 'completion'].includes(name)) {
       const acceptances = await qualifyingDecisions(this, state, 'accept', state.candidate?.hash, candidate);
@@ -1169,7 +1212,8 @@ export class CurrentCore {
         : candidateUnavailable ? { allowed: false, reason: 'Current candidate evidence is unavailable or invalid' }
           : await standingValidity(this, state, grant, candidate, null, { allowIntegratedTargets: true })),
     })));
-    return { ...state, temporaryViews: await viewStatus(this.store), commitments, standingAuthorizations, delegation: delegationStatus(this, state), historyGaps: await this.historyGaps(state, memo), obligations: GATES.filter(item => !item.supplemental && (!item.optional || state.optionalGates.includes(item.id))),
+    return { ...state, temporaryViews: await viewStatus(this.store), commitments, standingAuthorizations, delegation: delegationStatus(this, state),
+      rounds: roundStatus(state, { light: lightRun(state), goal: isGoal(state) }), historyGaps: await this.historyGaps(state, memo), obligations: GATES.filter(item => !item.supplemental && (!item.optional || state.optionalGates.includes(item.id))),
       enforcement: ENFORCEMENT, ...await (async () => { const milestones = await Promise.all(MILESTONES.map(name => this.check(name, null, memo)));
         return { milestones, goal: goalStatus(state, milestones, isGoal(state) ? await agentDecisions(this.context.featureHome) : []) }; })() };
   }

@@ -1,0 +1,52 @@
+import { requireThat } from './contracts.js';
+import { checkIdentity } from './coverage.js';
+
+// Runner-role CI qualification after review convergence (spec AC9, D25). No
+// model is called: a passing `ci` Verification for the reviewed tree keeps the
+// converged reviews qualifying when every local receipt they consumed is
+// covered. A consumed receipt is covered when its check (`ciCheck`, else its
+// purpose) is among the CI run's passing required checks for its repository,
+// or when the CI Verification itself carries a passing receipt of the same
+// check on the identical tree. Different trees were refused when the CI
+// Verification was recorded (validation-scope.js).
+export const CI_QUALIFICATION = 'ci-after-convergence/1';
+
+const describe = receipt => `${receipt.repository}: ${receipt.purpose} (${[receipt.command, ...receipt.args].join(' ')})`;
+
+export async function isCiVerification(core, ref) {
+  try {
+    const report = await core.store.json(ref);
+    return report.gate === 'verification' && Boolean(report.runner) && (await core.store.json(report.runner)).validation?.kind === 'ci';
+  } catch { return false; }
+}
+
+// Returns { policy, outcome, ci, consumed, trees, covered, uncovered, reason }.
+// The CI Verification must already be current for the candidate (its head is
+// the exact candidate head); this checks the facts the reviews relied on.
+export async function qualifyCi(core, state, candidate, ciRef, consumedRefs, memo = new Map()) {
+  const ci = await core.currentResult(ciRef, candidate, state, new Set(), memo, false);
+  requireThat(ci.gate === 'verification' && ci.outcome === 'PASS', 'CI qualification needs a passing ci Verification');
+  const runner = await core.store.json(ci.runner);
+  requireThat(runner.validation?.kind === 'ci', 'CI qualification needs a ci Verification');
+  const trees = runner.validation.runs.map(run => ({ alias: run.alias, head: run.head, tree: run.tree ?? null }));
+  const failedRequired = runner.validation.runs.flatMap(run => run.requiredChecks.filter(name =>
+    !run.jobs.some(job => job.name === name && job.status === 'completed' && job.conclusion === 'success')).map(name => `${run.alias}: ${name}`));
+  const passing = new Map(runner.validation.runs.map(run => [run.alias, new Set(run.requiredChecks.filter(name =>
+    run.jobs.some(job => job.name === name && job.status === 'completed' && job.conclusion === 'success')))]));
+  const sameTree = new Set((runner.receipts ?? []).filter(item => item.outcome === 'PASS').map(checkIdentity));
+  const covered = [], uncovered = [];
+  for (const ref of consumedRefs) {
+    if (ref.hash === ciRef.hash) continue;
+    const report = await core.store.json(ref);
+    if (report.gate !== 'verification' || !report.runner) continue;
+    for (const receipt of (await core.store.json(report.runner)).receipts ?? []) {
+      const by = passing.get(receipt.repository)?.has(receipt.ciCheck ?? receipt.purpose) ? 'ci-required-check'
+        : sameTree.has(checkIdentity(receipt)) ? 'same-tree-receipt' : null;
+      (by ? covered : uncovered).push({ verification: ref.hash, receipt: describe(receipt), ...(by ? { by } : {}) });
+    }
+  }
+  const reasons = [...failedRequired.map(name => `required CI check ${name} did not pass`),
+    ...uncovered.map(row => `consumed local receipt ${row.receipt} from Verification ${row.verification} is not covered by a passing required CI check or a same-tree receipt in the final Verification`)];
+  return { policy: CI_QUALIFICATION, outcome: reasons.length ? 'FAIL' : 'PASS', ci: ciRef.hash, consumed: consumedRefs.map(ref => ref.hash),
+    trees, covered, uncovered, reason: reasons.length ? `CI qualification failed: ${reasons.join('; ')}` : 'CI qualified the converged reviews without a model call' };
+}
