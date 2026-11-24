@@ -38,7 +38,7 @@ replacement, `job.abandon`).
 - **Status:** todo
 - **Estimate:** large
 - **Plan steps:** P3, P4
-- **Rubric criteria:** R3, R4, R5, R11
+- **Rubric criteria:** R3, R5, R11 (former row 4, sweep records, moved by D36)
 - **Depends on:** I-2
 - **Branch:** `tb-convergence-and-retirement-03-reviewer-contract` (PR B1)
 - **PR:** #130 (B1, merged at `2a23c1e`); sweep records and the remaining items moved by D36
@@ -53,7 +53,7 @@ and D33 substance/bookkeeping separation, per-request ID enums,
 - **Status:** todo
 - **Estimate:** large
 - **Plan steps:** P5, P6, P7
-- **Rubric criteria:** R6, R7, R8
+- **Rubric criteria:** R6 (former rows 7 and 8, follow-ups and failure model, moved by D36)
 - **Depends on:** I-3
 - **Branch:** `tb-convergence-and-retirement-04-round-policy` (PR C1, with I-5)
 - **PR:** #131 (C1, round policy, merged at `ec2cfe6`); follow-ups (P6) and failure model (P7) moved by D36

@@ -287,11 +287,11 @@ review round and a ready, unmerged final PR into main.
 |---|---|
 | P1 | R1 |
 | P2 | R2 |
-| P3 | R3, R4 |
+| P3 | R3 (sweep records moved by D36) |
 | P4 | R5, R11, R12 |
 | P5 | R6 |
-| P6 | R7 |
-| P7 | R8 |
+| P6 | moved by D36 (former row 7) |
+| P7 | moved by D36 (former row 8) |
 | P8 | R9 |
 | P9 | R10 |
 | P10 | R11 |

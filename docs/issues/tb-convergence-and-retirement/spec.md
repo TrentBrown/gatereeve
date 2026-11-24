@@ -281,6 +281,6 @@ silent best effort:
 
 Sweep records (AC4), follow-ups and the Completion decision (AC7), the
 failure model in specs (AC8), the listed parts of AC5 and AC11, and the
-retention part of AC12, with their former rubric rows R4, R7 and R8, are moved
+retention part of AC12, with their former rubric rows 4, 7 and 8, are moved
 to the follow-up feature in `follow-up-feature.md`. Rubric row numbers are
 kept.
