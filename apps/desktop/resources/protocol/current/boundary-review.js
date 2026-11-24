@@ -3,20 +3,34 @@ import { reviewerSelection, modelProvider } from './reviewer-selection.js';
 import { executeGates, changedPaths, findingSeverity, severityRank } from './execution.js';
 import { contentIdentity } from './evidence.js';
 import { findingObligations, retainedReviewScope } from './review-findings.js';
-import { boundaryScope, roundOf, previousRevision, scheduledBlocking, roundHandBack, roundDecision, NARROW_FROM, HANDBACK_AT, ROUND_POLICY } from './round-policy.js';
+import { boundaryScope, roundOf, currentRevision, scheduledBlocking, roundHandBack, roundDecision, NARROW_FROM, HANDBACK_AT, ROUND_POLICY } from './round-policy.js';
 import { isGoal } from './delegation.js';
 
 // The schedule for the current revision of its scope (spec AC6). Regressions
 // of the previous fix are new findings on paths that fix changed.
+// Paths each counted revision changed relative to the revision of the round
+// before it, keyed by that revision's candidate hash. A finding is a
+// regression of the previous fix when it is on such a path in the round it was
+// raised, and it keeps that status in later rounds until it is resolved.
+async function regressionPathsByCandidate(core, state, scope) {
+  const revisions = state.reviewScopes?.[scope]?.revisions ?? [], paths = new Map();
+  for (const [index, row] of revisions.entries()) {
+    const before = revisions[index - 1];
+    if (!row.candidate || !before?.candidate) continue;
+    try { paths.set(row.candidate.hash, new Set(changedPaths(await core.store.json(before.candidate), await core.store.json(row.candidate)))); }
+    catch { /* An unreadable revision gives no regression evidence; such findings read as non-regressions. */ }
+  }
+  return paths;
+}
 async function roundSchedule(core, state, candidate) {
   const scope = boundaryScope(candidate), round = roundOf(state, scope, contentIdentity(candidate));
-  let regressionPaths = new Set();
-  if (round !== null && round >= NARROW_FROM) {
-    const previous = previousRevision(state, scope, round);
-    if (previous?.candidate) regressionPaths = new Set(changedPaths(await core.store.json(previous.candidate), candidate));
-  }
+  const byCandidate = round !== null && round >= NARROW_FROM ? await regressionPathsByCandidate(core, state, scope) : new Map();
+  const current = state.reviewScopes?.[scope]?.revisions.findLast(row => row.revision === contentIdentity(candidate))?.candidate?.hash;
+  const regressionPaths = byCandidate.get(current) ?? new Set();
   return { scope, round, regressionPaths, handBack: roundHandBack(state, scope, round, isGoal(state)),
-    blocks: (finding, prior) => scheduledBlocking(finding, { round, regression: !prior && regressionPaths.has(finding.path) }) };
+    // `origin` is the candidate hash of the review that raised a prior finding.
+    blocks: (finding, prior, origin) => scheduledBlocking(finding, { round,
+      regression: prior ? Boolean(origin && byCandidate.get(origin)?.has(finding.path)) : regressionPaths.has(finding.path) }) };
 }
 // Spec AC9: the Verification a round consumes needs at least one runner receipt
 // executed on the candidate tree. Consumed proof is already qualified as current
@@ -153,9 +167,18 @@ export async function boundaryReviews(core, state, candidate, memo = new Map(), 
         const raised = [...(result.findings ?? []).filter(finding => finding.blocking),
           ...(result.dispositions ?? []).filter(row => row.status === 'present').map(row => obligations.knownFindings.get(row.id)).filter(finding => finding?.blocking)];
         const demoted = raised.filter(finding => !obligations.materialFindings.some(row => row.id === finding.id)).map(finding => finding.id);
-        const outcome = result.outcome === 'FAIL' && schedule.round >= NARROW_FROM && (demoted.length || (result.findings ?? []).length) && !obligations.materialFindings.length
+        // Only a FAIL that rests on the demoted findings themselves stops
+        // blocking: failed criteria must each be named by a demoted finding,
+        // evidence, scope and every coverage decision must pass, and nothing
+        // else may fail. An unrelated finding never excuses an independent failure.
+        const demotedRows = raised.filter(finding => demoted.includes(finding.id));
+        const explained = demotedRows.length > 0
+          && (result.criteria ?? []).every(row => row.outcome === 'PASS' || row.outcome === 'FAIL' && demotedRows.some(finding => finding.criterion === row.id))
+          && (result.dimensions ?? []).every(row => row.outcome === 'PASS' || row.outcome === 'FAIL' && ['code', 'requirements', 'findings'].includes(row.name))
+          && (result.coverageDecisions ?? []).every(row => row.outcome === 'PASS');
+        const outcome = result.outcome === 'FAIL' && schedule.round >= NARROW_FROM && explained && !obligations.materialFindings.length
           && !obligations.unreconciledFindings.length && result.coverage?.complete === true && !result.coverage.limitations?.length
-          && result.mandateAssessment?.outcome !== 'FAIL' ? 'PASS' : result.outcome;
+          && (!result.mandateAssessment || result.mandateAssessment.outcome === 'PASS') ? 'PASS' : result.outcome;
         if (result.outcome !== 'UNAVAILABLE' && !await consumedReceipts(core, inputs)) qualification ??= 'The consumed Verification has no runner receipt on the candidate tree';
         if (schedule.handBack) qualification ??= schedule.handBack;
         const changes = result.mode === 'delta' ? changedPaths(await core.store.json(result.priorCandidate), candidate) : null;
@@ -173,6 +196,22 @@ export async function boundaryReviews(core, state, candidate, memo = new Map(), 
     members.push(found);
   }
   requireThat(new Set(members.map(member => member.reviewer.modelProvider)).size === 2, 'Boundary review needs distinct model providers');
+  // Rounds 4-5: a concurrent peer FAIL that the schedule demotes to PASS is not
+  // newer blocking evidence against this member's PASS. Only that exact peer
+  // is excused: any other later review result keeps the qualification.
+  if (schedule.round !== null && schedule.round >= NARROW_FROM) for (const member of members) {
+    if (!member.ref || !member.qualification?.startsWith('Newer blocking review requires')) continue;
+    const peer = members.find(other => other !== member && other.ref);
+    if (!peer || peer.result.outcome !== 'FAIL' || peer.outcome !== 'PASS' || peer.qualification) continue;
+    const position = ref => state.results.findIndex(item => item.hash === ref.hash);
+    const later = state.results.slice(position(member.ref) + 1);
+    let others = false;
+    for (const ref of later) {
+      if (ref.hash === peer.ref.hash) continue;
+      try { if ((await core.store.json(ref)).gate === 'review') { others = true; break; } } catch { others = true; break; }
+    }
+    if (!others) member.qualification = null;
+  }
   const contexts = members.map(member => member.receipt.evaluator?.contextId).filter(Boolean);
   requireThat(new Set(contexts).size === contexts.length, 'Boundary reviewers must use separate fresh contexts');
   const initial = await initialRound(core, state, selected, memo);
@@ -204,7 +243,7 @@ export async function executeBoundaryReviews(core, input, operation) {
   const reviewed = await core.store.json(state.candidate);
   const roundPolicy = { policy: ROUND_POLICY, scope: boundaryScope(reviewed), revision: contentIdentity(reviewed) };
   const scoped = state.reviewScopes?.[roundPolicy.scope];
-  requireThat(!scoped || scoped.round < HANDBACK_AT || roundOf(state, roundPolicy.scope, roundPolicy.revision) !== null || roundDecision(state, roundPolicy.scope),
+  requireThat(!scoped || scoped.round < HANDBACK_AT || currentRevision(state, roundPolicy.scope, roundPolicy.revision) || roundDecision(state, roundPolicy.scope),
     roundHandBack(state, roundPolicy.scope, scoped?.round ?? 0, isGoal(state)) ?? 'Review round hand-back');
   const initialEstablished = Boolean(await initialRound(core, state, selected, new Map()));
   let round = currentView.events.find(event => event.operation.id === begin.id);

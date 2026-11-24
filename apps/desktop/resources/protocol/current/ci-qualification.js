@@ -45,7 +45,13 @@ export async function qualifyCi(core, state, candidate, ciRef, consumedRefs, mem
       (by ? covered : uncovered).push({ verification: ref.hash, receipt: describe(receipt), ...(by ? { by } : {}) });
     }
   }
+  // No reviewer assesses the post-convergence CI scope, so the agent-declared
+  // required list is not trusted alone: every job of the observed run must
+  // succeed or be skipped (spec AC9 "every required check passed").
+  const failedJobs = runner.validation.runs.flatMap(run => run.jobs.filter(job => !(job.status === 'completed' && ['success', 'skipped'].includes(job.conclusion)))
+    .map(job => `${run.alias}: ${job.name} (${job.status}/${job.conclusion ?? 'none'})`));
   const reasons = [...failedRequired.map(name => `required CI check ${name} did not pass`),
+    ...failedJobs.map(name => `CI job ${name} did not succeed`),
     ...uncovered.map(row => `consumed local receipt ${row.receipt} from Verification ${row.verification} is not covered by a passing required CI check or a same-tree receipt in the final Verification`)];
   return { policy: CI_QUALIFICATION, outcome: reasons.length ? 'FAIL' : 'PASS', ci: ciRef.hash, consumed: consumedRefs.map(ref => ref.hash),
     trees, covered, uncovered, reason: reasons.length ? `CI qualification failed: ${reasons.join('; ')}` : 'CI qualified the converged reviews without a model call' };

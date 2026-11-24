@@ -11,7 +11,7 @@ import { boundaryReviews } from '../../plugin-src/shared/resources/protocol/curr
 import { eligibleResidualRisk } from '../../plugin-src/shared/resources/protocol/current/autonomous.js';
 import { DELEGATED_AUTHORITY } from '../../plugin-src/shared/resources/protocol/current/contracts.js';
 import { git } from '../../plugin-src/shared/resources/protocol/current/evidence.js';
-import { scheduledBlocking, roundHandBack, roundStatus, ROUND_POLICY } from '../../plugin-src/shared/resources/protocol/current/round-policy.js';
+import { scheduledBlocking, roundHandBack, roundStatus, ROUND_POLICY, countRound, roundOf, currentRevision, recordRoundDecision } from '../../plugin-src/shared/resources/protocol/current/round-policy.js';
 import { fixture, human, evaluator, reviewConfig, delegate } from './helpers/lightweight-fixture.js';
 import { selection } from './helpers/paired-review-fixture.js';
 import { revise, seedRounds, reviewers } from './helpers/round-fixture.js';
@@ -149,7 +149,9 @@ for (const band of bands) test(`schedule band: ${band.name}`, async t => {
   assert.equal(reviewed.outcome, band.outcome, reviewed.summary);
   if (band.demoted) {
     assert.equal(reviewed.members.flatMap(member => member.demotedFindings).length, band.demoted, 'demoted findings stay visible');
-    assert.ok(reviewed.members.every(member => member.result.outcome === 'FAIL'), 'original reviewer outcomes are retained');
+    // The demoted reviewer keeps its original FAIL; a low-only FAIL is already PASS (B1).
+    assert.ok(reviewed.members.filter(member => member.demotedFindings.length).every(member => member.result.outcome === 'FAIL'), 'original reviewer outcomes are retained');
+    assert.ok(reviewed.members.every(member => !member.qualification), 'a demoted concurrent peer FAIL is not newer blocking evidence');
     assert.match(reviewed.summary, /PASS under the round 4 schedule; demoted/);
   }
 });
@@ -208,4 +210,61 @@ test('an unrated finding from an earlier contract keeps blocking as recorded in 
   const legacy = { id: 'legacy', blocking: true }; // retained before B1: no severity
   for (const round of [1, 4, 5, 7]) assert.equal(scheduledBlocking(legacy, { round }), true, `round ${round}`);
   assert.equal(scheduledBlocking({ ...legacy, blocking: false }, { round: 4 }), false);
+});
+
+// Pre-review findings on PR C1 (round policy hardening).
+test('rounds 4-5 never demote a FAIL that rests on an independent failure', async t => {
+  for (const [label, change] of [
+    ['an evidence dimension FAIL', verdict => { verdict.dimensions.find(row => row.name === 'evidence').outcome = 'FAIL'; }],
+    ['a criterion FAIL no demoted finding names', verdict => { verdict.criteria[0].outcome = 'FAIL'; verdict.findings[0].criterion = 'gate:review'; }],
+  ]) {
+    const f = await lightRun(t);
+    await seedRounds(f, 3);
+    await revise(f, { 'app.js': 'export const answer = 42; // fix\n' }, 'fix');
+    reviewers(f, { findings: { codex: [{ path: 'app/other.js', evidence: '[medium] The other export is unused.' }] }, patch: { codex: change } });
+    await f.request('review.execute', {}, 'independent-failure');
+    const reviewed = await pair(f);
+    assert.equal(reviewed.outcome, 'FAIL', `${label}: ${reviewed.summary}`);
+  }
+});
+
+test('a medium regression stays blocking in later rounds until it is resolved', async t => {
+  const f = await lightRun(t);
+  await seedRounds(f, 3);
+  await revise(f, { 'app.js': 'export const answer = 42; // fix\n' }, 'r4');
+  reviewers(f, { findings: { codex: [{ path: 'app/app.js', evidence: '[medium] The fix broke the export contract.' }] } });
+  await f.request('review.execute', {}, 'round-4');
+  assert.equal((await pair(f)).outcome, 'FAIL');
+  // Round 5 changes an unrelated file; the reviewer keeps the regression present.
+  await revise(f, { 'other.js': 'export const other = 2;\n' }, 'r5');
+  reviewers(f, { patch: { codex: (verdict, request) => {
+    const prior = (request.input.dispositionsRequired ?? []).find(row => row.id.endsWith('codex-finding-0'));
+    assert.ok(prior, 'the regression is a required disposition');
+    verdict.outcome = 'FAIL'; verdict.dimensions.find(row => row.name === 'code').outcome = 'FAIL';
+    verdict.dispositions = [{ id: prior.id, status: 'present', evidence: 'The export contract is still broken.' }];
+  } } });
+  await f.request('review.execute', {}, 'round-5');
+  const reviewed = await pair(f);
+  assert.equal(reviewed.round.round, 5);
+  assert.equal(reviewed.outcome, 'FAIL', reviewed.summary);
+});
+
+test('returning to an earlier revision is a new round; the counter never moves backwards', () => {
+  const state = { reviewScopes: {}, reviewScopeHistory: [] };
+  for (const revision of ['A', 'B', 'B', 'C', 'D', 'E', 'F', 'C']) countRound(state, 'slice', revision, {});
+  assert.equal(state.reviewScopes.slice.round, 7);
+  assert.equal(roundOf(state, 'slice', 'C'), 7, 'the latest review of C is round 7, not its earlier round 3');
+  assert.equal(currentRevision(state, 'slice', 'C'), true);
+  assert.equal(currentRevision(state, 'slice', 'F'), false);
+  assert.match(roundHandBack(state, 'slice', roundOf(state, 'slice', 'C'), false), /reached round 7/);
+});
+
+test('a split ends the scope, so each part starts at round 1', () => {
+  const state = { reviewScopes: {}, reviewScopeHistory: [] };
+  for (const revision of ['A', 'B', 'C', 'D', 'E', 'F']) countRound(state, 'slice', revision, {});
+  recordRoundDecision(state, { reviewScope: 'slice', choice: 'split' }, 'event-split');
+  assert.equal(state.reviewScopes.slice, undefined);
+  assert.equal(state.reviewScopeHistory.at(-1).closed.reason, 'split');
+  countRound(state, 'slice', 'G', {});
+  assert.equal(state.reviewScopes.slice.round, 1);
 });

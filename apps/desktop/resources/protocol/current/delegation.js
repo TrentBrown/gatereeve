@@ -11,7 +11,7 @@ import { localPath } from './store.js';
 import { HIGH_CAPABILITY_PROFILE, AGENT_WORKFLOW_PROTOCOL_VERSION, sha256Digest, validateAgentWorkflowStageResult, validateEvaluatorCapability } from '../agent-workflow.js';
 import { createCodexAgentAdapter, createClaudeCodeAgentAdapter } from '../local-agent-adapters.js';
 import { allowedRunOutcome } from './autonomous.js';
-import { ROUND_POLICY, planningScope, roundOf, scheduledBlocking, roundHandBack, NARROW_FROM } from './round-policy.js';
+import { ROUND_POLICY, planningScope, roundOf, scheduledBlocking, roundHandBack, refuseLateAdjudication, NARROW_FROM } from './round-policy.js';
 
 // Planning reviews follow the round schedule (spec AC6): from round 4 only
 // high findings and medium regressions (findings on a document the previous
@@ -328,6 +328,9 @@ export async function delegatedPlanningAuthority(core, state, value) {
   'The cited planning review did not assess the current agent decision entries; run planning.review again');
   let judgment = null;
   if (autonomous && value.authority.judgment) {
+    // Autonomous judgment is adjudication: refused from round 6 even after a
+    // human continue (spec AC6), as review.adjudicate is.
+    refuseLateAdjudication(schedule.round);
     const proposed = value.authority.judgment;
     requireThat(proposed && Object.keys(proposed).every(key => ['reason', 'mandateRebuttal', 'dispositions', 'evidence', 'stopReason'].includes(key)), 'Unsupported autonomous planning judgment');
     text(proposed.reason, 'Planning judgment rationale');

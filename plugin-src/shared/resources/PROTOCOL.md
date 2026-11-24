@@ -285,7 +285,8 @@ Each review scope has a round counter: the slice PR candidate scope (`slice`),
 the feature-final review (`feature-final`) or one planning document
 (`planning:<artifact>`). One round is one paired review of one candidate revision
 (one planning review of one document revision), including rounds where a reviewer
-was UNAVAILABLE; reviewing the same revision again is the same round. Only a
+was UNAVAILABLE. Only consecutive reviews of one revision share a round: returning
+to an earlier revision is a new round, so the counter never moves backwards. Only a
 human-approved amendment (`amend`, or in a light run a human re-authorization of a
 changed brief) resets the counters; observing a slice's integration closes its
 scope, so the next slice PR starts at round 1. Rounds executed before this policy
@@ -295,16 +296,22 @@ are not counted. `status.rounds` shows each scope, its round and band, and advic
   blocks (the reviewer's `blocking` flag).
 - Rounds 4-5: only `high` findings and `medium` regressions of the previous fix
   block. A regression is a finding new in this round on a path (planning: a
-  document) the previous round's fix changed. Other findings stop blocking and
-  stay visible on the pair member (`demotedFindings`); a reviewer FAIL explained
-  only by demoted findings counts as PASS for the pair.
+  document) the previous round's fix changed; it keeps that status in later
+  rounds until it is resolved. Other findings stop blocking and stay visible on
+  the pair member (`demotedFindings`). A reviewer FAIL counts as PASS for the pair
+  only when it rests on demoted findings: every failed criterion is named by a
+  demoted finding, evidence, scope and every coverage decision pass, coverage is
+  complete and the mandate passes; an unrelated finding never excuses an
+  independent failure. Such a demoted peer FAIL is not newer blocking evidence
+  against the other reviewer's PASS in the same round.
 - Low never blocks in any round, including a low regression. Findings without a
   severity (earlier contracts) read as `unrated` and block exactly as before.
 - Round 6: the review is not qualifying until the human records
   `human.decide {kind:"review-rounds", reviewScope, choice:"continue"|"split",
   subject}` (subject: the current candidate hash, or for a planning scope its
-  current document revision), an `amend`, or a `waive`. After continue or split,
-  later rounds keep the round 4-5 band. A new revision is not reviewed past round
+  current document revision), an `amend`, or a `waive`. After continue, later
+  rounds keep the round 4-5 band; a split ends the scope, so each part starts at
+  round 1. A new revision is not reviewed past round
   6 until then. In a goal run the hand-back is `goal.park` with the PR and round
   evidence. `review.adjudicate` (and autonomous planning judgment) at round 6 or
   later is refused.
@@ -346,7 +353,9 @@ test suite; reviewers assess that coverage in the evidence dimension and report 
 missing receipt as an evidence finding. After the scope converges, push once and
 record a `ci` Verification for the exact head (`checks` may be empty for a `ci`
 Verification). A runner-role check, with no model call, qualifies it against the
-converged reviews: every required check passed and every local receipt the reviews
+converged reviews: every required check passed, every other job of the run
+succeeded or was skipped (no reviewer assesses the post-convergence scope, so the
+declared list is not trusted alone), and every local receipt the reviews
 consumed is covered, either because its `ciCheck` (else its `purpose`) is among
 the run's passing required checks, or because the final Verification carries a
 passing receipt of the same check on the identical tree. An uncovered receipt
@@ -361,7 +370,9 @@ evidence). A candidate repository with hosted CI (workflows under
 `.github/workflows/` in its tree) is accepted only on a passing `ci`
 Verification for the exact candidate head; local evidence alone never suffices
 there. A repository without hosted CI keeps the independently assessed local
-alternative. After a hosted CI failure, fix locally, run one paired delta review of
+alternative. These acceptance rules apply once a pair member was reviewed under
+the round policy; a pair retained from an earlier contract keeps its recorded
+qualification (spec AC11). After a hosted CI failure, fix locally, run one paired delta review of
 the fix (one round), then rerun hosted CI. The PreToolUse guard warns, without
 denying, on `git push` to a topic branch while the current candidate's paired
 review is not a qualifying PASS.

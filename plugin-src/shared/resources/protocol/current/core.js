@@ -1100,7 +1100,11 @@ export class CurrentCore {
     // assessed, or a ci Verification qualified by the runner-role CI check
     // (no model call). Local evidence the reviews never assessed is not enough.
     const verified = outcomes.find(item => item.id === 'verification' && item.outcome === 'PASS' && item.result);
-    if (candidate && verified && reviewPair?.members.every(member => member.ref)) {
+    // Reviews retained from an earlier contract keep their qualification (spec
+    // AC11): these rules apply once a pair member ran under the round policy.
+    const currentContract = Boolean(reviewPair?.members.some(member => member.ref && state.boundaryReviewHistory.some(round => round.roundPolicy
+      && round.outcomes?.some(row => row.results?.some(ref => ref.hash === member.ref.hash)))));
+    if (candidate && verified && currentContract && reviewPair?.members.every(member => member.ref)) {
       try {
         const consumed = [...new Map((await Promise.all(reviewPair.members.map(async member => (await this.store.json(member.result.input)).consumed ?? [])))
           .flat().map(ref => [ref.hash, ref])).values()];
@@ -1121,7 +1125,7 @@ export class CurrentCore {
     // is accepted only on a passing ci Verification for the exact candidate
     // head; local evidence alone never suffices there. A repository without
     // hosted CI keeps the independently assessed local alternative.
-    if (candidate && verified) {
+    if (candidate && verified && currentContract) {
       const hosted = candidate.repositories.filter(repo => (repo.files ?? []).some(file => file.path.startsWith('.github/workflows/')));
       if (hosted.length && !await isCiVerification(this, verified.result)) missing.push(`verification: ${hosted.map(repo => repo.alias).join(', ')} has hosted CI (.github/workflows); acceptance needs a passing ci Verification on the exact candidate head, not local evidence alone`);
     }

@@ -39,23 +39,26 @@ export async function findingObligations(core, state, candidate, inputs, result,
     // Older context has already been scoped by history preparation. Its
     // available finding facts can remain obligations, but cannot prove PASS.
     if (scope && !scope.repositories.some(repo => candidate.repositories.some(selected => identity(repo.identity) === identity(selected.identity)))) continue;
+    // The raising review's candidate keeps a prior finding's regression status (AC6).
+    let origin = null;
+    try { origin = report.input ? (await core.store.json(report.input)).candidate?.hash ?? null : null; } catch { /* Lost input: no regression evidence. */ }
     for (const finding of report.findings ?? []) if ((candidate.criteria.includes(finding.criterion) || finding.criterion === 'gate:review')
       && (candidate.repositories.some(repo => finding.path.startsWith(`${repo.alias}/`)) || /^(requirements|planning)\//u.test(finding.path))) {
-      known.set(finding.id, { finding, open: blocks(finding, true) });
+      known.set(finding.id, { finding, origin, open: blocks(finding, true, origin) });
     }
     for (const disposition of report.dispositions ?? []) if (known.has(disposition.id)) {
       if (['resolved', 'unsupported', 'present-low'].includes(disposition.status)) known.get(disposition.id).open = false;
-      if (disposition.status === 'present') known.get(disposition.id).open = blocks(known.get(disposition.id).finding, true);
+      if (disposition.status === 'present') known.get(disposition.id).open = blocks(known.get(disposition.id).finding, true, known.get(disposition.id).origin);
     }
   }
   const unreconciled = [...known.values()].filter(row => row.open && !result.findings?.some(finding => finding.id === row.finding.id && blocks(finding))
     && !result.dispositions?.some(disposition => provided.has(disposition.id) && disposition.id === row.finding.id
     && ['resolved', 'unsupported', 'present', 'present-low'].includes(disposition.status))).map(row => row.finding.id);
-  const material = new Map((result.findings ?? []).filter(finding => blocks(finding, known.has(finding.id))).map(finding => [finding.id, finding]));
+  const material = new Map((result.findings ?? []).filter(finding => blocks(finding, known.has(finding.id), known.get(finding.id)?.origin)).map(finding => [finding.id, finding]));
   for (const disposition of result.dispositions ?? []) if (disposition.status === 'present' && !material.has(disposition.id)) {
     const original = result.findings?.find(finding => finding.id === disposition.id) ?? known.get(disposition.id)?.finding;
     requireThat(original, 'A present finding needs retained identity in the supplied reviewer history');
-    if (blocks(original, true)) material.set(disposition.id, { ...original, evidence: disposition.evidence });
+    if (blocks(original, true, known.get(disposition.id)?.origin ?? null)) material.set(disposition.id, { ...original, evidence: disposition.evidence });
   }
   return { materialFindings: [...material.values()], unreconciledFindings: unreconciled,
     knownFindings: new Map([...known].map(([id, row]) => [id, row.finding])) };

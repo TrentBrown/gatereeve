@@ -42,7 +42,8 @@ export async function seedRounds(f, count, scope = 'slice') {
 
 // Paired fake reviewers; `findings[provider]` makes that reviewer FAIL with
 // those findings (each needs path and evidence, optionally blocking).
-export function reviewers(f, { findings = {}, unavailable = null } = {}) {
+// `patch[provider](verdict, request)` adjusts that reviewer's verdict last.
+export function reviewers(f, { findings = {}, unavailable = null, patch = {} } = {}) {
   const launches = pairedAdapters(f, { unavailable });
   for (const [provider, adapter] of Object.entries(f.core.runtime.evaluators)) {
     const run = adapter.runStage.bind(adapter);
@@ -51,13 +52,15 @@ export function reviewers(f, { findings = {}, unavailable = null } = {}) {
       const rows = findings[provider];
       if (rows?.length) for (const verdict of result.output.verdicts) {
         verdict.outcome = 'FAIL';
-        verdict.dimensions.find(row => row.name === 'code').outcome = 'FAIL';
+        // A low finding never fails a responsibility; others fail the code dimension.
+        if (rows.some(row => !/\[low\]/u.test(row.evidence ?? ''))) verdict.dimensions.find(row => row.name === 'code').outcome = 'FAIL';
         // A `[high|medium|low]` tag in the evidence sets the B1 severity field;
         // untagged rows are high, which blocks exactly like the reviewer flag.
         verdict.findings = rows.map((row, index) => ({ id: `${provider}-finding-${index}`, classId: 'fixture', classStatement: 'Fixture defect class',
           failureScenario: 'Fixture input -> wrong observable output', criterion: request.input.criteria[0], blocking: true,
           severity: /\[(high|medium|low)\]/u.exec(row.evidence ?? '')?.[1] ?? 'high', ...row }));
       }
+      if (patch[provider]) for (const verdict of result.output.verdicts) patch[provider](verdict, request);
       result.receipt.digests.output = sha256Digest(result.output);
       return result;
     };

@@ -19,9 +19,11 @@ export const planningScope = artifact => `planning:${artifact}`;
 export const severityOf = finding => ['high', 'medium', 'low'].includes(finding?.severity) ? finding.severity : 'unrated';
 
 // Projection hooks, called from core.js project() in event order.
+// Only consecutive reviews of one revision share a round; returning to an
+// earlier revision is a new round, so the counter never moves backwards.
 export function countRound(state, scope, revision, details) {
   const entry = state.reviewScopes[scope] ??= { scope, round: 0, revisions: [], decisions: [] };
-  if (!entry.revisions.some(row => row.revision === revision)) entry.revisions.push({ round: ++entry.round, revision, ...details });
+  if (entry.revisions.at(-1)?.revision !== revision) entry.revisions.push({ round: ++entry.round, revision, ...details });
 }
 export function resetRounds(state, event) {
   for (const entry of Object.values(state.reviewScopes)) state.reviewScopeHistory.push({ ...entry, closed: { reason: 'amendment', event } });
@@ -35,14 +37,20 @@ export function closeScope(state, scope, reason, event) {
 }
 export function recordRoundDecision(state, value, event) {
   const entry = state.reviewScopes[value.reviewScope];
-  if (entry) entry.decisions.push({ choice: value.choice, round: entry.round, event });
+  if (!entry) return;
+  entry.decisions.push({ choice: value.choice, round: entry.round, event });
+  // A split ends this scope: each part starts its own count at round 1.
+  if (value.choice === 'split') closeScope(state, value.reviewScope, 'split', event);
 }
 
-// Round of one revision in its scope, or null when the revision was reviewed
-// before this policy (legacy: original blocking applies, no hand-back).
+// Round of one revision in its scope (its latest review), or null when the
+// revision was reviewed before this policy (legacy: original blocking
+// applies, no hand-back).
 export function roundOf(state, scope, revision) {
-  return state.reviewScopes?.[scope]?.revisions.find(row => row.revision === revision)?.round ?? null;
+  return state.reviewScopes?.[scope]?.revisions.findLast(row => row.revision === revision)?.round ?? null;
 }
+// Whether a revision is the scope's current round (a re-review of it is not a new round).
+export const currentRevision = (state, scope, revision) => state.reviewScopes?.[scope]?.revisions.at(-1)?.revision === revision;
 export function previousRevision(state, scope, round) {
   return state.reviewScopes?.[scope]?.revisions.find(row => row.round === round - 1) ?? null;
 }

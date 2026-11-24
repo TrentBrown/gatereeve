@@ -151,3 +151,10 @@ test('a repository with hosted CI is never accepted on local evidence alone', as
   await ciVerification(f, 'verify-ci-hosted');
   assert.deepEqual(verificationMissing(await acceptance(f)), []);
 });
+
+test('a failed CI job outside the declared required checks fails the qualification', async t => {
+  const { f, head } = await converged(t);
+  hostedCi(f, { head, treeId: await tree(f, head), jobs: [job('test'), job('lint', 'failure')] });
+  await ciVerification(f, 'verify-ci-red-lint');
+  assert.match(verificationMissing(await acceptance(f)).join('\n'), /CI job app: lint \(completed\/failure\) did not succeed/);
+});

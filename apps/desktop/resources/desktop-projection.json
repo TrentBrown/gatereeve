@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:1b55c51da3d5f851a7f1f0d16af3a5315ea408247628968fa5eec5e941a364a7",
+  "protocolHash": "sha256:b2a916d28d2050b56e1a1bfcf14b75de3a4a7bf4042832309e61f857056dcc66",
   "contract": "gatereeve/current/8",
   "contractSha256": "1df0afc21301595b72a5f9bdad3ab2aade7452ad1c5a4f97455bde354bf1120a",
   "files": [
@@ -42,13 +42,13 @@
     },
     {
       "path": "current/boundary-review.js",
-      "size": 19637,
-      "sha256": "1085dd88d2d8655afb3455558b1c606e221ad5adc327627f9145035e6b74a14c"
+      "size": 22614,
+      "sha256": "c43cae22b45b69e74c32060f413b0505294a25d9811e9a1a318d66fe0cca6112"
     },
     {
       "path": "current/ci-qualification.js",
-      "size": 3759,
-      "sha256": "211fa04f5c6e37471addde8132a4503a515c79cb83717db4eb719d3a54e648f6"
+      "size": 4303,
+      "sha256": "cc9444ae4e4f4de535e23dbe5307f2bdab97ef0c80225da62ac2131ae98a9e3d"
     },
     {
       "path": "current/command-guard.js",
@@ -62,8 +62,8 @@
     },
     {
       "path": "current/core.js",
-      "size": 110395,
-      "sha256": "4acfaaa1bc5c9454cf4f2433eb52f984ba3003db7d50ed5253aba700dfb1cf5e"
+      "size": 110834,
+      "sha256": "27f8b797c6ebbbc52a0a9eee9ab2986b006fa9b5ebd384ab9f612ec0463b3118"
     },
     {
       "path": "current/coverage.js",
@@ -72,8 +72,8 @@
     },
     {
       "path": "current/delegation.js",
-      "size": 39617,
-      "sha256": "95549cceb8a58cd72e84c30861186bd39bea504705b25d9224b51ef156c89638"
+      "size": 39822,
+      "sha256": "38bc8aa64d7eafc42a453b1a120ecdcc94dcc95e585ab83ce101840ab43c4c07"
     },
     {
       "path": "current/delivery.js",
@@ -157,8 +157,8 @@
     },
     {
       "path": "current/review-findings.js",
-      "size": 4612,
-      "sha256": "264273aa0921cf080bf2f7c8a44cbd74538183507601eaadd1dfb039bd2f86f4"
+      "size": 5004,
+      "sha256": "9e0d23f9ab734b9f8ad93be3d198b11e25b4027667962c0ac0abd3c93283d2b3"
     },
     {
       "path": "current/review-history.js",
@@ -172,8 +172,8 @@
     },
     {
       "path": "current/round-policy.js",
-      "size": 5372,
-      "sha256": "210bfe5cd64ab4223b65d181191655370de052286618683d8b6a467eb0f8bbf7"
+      "size": 5928,
+      "sha256": "f70f9c084d4bc9bbcae35c9048e9a3278baa0d8b2f9b84d8ad5d23da0d2de950"
     },
     {
       "path": "current/runner-profile.js",
