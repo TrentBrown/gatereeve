@@ -11,14 +11,16 @@ import { localPath } from './store.js';
 import { HIGH_CAPABILITY_PROFILE, AGENT_WORKFLOW_PROTOCOL_VERSION, sha256Digest, validateAgentWorkflowStageResult, validateEvaluatorCapability } from '../agent-workflow.js';
 import { createCodexAgentAdapter, createClaudeCodeAgentAdapter } from '../local-agent-adapters.js';
 import { allowedRunOutcome } from './autonomous.js';
-import { ROUND_POLICY, planningScope, roundOf, scheduledBlocking, roundHandBack, refuseLateAdjudication, countReviewRound, assertRoundOpen, NARROW_FROM } from './round-policy.js';
+import { ROUND_POLICY, planningScope, roundOf, scheduledRound, scheduledBlocking, roundHandBack, refuseLateAdjudication, countReviewRound, assertRoundOpen, NARROW_FROM } from './round-policy.js';
 
 // Planning reviews follow the round schedule (spec AC6): from round 4 only
 // high findings and medium regressions (findings on a document the previous
 // round's fix changed) block; at round 6 the review hands back.
 // A finding keeps the regression status of the round that first raised it.
 export async function planningSchedule(core, state, artifact, cited, result) {
-  const scope = planningScope(artifact), round = roundOf(state, scope, cited.subject);
+  // Only the scope's latest revision keeps its counted round; a restored
+  // earlier document revision is the next round (no hand-back bypass).
+  const scope = planningScope(artifact), round = scheduledRound(state, scope, cited.subject);
   const revisions = state.reviewScopes?.[scope]?.revisions ?? [];
   const reviewAt = row => row ? state.planningReviews.find(item => item.event === row.event) : null;
   // A round-1 finding has no previous fix, so it is never a regression.
@@ -32,10 +34,13 @@ export async function planningSchedule(core, state, artifact, cited, result) {
   // A finding keeps the regression status of the round that raised it until a
   // later completed review no longer reports it (resolved); a reintroduction
   // is judged afresh.
+  // Every completed planning review of the scope counts, retries of one
+  // revision included, each in the round it belonged to when it was recorded.
+  const roundFor = review => revisions.findLast(row => row.revision === review.subject && (!row.at || !review.at || row.at <= review.at)) ?? null;
   const firstRaised = new Map();
-  for (const row of revisions) {
-    const review = reviewAt(row);
-    if (!review || review.event === cited.event) continue;
+  for (const review of state.planningReviews.filter(item => item.artifact === artifact && item.event !== cited.event)) {
+    const row = roundFor(review);
+    if (!row) continue;
     let earlier; try { earlier = await core.store.json(review.result); } catch { continue; }
     const present = new Set((earlier.findings ?? []).map(finding => finding.id));
     // Only a completed PASS or FAIL assessment can show a finding resolved; an

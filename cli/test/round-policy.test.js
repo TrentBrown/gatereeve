@@ -12,7 +12,7 @@ import { eligibleResidualRisk } from '../../plugin-src/shared/resources/protocol
 import { DELEGATED_AUTHORITY } from '../../plugin-src/shared/resources/protocol/current/contracts.js';
 import { git } from '../../plugin-src/shared/resources/protocol/current/evidence.js';
 import { scheduledBlocking, roundHandBack, roundStatus, ROUND_POLICY, countRound, roundOf, currentRevision, recordRoundDecision } from '../../plugin-src/shared/resources/protocol/current/round-policy.js';
-import { fixture, human, evaluator, reviewConfig, delegate } from './helpers/lightweight-fixture.js';
+import { fixture, human, evaluator, reviewConfig, delegate, candidate } from './helpers/lightweight-fixture.js';
 import { retainedContractQualifies, REVIEW_CONTRACT_VERSION } from '../../plugin-src/shared/resources/protocol/current/execution.js';
 import { planningSchedule } from '../../plugin-src/shared/resources/protocol/current/delegation.js';
 import { selection } from './helpers/paired-review-fixture.js';
@@ -349,7 +349,10 @@ const planningState = rounds => {
   rounds.forEach((row, index) => {
     const documents = { 'brief.md': { hash: row.doc } }, event = `event-${index + 1}`;
     state.reviewScopes['planning:brief'].revisions.push({ round: index + 1, revision: `subject-${index + 1}`, event, ...(row.failed ? { documents } : {}) });
-    if (!row.failed) { state.planningReviews.push({ event, documents, result: { hash: `result-${index + 1}` } }); results.set(`result-${index + 1}`, { outcome: row.outcome ?? 'FAIL', findings: row.findings ?? [] }); }
+    if (!row.failed) { state.planningReviews.push({ artifact: 'brief', subject: `subject-${index + 1}`, event, documents, result: { hash: `result-${index + 1}` } }); results.set(`result-${index + 1}`, { outcome: row.outcome ?? 'FAIL', findings: row.findings ?? [] }); }
+    // A retry of the same revision (same subject, same round) with its own result.
+    if (row.retry) { state.planningReviews.push({ artifact: 'brief', subject: `subject-${index + 1}`, event: `${event}-retry`, documents, result: { hash: `retry-${index + 1}` } }); results.set(`retry-${index + 1}`, { outcome: row.retry.outcome, findings: row.retry.findings ?? [] });
+      state.reviewScopes['planning:brief'].revisions.at(-1).event = `${event}-retry`; }
   });
   const core = { store: { json: async ref => results.get(ref.hash) } };
   return { state, core };
@@ -359,7 +362,7 @@ const scheduleAt = async (rounds, findings) => {
   const { state, core } = planningState(rounds);
   const last = state.reviewScopes['planning:brief'].revisions.at(-1);
   const cited = { event: last.event, subject: last.revision, documents: { 'brief.md': { hash: rounds.at(-1).doc } } };
-  state.planningReviews.push({ event: last.event, documents: cited.documents, result: { hash: 'current' } });
+  state.planningReviews.push({ artifact: 'brief', subject: last.revision, event: last.event, documents: cited.documents, result: { hash: 'current' } });
   return planningSchedule(core, state, 'brief', cited, { outcome: 'FAIL', findings });
 };
 
@@ -430,4 +433,25 @@ test('a planning review of a new revision past round 6 is refused before any pro
   await writeFile(brief, `${await readFile(brief, 'utf8')}- planning round 7 note\n`);
   await assert.rejects(f.request('planning.review', { artifact: 'brief', configuration: reviewConfig }, 'brief-review-7'), /reached round 6/);
   assert.equal(launches, 0);
+});
+
+test('a same-revision planning retry that is UNAVAILABLE keeps the regression found earlier in that round', async () => {
+  // Round 4 raises regression M1 on a changed document; its retry is UNAVAILABLE; round 5 leaves the document unchanged.
+  const schedule = await scheduleAt([{ doc: 'v1' }, { doc: 'v2' }, { doc: 'v3' }, { doc: 'v4', findings: [medium('M1')], retry: { outcome: 'UNAVAILABLE' } }, { doc: 'v4' }], [medium('M1')]);
+  assert.equal(schedule.round, 5);
+  assert.deepEqual(schedule.blockers.map(row => row.id), ['M1']);
+});
+
+test('a restored earlier revision is qualified as the next round, never its old one', async t => {
+  const f = await lightRun(t);
+  reviewers(f);
+  await f.request('review.execute', {}, 'round-1');
+  assert.equal((await pair(f)).outcome, 'PASS', 'round 1 passes on this revision');
+  // Five later rounds are counted on other revisions without a human decision;
+  // the round-1 revision's retained pair must not qualify past the hand-back.
+  await seedRounds(f, 5);
+  const reviewed = await pair(f);
+  assert.equal(reviewed.round.round, 7);
+  assert.equal(reviewed.outcome, 'UNAVAILABLE', reviewed.summary);
+  assert.ok(reviewed.members.every(member => /reached round 7/.test(member.qualification ?? '')));
 });

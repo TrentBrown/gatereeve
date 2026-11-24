@@ -3,7 +3,7 @@ import { reviewerSelection, modelProvider } from './reviewer-selection.js';
 import { executeGates, changedPaths, findingSeverity, severityRank } from './execution.js';
 import { contentIdentity } from './evidence.js';
 import { findingObligations, retainedReviewScope } from './review-findings.js';
-import { boundaryScope, roundOf, scheduledRound, assertRoundOpen, scheduledBlocking, roundHandBack, roundDecision, NARROW_FROM, ROUND_POLICY } from './round-policy.js';
+import { boundaryScope, scheduledRound, currentRevision, assertRoundOpen, scheduledBlocking, roundHandBack, roundDecision, NARROW_FROM, ROUND_POLICY } from './round-policy.js';
 import { isGoal } from './delegation.js';
 
 // The schedule for the current revision of its scope (spec AC6). Regressions
@@ -23,12 +23,14 @@ async function regressionPathsByCandidate(core, state, scope) {
   return paths;
 }
 async function roundSchedule(core, state, candidate) {
-  // An uncounted new revision (for example reviewed only by individual
-  // selection-tagged reviews) is the next round, never legacy.
-  const scope = boundaryScope(candidate), round = roundOf(state, scope, contentIdentity(candidate)) ?? scheduledRound(state, scope, contentIdentity(candidate));
+  // Only the scope's latest revision keeps its counted round. Any other
+  // revision, never counted or restored from an earlier round, is reviewed as
+  // the next round, so retained proof of an earlier revision cannot qualify
+  // past the round 6 hand-back. Null only with no round under this policy.
+  const scope = boundaryScope(candidate), round = scheduledRound(state, scope, contentIdentity(candidate));
   const byCandidate = round !== null && round >= NARROW_FROM ? await regressionPathsByCandidate(core, state, scope) : new Map();
   const revisions = state.reviewScopes?.[scope]?.revisions ?? [];
-  const current = revisions.findLast(row => row.revision === contentIdentity(candidate))?.candidate?.hash;
+  const current = currentRevision(state, scope, contentIdentity(candidate)) ? revisions.at(-1)?.candidate?.hash : null;
   let regressionPaths = byCandidate.get(current) ?? new Set();
   // An uncounted revision's regressions are measured against the last counted one.
   if (!current && round !== null && round >= NARROW_FROM && revisions.at(-1)?.candidate) {

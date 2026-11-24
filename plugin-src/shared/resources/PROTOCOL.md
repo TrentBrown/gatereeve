@@ -286,7 +286,10 @@ the feature-final review (`feature-final`) or one planning document
 (`planning:<artifact>`). One round is one paired review of one candidate revision
 (one planning review of one document revision), including rounds where a reviewer
 was UNAVAILABLE. Only consecutive reviews of one revision share a round: returning
-to an earlier revision is a new round, so the counter never moves backwards. Only a
+to an earlier revision is a new round, so the counter never moves backwards, and
+retained proof of an earlier revision is qualified under the scope's next round
+(it cannot pass the round 6 hand-back). Planning regression history reads every
+completed planning review of the scope, retries of one revision included. Only a
 human-approved amendment (`amend`, or in a light run a human re-authorization of a
 changed brief) resets the counters; observing a slice's integration closes its
 scope, so the next slice PR starts at round 1. Rounds executed before this policy
