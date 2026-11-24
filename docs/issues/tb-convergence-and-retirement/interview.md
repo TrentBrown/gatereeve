@@ -676,3 +676,22 @@ and the Fleet thread's reviewer idle-inhibitor request.
   6. **Dogfooding (approved proposal 4).** Once PRs A and B are merged into
      the integration branch, this run's GateReeve operations use the adapter
      from the integration branch checkout instead of the installed plugin.
+
+### D34 - Speed-ups first, lean verification, parallel slices
+
+- **Question:** The run is taking days: about 5-6 hours of PR A went into
+  repeated full local verification (every fix a new commit, every check
+  identity rerun, a pre-existing exit-time SIGABRT under load), and rc.31 could
+  neither waive coverage nor adjudicate UNAVAILABLE. How do we go faster?
+- **Answered by:** human
+- **Answer:** "Let's use your recommendation." (2026-11-24), to: (1) deliver
+  the verdict speed-ups first as a small PR and dogfood them via the
+  integration adapter; (2) verification = hosted CI plus a small fixed local
+  list, no local full suites; (5) investigate the exit-time crash first;
+  (4) build PR C's essentials in parallel; (6) cut further scope as needed.
+- **Decision:** The plan's "Speed-ups first (D34)" section: PR B1 (B-lite),
+  PR C1 in parallel, then B2/C2 or a follow-up feature. Each PR's local list
+  is fixed on its first run and limited to focused suites; hosted CI carries
+  the full suite. Self-review before paired rounds, one fix commit per round,
+  delta rounds after the first. PR A was merged outside GateReeve by human
+  decision (run note `prA-outside-merge-note`).
