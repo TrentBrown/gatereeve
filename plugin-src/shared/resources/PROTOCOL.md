@@ -597,15 +597,14 @@ Every finding carries `severity` (`high`, `medium` or `low`, defined by its
 never block; a low finding marked blocking is recorded non-blocking under
 `normalized`. A historical finding still present but now rated low takes the
 `present-low` disposition, which no longer blocks. Findings retained from
-earlier contracts read as `unrated` and block exactly as recorded. A FAIL whose
-only findings are low is recorded as PASS (`normalized` rule `low-only-fail`)
+earlier contracts read as `unrated` and block exactly as recorded. A FAIL with
+no blocking finding other than low ones (non-blocking findings of any severity
+may accompany them) is recorded as PASS (`normalized` rule `low-only-fail`)
 only when every criterion, responsibility and coverage decision already passes,
 coverage is complete, the mandate passes or is not assessed, and the verdict
-then satisfies every PASS check; otherwise the reviewer's FAIL stands and is
-never rewritten over another failure. A FAIL left with no material finding is
-explained by its low findings, which autonomous adjudication disposes of like
-material findings, so a low finding never needs reviewer clarification to
-proceed. When paired
+then satisfies every PASS check. Otherwise the reviewer's FAIL stands and is
+never rewritten over another failure; a FAIL left without a material finding
+still needs reviewer clarification before adjudication. When paired
 reviewers rate one class differently, the pair records the higher rating
 (`severities` on the boundary review).
 

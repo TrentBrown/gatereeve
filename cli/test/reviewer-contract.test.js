@@ -204,17 +204,18 @@ test('a FAIL resting only on low findings is PASS only when nothing else fails',
   assert.equal(check([finding('A1', { severity: 'medium', blocking: false })]).outcome, 'FAIL');
 });
 
-test('a FAIL explained only by low findings is adjudicable, never an unexplained block', () => {
+test('an unrelated low finding never makes an independent failure adjudicable', () => {
   const low = finding('codex/L1', { severity: 'low', blocking: false });
-  const result = outcome => ({ outcome, findings: outcome === 'FAIL' ? [low] : [], coverage: { complete: true, limitations: [] },
-    dimensions: dimensionRows('PASS'), criteria: [{ id: 'R1', outcome: 'PASS', evidence: 'Assessed.' }], mandateAssessment: { outcome: 'PASS', evidence: 'In mandate.' }, coverageDecisions: [] });
-  const pair = { initialEstablished: true, members: [
-    { ref: { hash: 'a' }, reviewer: { provider: 'codex' }, result: result('FAIL'), materialFindings: [], unreconciledFindings: [] },
-    { ref: { hash: 'b' }, reviewer: { provider: 'claude-code' }, result: result('PASS'), materialFindings: [], unreconciledFindings: [] }] };
-  const findings = eligibleResidualRisk(pair);
-  assert.deepEqual(findings.map(row => row.finding.id), ['codex/L1']);
-  pair.members[0].result.findings = [];
-  assert.throws(() => eligibleResidualRisk(pair), /unexplained failed assessment/);
+  const member = (provider, outcome, criterion) => ({ ref: { hash: provider }, reviewer: { provider }, materialFindings: [], unreconciledFindings: [],
+    result: { outcome, findings: outcome === 'FAIL' ? [low] : [], coverage: { complete: true, limitations: [] }, dimensions: dimensionRows('PASS'),
+      criteria: [{ id: 'R1', outcome: criterion, evidence: 'Assessed.' }], mandateAssessment: { outcome: 'PASS', evidence: 'In mandate.' }, coverageDecisions: [] } });
+  // R1 fails independently of the low advisory (round 3, both reviewers).
+  assert.throws(() => eligibleResidualRisk({ initialEstablished: true, members: [member('codex', 'FAIL', 'FAIL'), member('claude-code', 'PASS', 'PASS')] }),
+    /unexplained failed assessment/);
+  // The low-only shape never reaches adjudication: the validator records it as PASS.
+  const recorded = validateVerdict({ ...gateVerdict('review', candidate, [finding('L1', { severity: 'low', blocking: false })]),
+    criteria: [{ id: 'R1', outcome: 'PASS', evidence: 'Assessed.' }], dimensions: dimensionRows('PASS') }, ['review'], candidate, null, [], []);
+  assert.equal(recorded.outcome, 'PASS');
 });
 
 test('a disposition cannot carry or change a severity', () => {

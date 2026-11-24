@@ -315,9 +315,7 @@ export async function delegatedPlanningAuthority(core, state, value) {
     requireThat(proposed && Object.keys(proposed).every(key => ['reason', 'mandateRebuttal', 'dispositions', 'evidence', 'stopReason'].includes(key)), 'Unsupported autonomous planning judgment');
     text(proposed.reason, 'Planning judgment rationale');
     mandateRebuttal(proposed.mandateRebuttal, delegation.mandate);
-    // A FAIL with no blocking finding is explained by its low findings (AC3).
-    const blockers = result.findings.some(finding => finding.blocking) ? result.findings.filter(finding => finding.blocking)
-      : result.findings.filter(finding => finding.severity === 'low');
+    const blockers = result.findings.filter(finding => finding.blocking);
     requireThat(result.outcome !== 'FAIL' || blockers.length > 0, 'An unexplained planning failure needs reviewer clarification');
     requireThat(Array.isArray(proposed.dispositions) && proposed.dispositions.length === blockers.length
       && new Set(proposed.dispositions.map(row => row.findingId)).size === blockers.length, 'Disposition every material planning finding');
