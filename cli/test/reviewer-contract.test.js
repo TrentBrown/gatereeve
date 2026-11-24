@@ -7,6 +7,7 @@ import test from 'node:test';
 import { validateVerdict, validateFormatRepair, findingLedger, reviewSchema, unavailableReason, UNAVAILABLE_REASONS, findingBlocks }
   from '../../plugin-src/shared/resources/protocol/current/execution.js';
 import { pairedSeverities } from '../../plugin-src/shared/resources/protocol/current/boundary-review.js';
+import { eligibleResidualRisk } from '../../plugin-src/shared/resources/protocol/current/autonomous.js';
 import { ContractError } from '../../plugin-src/shared/resources/protocol/errors.js';
 import { validateJsonSchema } from '../../plugin-src/shared/resources/protocol/json-schema.js';
 import { validateReview as validatePlanningReview } from '../../plugin-src/shared/resources/protocol/current/delegation.js';
@@ -173,17 +174,47 @@ for (const [label, gate, scope] of [['code (full)', 'code', candidate], ['spec (
   });
 }
 
-test('a FAIL resting only on low findings is recorded as PASS; any other cause keeps it FAIL', () => {
-  const check = (findings, fields = {}) => validateVerdict({ ...gateVerdict('review', candidate, findings), ...fields }, ['review'], candidate, null, [], []);
-  const lowOnly = check([finding('L1', { severity: 'low' })]);
-  assert.equal(lowOnly.outcome, 'PASS');
-  assert.ok(lowOnly.criteria.every(row => row.outcome === 'PASS') && lowOnly.dimensions.every(row => row.outcome === 'PASS'));
-  assert.deepEqual(lowOnly.normalized.find(row => row.rule === 'low-only-fail').original, { outcome: 'FAIL', criteria: ['R1'], dimensions: ['code', 'requirements', 'evidence', 'scope', 'findings'] });
+test('a FAIL resting only on low findings is PASS only when nothing else fails', () => {
+  const rows = outcome => ({ criteria: [{ id: 'R1', outcome, evidence: 'Assessed.' }], dimensions: dimensionRows(outcome) });
+  const check = (findings, fields = {}, scopeHistory = []) => validateVerdict({ ...gateVerdict('review', candidate, findings), ...rows('PASS'), ...fields },
+    ['review'], candidate, null, scopeHistory, []);
+  // Low findings marked blocking or not, with everything else passing: PASS.
+  for (const blocking of [true, false]) {
+    const result = check([finding('L1', { severity: 'low', blocking })]);
+    assert.equal(result.outcome, 'PASS', `blocking ${blocking}`);
+    assert.ok(result.normalized.some(row => row.rule === 'low-only-fail'));
+  }
+  // An independent failure is never erased (round 2, Codex).
+  for (const fields of [rows('FAIL'), { dimensions: dimensionRows('PASS').map(row => row.name === 'evidence' ? { ...row, outcome: 'FAIL' } : row) },
+    { dimensions: dimensionRows('PASS').map(row => row.name === 'evidence' ? { ...row, outcome: 'UNAVAILABLE' } : row) },
+    { coverageDecisions: [{ id: 'claim-1', outcome: 'FAIL', evidence: 'Replacement does not cover it.' }] },
+    { coverage: { complete: false, paths: [], interactions: [], limitations: ['Uncovered'] } },
+    { mandateAssessment: { outcome: 'FAIL', evidence: 'Out of mandate.' } }]) {
+    const result = check([finding('L1', { severity: 'low' })], fields);
+    assert.equal(result.outcome, 'FAIL');
+    assert.ok(!(result.normalized ?? []).some(row => row.rule === 'low-only-fail'));
+  }
   assert.equal(check([finding('L1', { severity: 'low' }), finding('M1', { severity: 'medium' })]).outcome, 'FAIL');
-  assert.equal(check([finding('L1', { severity: 'low' })], { coverage: { complete: false, paths: [], interactions: [], limitations: ['Uncovered'] } }).outcome, 'FAIL');
-  assert.equal(check([finding('L1', { severity: 'low' })], { mandateAssessment: { outcome: 'FAIL', evidence: 'Out of mandate.' } }).outcome, 'FAIL');
-  // A FAIL with no blocking finding at all stays the reviewer's FAIL.
+  // A prior blocking finding kept present plus a new low one: the reviewer's
+  // FAIL stands, valid and adjudicable, instead of a contract error (round 2, Claude).
+  const prior = [{ reviewerResult: { gate: 'review', findings: [legacy('O1')], dispositions: [] } }];
+  const kept = check([finding('L1', { severity: 'low' })], { dispositions: [disposition('O1', 'present')] }, prior);
+  assert.equal(kept.outcome, 'FAIL');
+  // A FAIL with no low and no blocking finding stays the reviewer's FAIL.
   assert.equal(check([finding('A1', { severity: 'medium', blocking: false })]).outcome, 'FAIL');
+});
+
+test('a FAIL explained only by low findings is adjudicable, never an unexplained block', () => {
+  const low = finding('codex/L1', { severity: 'low', blocking: false });
+  const result = outcome => ({ outcome, findings: outcome === 'FAIL' ? [low] : [], coverage: { complete: true, limitations: [] },
+    dimensions: dimensionRows('PASS'), criteria: [{ id: 'R1', outcome: 'PASS', evidence: 'Assessed.' }], mandateAssessment: { outcome: 'PASS', evidence: 'In mandate.' }, coverageDecisions: [] });
+  const pair = { initialEstablished: true, members: [
+    { ref: { hash: 'a' }, reviewer: { provider: 'codex' }, result: result('FAIL'), materialFindings: [], unreconciledFindings: [] },
+    { ref: { hash: 'b' }, reviewer: { provider: 'claude-code' }, result: result('PASS'), materialFindings: [], unreconciledFindings: [] }] };
+  const findings = eligibleResidualRisk(pair);
+  assert.deepEqual(findings.map(row => row.finding.id), ['codex/L1']);
+  pair.members[0].result.findings = [];
+  assert.throws(() => eligibleResidualRisk(pair), /unexplained failed assessment/);
 });
 
 test('a disposition cannot carry or change a severity', () => {
@@ -209,6 +240,9 @@ test('planning reviews require the same finding fields; low never blocks', () =>
   assert.deepEqual(validatePlanningReview(low, documents).map(item => item.rule), ['low-never-blocks', 'low-only-fail']);
   assert.equal(low.outcome, 'PASS');
   assert.equal(low.findings[0].blocking, false);
+  const quiet = review([row('L1', { severity: 'low', blocking: false })]);
+  assert.deepEqual(validatePlanningReview(quiet, documents).map(item => item.rule), ['low-only-fail']);
+  assert.equal(quiet.outcome, 'PASS');
   const mixed = review([row('L1', { severity: 'low' }), row('M1', { severity: 'medium' })]);
   validatePlanningReview(mixed, documents);
   assert.equal(mixed.outcome, 'FAIL');

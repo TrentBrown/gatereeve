@@ -177,7 +177,7 @@ export function validateReview(output, documents, mandate = null) {
   requireThat(new Set(output.findings.map(item => item.id)).size === output.findings.length, 'Duplicate planning finding identity');
   // A FAIL resting only on low findings never blocks (AC3): record PASS.
   const normalized = lowBlocked.map(id => ({ rule: 'low-never-blocks', field: 'findings.blocking', id }));
-  if (output.outcome === 'FAIL' && lowBlocked.length && !output.findings.some(item => item.blocking)
+  if (output.outcome === 'FAIL' && output.findings.some(item => item.severity === 'low') && !output.findings.some(item => item.blocking)
     && (!mandate || output.mandateAssessment?.outcome === 'PASS')) {
     output.outcome = 'PASS'; normalized.push({ rule: 'low-only-fail', field: 'outcome', id: null, original: { outcome: 'FAIL' } });
   }
@@ -315,7 +315,9 @@ export async function delegatedPlanningAuthority(core, state, value) {
     requireThat(proposed && Object.keys(proposed).every(key => ['reason', 'mandateRebuttal', 'dispositions', 'evidence', 'stopReason'].includes(key)), 'Unsupported autonomous planning judgment');
     text(proposed.reason, 'Planning judgment rationale');
     mandateRebuttal(proposed.mandateRebuttal, delegation.mandate);
-    const blockers = result.findings.filter(finding => finding.blocking);
+    // A FAIL with no blocking finding is explained by its low findings (AC3).
+    const blockers = result.findings.some(finding => finding.blocking) ? result.findings.filter(finding => finding.blocking)
+      : result.findings.filter(finding => finding.severity === 'low');
     requireThat(result.outcome !== 'FAIL' || blockers.length > 0, 'An unexplained planning failure needs reviewer clarification');
     requireThat(Array.isArray(proposed.dispositions) && proposed.dispositions.length === blockers.length
       && new Set(proposed.dispositions.map(row => row.findingId)).size === blockers.length, 'Disposition every material planning finding');

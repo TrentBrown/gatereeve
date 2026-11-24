@@ -3,6 +3,8 @@ import { boundaryReviews } from './boundary-review.js';
 import { checkCandidate } from './evidence.js';
 import { guardDelegatedAction, isAutonomous } from './delegation.js';
 
+const lowExplained = member => member.result.outcome === 'FAIL' && !(member.materialFindings ?? member.result.findings ?? []).some(finding => finding.blocking)
+  ? (member.result.findings ?? []).filter(finding => finding.severity === 'low') : [];
 export function eligibleResidualRisk(pair, mandate = null, rebuttal = null) {
   requireThat(pair.members.length === 2, 'Residual-risk acceptance requires both independent perspectives');
   requireThat(pair.initialEstablished !== false, 'Initial reviewer independence must be established before adjudication');
@@ -26,11 +28,14 @@ export function eligibleResidualRisk(pair, mandate = null, rebuttal = null) {
         'Missing verification or unknown scope cannot be adjudicated; unsupported objections need counterevidence');
     }
     requireThat(!(result.coverageDecisions ?? []).some(row => row.outcome !== 'PASS'), 'Rejected verification coverage cannot be adjudicated');
-    requireThat(result.outcome !== 'FAIL' || (member.materialFindings ?? result.findings).some(finding => finding.blocking),
+    // Low findings explain a FAIL that has no material finding (AC3); they are
+    // adjudicated like material findings instead of blocking.
+    requireThat(result.outcome !== 'FAIL' || (member.materialFindings ?? result.findings).some(finding => finding.blocking)
+      || lowExplained(member).length,
       'An unexplained failed assessment needs reviewer clarification, not residual-risk acceptance');
   }
   const findings = new Map();
-  for (const member of pair.members) for (const finding of member.materialFindings ?? member.result.findings.filter(finding => finding.blocking)) {
+  for (const member of pair.members) for (const finding of [...(member.materialFindings ?? member.result.findings.filter(finding => finding.blocking)), ...lowExplained(member)]) {
     const rebuttalRequired = member.result.mandateAssessment.outcome !== 'PASS'
       || member.result.dimensions.some(row => ['evidence', 'scope'].includes(row.name) && row.outcome !== 'PASS');
     const existing = findings.get(finding.id);
