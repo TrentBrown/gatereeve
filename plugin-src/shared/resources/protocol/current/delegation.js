@@ -11,7 +11,7 @@ import { localPath } from './store.js';
 import { HIGH_CAPABILITY_PROFILE, AGENT_WORKFLOW_PROTOCOL_VERSION, sha256Digest, validateAgentWorkflowStageResult, validateEvaluatorCapability } from '../agent-workflow.js';
 import { createCodexAgentAdapter, createClaudeCodeAgentAdapter } from '../local-agent-adapters.js';
 import { allowedRunOutcome } from './autonomous.js';
-import { ROUND_POLICY, planningScope, roundOf, scheduledBlocking, roundHandBack, refuseLateAdjudication, countReviewRound, NARROW_FROM } from './round-policy.js';
+import { ROUND_POLICY, planningScope, roundOf, scheduledBlocking, roundHandBack, refuseLateAdjudication, countReviewRound, assertRoundOpen, NARROW_FROM } from './round-policy.js';
 
 // Planning reviews follow the round schedule (spec AC6): from round 4 only
 // high findings and medium regressions (findings on a document the previous
@@ -38,7 +38,9 @@ export async function planningSchedule(core, state, artifact, cited, result) {
     if (!review || review.event === cited.event) continue;
     let earlier; try { earlier = await core.store.json(review.result); } catch { continue; }
     const present = new Set((earlier.findings ?? []).map(finding => finding.id));
-    for (const id of [...firstRaised.keys()]) if (!present.has(id)) firstRaised.delete(id);
+    // Only a completed PASS or FAIL assessment can show a finding resolved; an
+    // UNAVAILABLE one establishes nothing about it.
+    if (['PASS', 'FAIL'].includes(earlier.outcome)) for (const id of [...firstRaised.keys()]) if (!present.has(id)) firstRaised.delete(id);
     for (const finding of earlier.findings ?? []) if (!firstRaised.has(finding.id))
       firstRaised.set(finding.id, changedSince(row, review.documents, finding.document.replace(/^requirements\//u, '')));
   }
@@ -264,8 +266,10 @@ export async function reviewPlanning(core, input, operation) {
       policy: { repositoryAccess: 'read-only', networkAccess: 'deny', scratch: 'isolated' },
       repositoryPath: view.root, snapshotDigest: identity(documents), instructions, input: packet, outputSchema,
       timeoutSeconds: configuration.timeoutSeconds ?? 900 };
-    // Count the planning round before the provider runs: an error, timeout or
-    // malformed output still uses the round (spec AC6, failure model).
+    // A new revision past round 6 is not reviewed until the human decides; then
+    // count the round before the provider runs, so an error, timeout or
+    // malformed output still uses it (spec AC6, failure model).
+    assertRoundOpen((await core.state()).state, planningScope(input.artifact), subject, isGoal(state));
     await countReviewRound(core, planningScope(input.artifact), subject, null, documents);
     const result = await adapter.runStage(request);
     retained = [await core.store.putJson(result.receipt), await core.store.putJson(result.output)];

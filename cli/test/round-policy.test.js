@@ -349,7 +349,7 @@ const planningState = rounds => {
   rounds.forEach((row, index) => {
     const documents = { 'brief.md': { hash: row.doc } }, event = `event-${index + 1}`;
     state.reviewScopes['planning:brief'].revisions.push({ round: index + 1, revision: `subject-${index + 1}`, event, ...(row.failed ? { documents } : {}) });
-    if (!row.failed) { state.planningReviews.push({ event, documents, result: { hash: `result-${index + 1}` } }); results.set(`result-${index + 1}`, { findings: row.findings ?? [] }); }
+    if (!row.failed) { state.planningReviews.push({ event, documents, result: { hash: `result-${index + 1}` } }); results.set(`result-${index + 1}`, { outcome: row.outcome ?? 'FAIL', findings: row.findings ?? [] }); }
   });
   const core = { store: { json: async ref => results.get(ref.hash) } };
   return { state, core };
@@ -380,4 +380,54 @@ test('a planning finding fixed and later reintroduced is judged afresh', async (
   // Still present since round 1 without a fix: it keeps its round-1 status and is demoted.
   const kept = await scheduleAt([{ doc: 'v1', findings: [medium('M1')] }, { doc: 'v2', findings: [medium('M1')] }, { doc: 'v3', findings: [medium('M1')] }, { doc: 'v4' }], [medium('M1')]);
   assert.equal(kept.outcome, 'PASS');
+});
+
+test('a completed UNAVAILABLE planning review never clears a regression', async () => {
+  // M1 is a regression raised in round 2; round 3 is UNAVAILABLE with no findings; round 4 reports M1 on an unchanged document.
+  const schedule = await scheduleAt([{ doc: 'v1' }, { doc: 'v2', findings: [medium('M1')] }, { doc: 'v2', outcome: 'UNAVAILABLE' }, { doc: 'v2' }], [medium('M1')]);
+  assert.deepEqual(schedule.blockers.map(row => row.id), ['M1']);
+  assert.equal(schedule.outcome, 'FAIL');
+});
+
+test('a resolved boundary finding reintroduced by the fix is judged afresh as a regression', async t => {
+  const f = await lightRun(t);
+  await seedRounds(f, 1);
+  const finding = [{ path: 'app/app.js', evidence: '[medium] The export contract is broken.' }];
+  await revise(f, { 'app.js': 'export const answer = 42; // r2\n' }, 'r2');
+  reviewers(f, { findings: { codex: finding } });
+  await f.request('review.execute', {}, 'round-2');
+  await revise(f, { 'app.js': 'export const answer = 42; // r3\n' }, 'r3');
+  const resolve = (verdict, request) => {
+    const prior = (request.input.dispositionsRequired ?? []).find(row => row.id.endsWith('codex-finding-0'));
+    verdict.dispositions = [{ id: prior.id, status: 'resolved', evidence: 'The contract is restored.' }];
+  };
+  reviewers(f, { patch: { codex: resolve, 'claude-code': resolve } });
+  await f.request('review.execute', {}, 'round-3');
+  assert.equal((await pair(f)).outcome, 'PASS');
+  // Round 4's fix touches app.js again and the reviewer reports the same ID with passing rows.
+  await revise(f, { 'app.js': 'export const answer = 42; // r4\n' }, 'r4');
+  const passRows = verdict => { verdict.dimensions.forEach(row => { row.outcome = 'PASS'; }); verdict.criteria.forEach(row => { row.outcome = 'PASS'; }); };
+  reviewers(f, { findings: { codex: finding }, patch: { codex: passRows } });
+  await f.request('review.execute', {}, 'round-4');
+  const reviewed = await pair(f);
+  assert.equal(reviewed.round.round, 4);
+  assert.equal(reviewed.outcome, 'FAIL', reviewed.summary);
+});
+
+test('a planning review of a new revision past round 6 is refused before any provider launch', async t => {
+  const f = await fixture(t, { rigor: 'light', authorize: false });
+  await delegate(f);
+  evaluator(f);
+  for (let round = 1; round <= 6; round++) {
+    const brief = join(f.home, 'brief.md');
+    await writeFile(brief, `${await readFile(brief, 'utf8')}- planning round ${round} note\n`);
+    await f.request('planning.review', { artifact: 'brief', configuration: reviewConfig }, `brief-review-${round}`);
+  }
+  let launches = 0;
+  const run = f.core.runtime.evaluator.runStage.bind(f.core.runtime.evaluator);
+  f.core.runtime.evaluator.runStage = async request => { launches++; return run(request); };
+  const brief = join(f.home, 'brief.md');
+  await writeFile(brief, `${await readFile(brief, 'utf8')}- planning round 7 note\n`);
+  await assert.rejects(f.request('planning.review', { artifact: 'brief', configuration: reviewConfig }, 'brief-review-7'), /reached round 6/);
+  assert.equal(launches, 0);
 });
