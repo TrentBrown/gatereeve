@@ -19,9 +19,13 @@ export async function validationScope(configuration, candidate, fetchRun = fetch
     text(scope.reason, 'Alternative coverage reason'); text(scope.scope, 'Alternative coverage scope');
     // The hosted CI jobs planned for after convergence (spec AC9): reviewers
     // assess this scope during the rounds; CI qualification requires it.
+    // A list applies to every selected repository; an object names jobs per alias.
     const planned = scope.ciRequiredChecks;
-    requireThat(planned === undefined || Array.isArray(planned) && planned.every(name => typeof name === 'string' && name.trim()), 'ciRequiredChecks must name CI jobs');
-    return { kind: 'alternative', reason: scope.reason, scope: scope.scope, ...(planned ? { ciRequiredChecks: [...new Set(planned)] } : {}),
+    const names = list => Array.isArray(list) && list.every(name => typeof name === 'string' && name.trim());
+    requireThat(planned === undefined || names(planned) || planned && typeof planned === 'object'
+      && Object.entries(planned).every(([alias, list]) => candidate.repositories.some(repo => repo.alias === alias) && names(list)), 'ciRequiredChecks must name CI jobs, as a list or per selected repository alias');
+    const normalizedPlan = planned === undefined ? undefined : Array.isArray(planned) ? [...new Set(planned)] : Object.fromEntries(Object.entries(planned).map(([alias, list]) => [alias, [...new Set(list)]]));
+    return { kind: 'alternative', reason: scope.reason, scope: scope.scope, ...(normalizedPlan ? { ciRequiredChecks: normalizedPlan } : {}),
       assurance: 'Proposed by implementer; actual local receipts and sufficiency require independent assessment.' };
   }
   requireThat(scope.kind === 'ci' && Array.isArray(scope.runs) && scope.runs.length > 0, 'Validation scope needs CI runs or an explicit alternative');

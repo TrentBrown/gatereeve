@@ -301,7 +301,9 @@ are not counted. `status.rounds` shows each scope, its round and band, and advic
   block. A regression is a finding new in this round on a path (planning: a
   document) the previous round's fix changed; it keeps the status of the round
   that first raised it, even when re-reported, until it is resolved; a finding
-  fixed and later reintroduced is judged afresh. A planning round that failed at
+  fixed and later reintroduced is judged afresh. Peer reviews of one round are
+  judged together: a finding counts as resolved only when no reviewer of that
+  round still marks it present, so a disagreement keeps its regression status. A planning round that failed at
   the provider keeps its documents as the next round's regression baseline. Reviewers
   receive `packet.roundPolicy` (scope, round, band and the previous fix's changed
   paths) and apply the band themselves. Other findings stop blocking and stay
@@ -376,7 +378,9 @@ Verification). A runner-role check, with no model call, qualifies it against the
 converged reviews: the run is on the exact candidate head (a same-tree other
 commit never qualifies); every CI job the converged reviews' consumed local
 Verification planned in `validation.ciRequiredChecks` (assessed by the
-reviewers during the rounds) is a passing required check; every required check
+reviewers during the rounds; a list applies to every selected repository, an
+object names jobs per repository alias) is a passing required check of that
+repository's run; every required check
 passed, every other job of the run succeeded or was skipped; and every local
 receipt the reviews
 consumed is covered, either because its `ciCheck` (else its `purpose`) is among

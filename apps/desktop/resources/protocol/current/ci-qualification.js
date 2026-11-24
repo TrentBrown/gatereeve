@@ -35,7 +35,13 @@ export async function qualifyCi(core, state, candidate, ciRef, consumedRefs, mem
     .map(run => `${run.alias}: CI ran on ${run.head}, not the candidate head ${candidate.repositories.find(repo => repo.alias === run.alias)?.head ?? 'unknown'}`);
   // The CI scope the converged reviews assessed: every planned job declared by
   // the consumed local Verifications must be required and successful here.
-  const planned = new Set();
+  // Planned jobs per repository alias; a plain list applies to every selected
+  // repository, so one repository's passing job never satisfies another's plan.
+  const planned = new Map(candidate.repositories.map(repo => [repo.alias, new Set()]));
+  const plan = value => {
+    if (Array.isArray(value)) { for (const name of value) if (typeof name === 'string' && name.trim()) for (const set of planned.values()) set.add(name); }
+    else if (value && typeof value === 'object') for (const [alias, names] of Object.entries(value)) if (planned.has(alias) && Array.isArray(names)) for (const name of names) if (typeof name === 'string' && name.trim()) planned.get(alias).add(name);
+  };
   for (const ref of consumedRefs) {
     if (ref.hash === ciRef.hash) continue;
     try {
@@ -43,13 +49,13 @@ export async function qualifyCi(core, state, candidate, ciRef, consumedRefs, mem
       if (report.gate !== 'verification' || !report.runner) continue;
       // The plan is bound in the Verification's input; runners recorded by an
       // earlier version may not repeat it (spec AC11).
-      for (const name of (await core.store.json(report.runner)).validation?.ciRequiredChecks ?? []) planned.add(name);
-      for (const name of (await core.store.json(report.input)).configuration?.validation?.ciRequiredChecks ?? []) if (typeof name === 'string' && name.trim()) planned.add(name);
+      plan((await core.store.json(report.runner)).validation?.ciRequiredChecks);
+      plan((await core.store.json(report.input)).configuration?.validation?.ciRequiredChecks);
     } catch { /* unreadable consumed proof is reported below as uncovered */ }
   }
-  const unplanned = planned.size ? [] : ['the converged reviews assessed no planned CI scope (validation.ciRequiredChecks on the consumed Verification)'];
-  const missingPlanned = [...planned].filter(name => !runner.validation.runs.some(run => run.requiredChecks.includes(name)
-    && run.jobs.some(job => job.name === name && job.status === 'completed' && job.conclusion === 'success')));
+  const unplanned = [...planned].filter(([, names]) => !names.size).map(([alias]) => `the converged reviews assessed no planned CI scope for ${alias} (validation.ciRequiredChecks on the consumed Verification)`);
+  const missingPlanned = [...planned].flatMap(([alias, names]) => [...names].filter(name => !runner.validation.runs.some(run => run.alias === alias && run.requiredChecks.includes(name)
+    && run.jobs.some(job => job.name === name && job.status === 'completed' && job.conclusion === 'success'))).map(name => `${alias}: ${name}`));
   const failedRequired = runner.validation.runs.flatMap(run => run.requiredChecks.filter(name =>
     !run.jobs.some(job => job.name === name && job.status === 'completed' && job.conclusion === 'success')).map(name => `${run.alias}: ${name}`));
   const passing = new Map(runner.validation.runs.map(run => [run.alias, new Set(run.requiredChecks.filter(name =>

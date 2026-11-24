@@ -11,7 +11,7 @@ import { localPath } from './store.js';
 import { HIGH_CAPABILITY_PROFILE, AGENT_WORKFLOW_PROTOCOL_VERSION, sha256Digest, validateAgentWorkflowStageResult, validateEvaluatorCapability } from '../agent-workflow.js';
 import { createCodexAgentAdapter, createClaudeCodeAgentAdapter } from '../local-agent-adapters.js';
 import { allowedRunOutcome } from './autonomous.js';
-import { ROUND_POLICY, planningScope, roundOf, scheduledRound, scheduledBlocking, roundHandBack, refuseLateAdjudication, countReviewRound, assertRoundOpen, NARROW_FROM } from './round-policy.js';
+import { ROUND_POLICY, planningScope, roundOf, scheduledRound, currentRevision, scheduledBlocking, roundHandBack, refuseLateAdjudication, countReviewRound, assertRoundOpen, NARROW_FROM } from './round-policy.js';
 
 // Planning reviews follow the round schedule (spec AC6): from round 4 only
 // high findings and medium regressions (findings on a document the previous
@@ -49,7 +49,8 @@ export async function planningSchedule(core, state, artifact, cited, result) {
     for (const finding of earlier.findings ?? []) if (!firstRaised.has(finding.id))
       firstRaised.set(finding.id, changedSince(row, review.documents, finding.document.replace(/^requirements\//u, '')));
   }
-  const current = revisions.find(row => row.event === cited.event) ?? { round };
+  // A cited review of an earlier revision is measured against the last counted round.
+  const current = currentRevision(state, scope, cited.subject) ? revisions.find(row => row.event === cited.event) ?? { round } : { round };
   const regression = finding => firstRaised.get(finding.id) ?? (round !== null && changedSince(current, cited.documents, finding.document.replace(/^requirements\//u, '')));
   const blockers = result.findings.filter(finding => scheduledBlocking(finding, { round, regression: regression(finding) }));
   const outcome = result.outcome === 'FAIL' && round !== null && round >= NARROW_FROM && !blockers.length

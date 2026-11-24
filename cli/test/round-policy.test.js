@@ -455,3 +455,30 @@ test('a restored earlier revision is qualified as the next round, never its old 
   assert.equal(reviewed.outcome, 'UNAVAILABLE', reviewed.summary);
   assert.ok(reviewed.members.every(member => /reached round 7/.test(member.qualification ?? '')));
 });
+
+test('when peers disagree whether a regression was resolved, it keeps blocking', async t => {
+  const f = await lightRun(t);
+  await seedRounds(f, 2);
+  const regression = [{ path: 'app/app.js', evidence: '[medium] The fix broke the export contract.' }];
+  const passRows = verdict => { verdict.dimensions.forEach(row => { row.outcome = 'PASS'; }); verdict.criteria.forEach(row => { row.outcome = 'PASS'; }); };
+  const dispose = status => (verdict, request) => {
+    const prior = (request.input.dispositionsRequired ?? []).find(row => row.id.endsWith('codex-finding-0'));
+    verdict.dispositions = [{ id: prior.id, status, evidence: `Reviewer says ${status}.` }];
+    if (status === 'present') { verdict.outcome = 'FAIL'; verdict.dimensions.find(row => row.name === 'code').outcome = 'FAIL'; }
+  };
+  // Round 3 raises the regression on app.js, which the round-3 fix changed.
+  await revise(f, { 'app.js': 'export const answer = 42; // r3\n' }, 'r3');
+  reviewers(f, { findings: { codex: regression } });
+  await f.request('review.execute', {}, 'round-3');
+  // Round 4 changes another file; codex keeps it present, claude calls it resolved.
+  await revise(f, { 'other.js': 'export const other = 2;\n' }, 'r4');
+  reviewers(f, { patch: { codex: dispose('present'), 'claude-code': dispose('resolved') } });
+  await f.request('review.execute', {}, 'round-4');
+  // Round 5 changes another file again; codex reports the same finding with passing rows.
+  await revise(f, { 'other.js': 'export const other = 3;\n' }, 'r5');
+  reviewers(f, { findings: { codex: regression }, patch: { codex: passRows, 'claude-code': dispose('resolved') } });
+  await f.request('review.execute', {}, 'round-5');
+  const reviewed = await pair(f);
+  assert.equal(reviewed.round.round, 5);
+  assert.equal(reviewed.outcome, 'FAIL', reviewed.summary);
+});

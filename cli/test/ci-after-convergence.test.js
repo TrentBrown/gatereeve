@@ -8,6 +8,7 @@ import { test } from 'node:test';
 import { git } from '../../plugin-src/shared/resources/protocol/current/evidence.js';
 import { boundaryReviews } from '../../plugin-src/shared/resources/protocol/current/boundary-review.js';
 import { preToolUse, PREMATURE_PUSH } from '../../plugin-src/shared/resources/protocol/current/pre-tool-use.js';
+import { qualifyCi } from '../../plugin-src/shared/resources/protocol/current/ci-qualification.js';
 import { fixture, candidate } from './helpers/lightweight-fixture.js';
 import { selection } from './helpers/paired-review-fixture.js';
 import { revise, reviewers, focusedCheck, localVerification } from './helpers/round-fixture.js';
@@ -195,4 +196,24 @@ test('a CI plan bound in a retained Verification input counts when its runner om
   hostedCi(f, { head, treeId: await tree(f, head) });
   await ciVerification(f, 'verify-ci-retained-plan');
   assert.deepEqual(verificationMissing(await acceptance(f)), []);
+});
+
+test('a planned CI job must pass in each repository it is planned for', async () => {
+  const objects = {
+    runner: { validation: { kind: 'ci', runs: [
+      { alias: 'app', head: 'h-app', requiredChecks: ['test'], jobs: [job('test')] },
+      { alias: 'lib', head: 'h-lib', requiredChecks: ['setup'], jobs: [job('setup'), job('test', 'skipped')] }] }, receipts: [] },
+    local: { gate: 'verification', runner: { hash: 'local-runner' }, input: { hash: 'local-input' } },
+    'local-runner': { validation: { kind: 'alternative', ciRequiredChecks: ['test'] }, receipts: [] },
+    'local-input': { configuration: { validation: { kind: 'alternative', ciRequiredChecks: ['test'] } } },
+  };
+  const core = { currentResult: async () => ({ gate: 'verification', outcome: 'PASS', runner: { hash: 'runner' } }), store: { json: async ref => objects[ref.hash] } };
+  const candidate = { repositories: [{ alias: 'app', head: 'h-app' }, { alias: 'lib', head: 'h-lib' }] };
+  const result = await qualifyCi(core, {}, candidate, { hash: 'ci' }, [{ hash: 'local' }]);
+  assert.equal(result.outcome, 'FAIL');
+  assert.match(result.reason, /planned CI check lib: test/);
+  // A per-repository plan names each repository's own jobs.
+  objects['local-input'].configuration.validation.ciRequiredChecks = { app: ['test'], lib: ['setup'] };
+  objects['local-runner'].validation.ciRequiredChecks = { app: ['test'], lib: ['setup'] };
+  assert.equal((await qualifyCi(core, {}, candidate, { hash: 'ci' }, [{ hash: 'local' }])).outcome, 'PASS');
 });

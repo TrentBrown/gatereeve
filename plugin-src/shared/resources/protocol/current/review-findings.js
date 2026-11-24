@@ -30,6 +30,18 @@ export async function findingObligations(core, state, candidate, inputs, result,
     .map(async reference => ({ reference, report: await core.store.json(reference) })));
   const position = ({ reference, report }) => state.results.findIndex(ref => ref.hash === (report.originalResultHash ?? reference.hash));
   history.sort((a, b) => position(a) - position(b));
+  // Peer reviews of one round are judged together: a finding counts as
+  // resolved only when no reviewer of that round still marks it present, so a
+  // disagreement keeps the finding and its original regression status (AC6).
+  const roundKey = new Map(), presentInRound = new Map();
+  for (const { reference, report } of history) {
+    let key = reference.hash;
+    try { if (report.input) key = (await core.store.json(report.input)).reviewRound ?? key; } catch { /* lost input: its own round */ }
+    roundKey.set(reference.hash, key);
+    const present = presentInRound.get(key) ?? new Set();
+    for (const row of report.dispositions ?? []) if (row.status === 'present') present.add(row.id);
+    presentInRound.set(key, present);
+  }
   for (const { reference, report } of history) {
     if (report.gate !== 'review') continue;
     if ((inputs.history ?? []).some(ref => ref.hash === reference.hash)) {
@@ -48,7 +60,9 @@ export async function findingObligations(core, state, candidate, inputs, result,
       const first = known.get(finding.id)?.resolved ? origin : known.get(finding.id)?.origin ?? origin;
       known.set(finding.id, { finding, origin: first, open: blocks(finding, true, first) });
     }
+    const peersPresent = presentInRound.get(roundKey.get(reference.hash)) ?? new Set();
     for (const disposition of report.dispositions ?? []) if (known.has(disposition.id)) {
+      if (['resolved', 'unsupported'].includes(disposition.status) && peersPresent.has(disposition.id)) continue;
       if (['resolved', 'unsupported', 'present-low'].includes(disposition.status)) known.get(disposition.id).open = false;
       // A resolved finding that is raised again later is judged afresh.
       if (['resolved', 'unsupported'].includes(disposition.status)) Object.assign(known.get(disposition.id), { origin: null, resolved: true });

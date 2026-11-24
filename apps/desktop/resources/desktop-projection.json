@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:0862c7b87d6d43aa433f2b5b67f0a47293eda2fe9c17b400912f111d3680cea7",
+  "protocolHash": "sha256:c4a326acc076941921d2bd40f39b85883ffe42c1875204971cce6f0dc43dba35",
   "contract": "gatereeve/current/8",
   "contractSha256": "1df0afc21301595b72a5f9bdad3ab2aade7452ad1c5a4f97455bde354bf1120a",
   "files": [
@@ -47,8 +47,8 @@
     },
     {
       "path": "current/ci-qualification.js",
-      "size": 6177,
-      "sha256": "7eb945694aaea54479f039da813074850057eff6722ae550c2cf96d6482288d4"
+      "size": 6865,
+      "sha256": "94b6de90efa0318bc63ed3c8b8f69262e1d52e4cf302e35ae8a4ee56446c41e6"
     },
     {
       "path": "current/command-guard.js",
@@ -72,8 +72,8 @@
     },
     {
       "path": "current/delegation.js",
-      "size": 42567,
-      "sha256": "76a197b1d9f6ee52679d60f8b2f1e2d9f5b16a745d027e45bd867b46d27a077e"
+      "size": 42730,
+      "sha256": "2c21a2c7f0a4498df8d0ad4e4a9616bcf65e2dbee6085dd523e49e9a356c7cb6"
     },
     {
       "path": "current/delivery.js",
@@ -157,8 +157,8 @@
     },
     {
       "path": "current/review-findings.js",
-      "size": 5830,
-      "sha256": "cebf3d77b8fdc0d81335d2e34c3280ca447c0141545a85838e6b59bb11d20760"
+      "size": 6773,
+      "sha256": "9777cf4c2131067e05a69e8c16354012438d588e3feb1b3c7c96de2a7668c3f0"
     },
     {
       "path": "current/review-history.js",
@@ -207,8 +207,8 @@
     },
     {
       "path": "current/validation-scope.js",
-      "size": 5073,
-      "sha256": "1e746e893d432f52528b0d3e7c8263ad1a1af19f76c4fa34153a5d0a0493b34d"
+      "size": 5620,
+      "sha256": "fa4f6fff5c983bcb92215d195ea7da638b3b12605650a9782460057f7c21307a"
     },
     {
       "path": "current/workflow-database.js",
