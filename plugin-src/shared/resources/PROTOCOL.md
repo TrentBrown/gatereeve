@@ -744,8 +744,10 @@ Each `BOUNDARY_REVIEWED` outcome row has one `status`, and every row that is not
 A row describes the reviewer across its attempts in the round (first attempt,
 transient retry, repair turn): it is `refused` only when no attempt launched a
 reviewer, and otherwise follows the latest attempt that did. The local adapters
-report the reviewer process spawn, so a failure before spawn is a refusal; for
-another adapter, invoking its stage is the launch. A round whose
+report the reviewer process spawn, so a failure before spawn is a refusal; behind
+an idle-inhibitor wrapper the reviewer reports its own start through a stderr
+marker, so the wrapper's spawn alone is never a launch. For another adapter,
+invoking its stage is the launch. A round whose
 outcomes are all `refused` is not counted. A provider-failure result records
 `providerFailure: {category}`; a `transient-service-failure` is retried once
 automatically under its own operation identity on the round baseline, and is not

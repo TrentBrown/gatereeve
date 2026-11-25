@@ -138,3 +138,15 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
   identically on unmodified `main` (e59b02c), run with the same command and a
   45 s per-test timeout. Local verification skips only those two; Linux CI runs
   the whole suite.
+
+## S10. Boundary review round 4 fix: deterministic wrapped launch
+
+- **Answered by:** agent
+- **Decision:** Polling for the wrapper's child could miss a reviewer that
+  exits within one interval. Behind an idle-inhibitor wrapper, and only when
+  a spawn report is wanted, the reviewer now runs through a `/bin/sh` shim.
+  The shim checks the executable, writes a one-off marker line to stderr, then
+  `exec`s the reviewer. The marker is reported and stripped from the retained
+  stderr. stdio survives the wrapper closing other descriptors.
+- **Alternatives:** an extra file-descriptor pipe (rejected: the wrapper may
+  close inherited descriptors); polling (rejected: races).

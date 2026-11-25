@@ -1,5 +1,6 @@
 import { withScratch, scratchEnvironment } from '../storage/scratch.js';
-import { execFileSync, spawn } from 'node:child_process';
+import { spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { accessSync, constants as fsConstants, readdirSync, readFileSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 
@@ -96,20 +97,22 @@ function killIfSame({ pid, started }) {
   try { process.kill(pid, 'SIGKILL'); } catch { /* already gone */ }
 }
 
-// Whether a process has started a child (the reviewer behind a wrapper).
-function hasChildProcess(pid) {
-  if (!pid) return false;
-  if (process.platform === 'linux') return processDescendants(pid).length > 0;
-  try { return execFileSync('pgrep', ['-P', String(pid)], { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim().length > 0; }
-  catch { return false; }
-}
-
 export async function runAgentProcess(executable, args, { cwd, input, env = process.env, timeoutSeconds, idleLock = null, inhibitor = systemIdleInhibitor, onSpawn = null }) {
   const launch = await idleInhibitedLaunch(executable, args, idleLock, inhibitor);
   assertArgumentSizes(launch.args);
   // `onSpawn` runs once the reviewer process has actually started, so callers
   // can tell a failure before launch from one after it (issue #140). The run's
-  // outcome is reported only after it settles.
+  // outcome is reported only after it settles. Behind an idle-inhibitor
+  // wrapper the wrapper's own spawn proves nothing: the reviewer runs through
+  // a shell shim that checks the executable, writes a one-off marker line to
+  // stderr and then execs the reviewer. The marker is reported and stripped.
+  const marker = onSpawn && launch.idleInhibitor ? `gatereeve-reviewer-started:${randomUUID()}` : null;
+  if (marker) {
+    const wrapperArgs = launch.args.length - args.length - 1;
+    launch.args = [...launch.args.slice(0, wrapperArgs), '/bin/sh', '-c',
+      'command -v "$1" >/dev/null 2>&1 || exit 127; printf "%s\\n" "$GATEREEVE_REVIEWER_MARKER" >&2; exec "$@"', 'gatereeve-reviewer', executable, ...args];
+    env = { ...env, GATEREEVE_REVIEWER_MARKER: marker };
+  }
   let spawned = Promise.resolve();
   const run = new Promise((resolve, reject) => {
     const startedAt = new Date();
@@ -120,14 +123,9 @@ export async function runAgentProcess(executable, args, { cwd, input, env = proc
       env,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
-    if (onSpawn) child.once('spawn', () => {
-      const report = () => { spawned = Promise.resolve().then(onSpawn); spawned.catch(() => { /* surfaced when the run settles */ }); };
-      if (!launch.idleInhibitor) return report();
-      // Behind an idle-inhibitor wrapper the reviewer is the wrapper's child:
-      // report launch only once it exists, never for the wrapper alone.
-      const poll = setInterval(() => { if (hasChildProcess(child.pid)) { clearInterval(poll); report(); } }, 50);
-      child.once('close', () => clearInterval(poll));
-    });
+    let reported = false;
+    const report = () => { if (reported) return; reported = true; spawned = Promise.resolve().then(onSpawn); spawned.catch(() => { /* surfaced when the run settles */ }); };
+    if (onSpawn && !marker) child.once('spawn', report);
     // Ending the run: SIGTERM, then SIGKILL two seconds later. Behind
     // systemd-inhibit the tracked child is the wrapper, which forwards only
     // SIGTERM and may exit (or close its streams) first, so the wrapper's
@@ -174,6 +172,7 @@ export async function runAgentProcess(executable, args, { cwd, input, env = proc
       size += chunk.length;
       if (size > MAX_OUTPUT_BYTES) terminate();
       else stderr.push(chunk);
+      if (marker && !reported && Buffer.concat(stderr).toString('utf8').includes(marker)) report();
     });
     child.on('error', reject);
     child.on('close', (code, exitSignal) => {
@@ -187,7 +186,7 @@ export async function runAgentProcess(executable, args, { cwd, input, env = proc
         signal: exitSignal,
         idleInhibitor: launch.idleInhibitor,
         stdout: Buffer.concat(stdout).toString('utf8'),
-        stderr: Buffer.concat(stderr).toString('utf8'),
+        stderr: marker ? Buffer.concat(stderr).toString('utf8').replace(`${marker}\n`, '') : Buffer.concat(stderr).toString('utf8'),
         startedAt,
         completedAt,
       };

@@ -247,6 +247,26 @@ test('behind an idle-inhibitor wrapper, spawn is reported for the reviewer, neve
   await assert.rejects(runAgentProcess(slow, [], { input: 'x\n', timeoutSeconds: 10, idleLock: { why },
     inhibitor: { platform: () => 'linux', resolve: () => refusing, probe: async () => true }, onSpawn: async () => { wrapperOnly++; } }));
   assert.equal(wrapperOnly, 0, 'A wrapper that never starts the reviewer is not a launch');
+  // A reviewer that fails at once behind the wrapper still launched.
+  const instant = join(base.dir, 'instant-reviewer');
+  await writeFile(instant, '#!/bin/sh\necho "unknown flag" >&2\nexit 3\n'); await chmod(instant, 0o755);
+  let fast = 0;
+  await assert.rejects(runAgentProcess(instant, [], { input: '', timeoutSeconds: 10, idleLock: { why },
+    inhibitor: { platform: () => 'linux', resolve: () => forwarding, probe: async () => true }, onSpawn: async () => { fast++; } }),
+  error => error.providerFailure?.exitCode === 3);
+  assert.equal(fast, 1, 'An instantly failing reviewer behind the wrapper is reported as launched');
+  // A missing reviewer executable behind the wrapper never launched.
+  let missing = 0;
+  await assert.rejects(runAgentProcess(join(base.dir, 'no-such-reviewer'), [], { input: '', timeoutSeconds: 10, idleLock: { why },
+    inhibitor: { platform: () => 'linux', resolve: () => forwarding, probe: async () => true }, onSpawn: async () => { missing++; } }),
+  error => error.providerFailure?.exitCode === 127);
+  assert.equal(missing, 0);
+  // The launch marker never reaches the retained diagnostics.
+  const noisy = join(base.dir, 'noisy-reviewer');
+  await writeFile(noisy, '#!/bin/sh\nread line\necho "warning: $line" >&2\necho ok\n'); await chmod(noisy, 0o755);
+  const quiet = await runAgentProcess(noisy, [], { input: 'x\n', timeoutSeconds: 10, idleLock: { why },
+    inhibitor: { platform: () => 'linux', resolve: () => forwarding, probe: async () => true }, onSpawn: async () => {} });
+  assert.equal(quiet.stderr, 'warning: x\n');
 });
 test('a failing spawn report surfaces as the run error and is never an unhandled rejection', async () => {
   const unhandled = [];
