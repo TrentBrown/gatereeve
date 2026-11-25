@@ -75,7 +75,7 @@ export async function adjudicateReview(core, input, operation) {
   for (const reference of input.evidence) { await core.store.get(reference); await core.store.closure(reference); }
   const dispositions = dispositionsFor(pair, input, state.dials.autonomy.mandate);
   const check = await core.check('acceptance');
-  requireThat(check.outcomes.filter(row => row.required && row.id !== 'review').every(row => row.outcome === 'PASS'),
+  requireThat(check.outcomes.filter(row => row.required && row.id !== 'review').every(passingGate),
     'Autonomous risk acceptance cannot excuse failed or missing mandatory checks');
   requireThat((await core.check('implementation')).allowed && state.ready, 'Current implementation authority and candidate readiness are required');
   await guardDelegatedAction(core, state, 'autonomous adjudication');
@@ -100,6 +100,8 @@ export async function currentAdjudication(core, state, pair) {
 }
 
 // A PASS whose verification obligations were waived (GitHub issue #145,
-// `waivedCoverage`) is not a passing gate for standing or delegated authority.
-export const allowedRunOutcome = (state, outcome) => outcome.outcome === 'PASS' && !outcome.waivedCoverage?.length
+// `waivedCoverage`) is not a passing gate for standing, delegated or
+// autonomous authority; only a human decision accepts it.
+export const passingGate = outcome => outcome.outcome === 'PASS' && !outcome.waivedCoverage?.length;
+export const allowedRunOutcome = (state, outcome) => passingGate(outcome)
   || isAutonomous(state) && outcome.id === 'review' && outcome.outcome === 'FAIL' && Boolean(outcome.adjudication);

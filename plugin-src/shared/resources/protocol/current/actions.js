@@ -8,6 +8,7 @@ import { ExternalBlockerError, ContractError } from '../errors.js';
 import { resolveEntryPoints, recoveryText } from './entry-point.js';
 import { qualifyingDecisions, requireUnexpired, configuredGit, deliveryTarget, deliveryBranches } from './authorization.js';
 import { publishReview, requirePublishedReview } from './publication.js';
+import { passingGate } from './autonomous.js';
 
 const exec = promisify(execFile);
 export async function gh(root, args) {
@@ -158,7 +159,7 @@ export async function merge(core, input, operation) {
   requireThat(!authorization.standingGrant || action.deliveryTarget !== 'release', 'No standing grant authorizes a release-branch merge; a per-PR human authorize-merge is required');
   requireThat(!authorization.delegation || (action.deliveryTarget === 'integration' && candidate.scope === 'SLICE'), 'Delegation authorizes only SLICE merges into the integration branch; a per-PR human authorize-merge is required');
   const unattended = Boolean(authorization.standingGrant || authorization.delegation);
-  if (unattended) requireThat(initial.outcomes.every(item => item.required === false || item.outcome === 'PASS'), `${authorization.delegation ? 'Delegated' : 'Standing'} merge requires every required gate to PASS`);
+  if (unattended) requireThat(initial.outcomes.every(item => item.required === false || passingGate(item)), `${authorization.delegation ? 'Delegated' : 'Standing'} merge requires every required gate to PASS`);
   // Delegated merges re-observe release-branch protection before any write.
   const guard = async () => { if (authorization.delegation) await (await import('./delegation.js')).guardDelegatedAction(core, state, 'the delegated merge'); };
   await guard();
@@ -191,7 +192,7 @@ export async function merge(core, input, operation) {
     const hostedChecks = await waitForHostedChecks(repository.path, action, run);
     await requireCurrentState(core, state);
     const currentProof = await core.check('merge', state);
-    requireThat(currentProof.allowed && (!unattended || currentProof.outcomes.every(item => item.required === false || item.outcome === 'PASS')), 'Gate proof changed while waiting for hosted checks');
+    requireThat(currentProof.allowed && (!unattended || currentProof.outcomes.every(item => item.required === false || passingGate(item))), 'Gate proof changed while waiting for hosted checks');
     const latestBase = (await runGit(repository.path, ['ls-remote', '--exit-code', repository.remote ?? 'origin', `refs/heads/${action.baseBranch}`])).split(/\s/u)[0];
     requireThat(latestBase === action.base, 'PR base changed while waiting for hosted checks; refresh review');
     const refreshed = JSON.parse(await run(repository.path, ['pr', 'view', String(action.number), '--repo', action.ownerRepo,

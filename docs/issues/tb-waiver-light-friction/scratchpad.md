@@ -31,3 +31,18 @@ hand-back comparison is unchanged); `allowedRunOutcome` rejects a PASS with
 **Answered by:** agent
 **Options:** normalize less (still lossy) vs exact bytes (conservative).
 **Reversibility:** high.
+
+## S3 - Round 2 review fixes
+
+Round 2 confirmed the round-1 fixes and found two more instances of the same
+classes: the delegated hand-back still ignored indentation (high), and standing
+application still treated a PASS with `waivedCoverage` as passing (medium).
+Fixed at the root rather than per call site: `briefScope` (one comparison for
+authority carry-forward and delegated hand-back) keeps leading indentation and
+ignores only trailing/inner whitespace and blank lines, preserving the earlier
+deliberate whitespace rule; a shared `passingGate` (autonomous.js) now backs
+standing application, unattended merge, adjudication and `allowedRunOutcome`.
+**Answered by:** agent
+**Options:** exact bytes for both paths (would break the earlier whitespace
+rule its tests pin); per-site patches (leaves the class open).
+**Reversibility:** high.

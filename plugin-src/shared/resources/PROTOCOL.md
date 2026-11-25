@@ -79,9 +79,12 @@ brief (contract, feature, `rigor: light`, brief hash) and appears in `status`
 `commitments`. Under supervision, a human `authorize-implementation` naming that
 subject is the implementation authority; no `approve-design` or `spec.validate`
 precedes it. It is accepted in any phase before integration. The findings log
-may grow during the run: while the brief is byte-identical to the authorized brief
-outside its findings log section (with its nested sub-headings), `commitments`
-keeps the authorized subject and no new decision is needed. Any other change
+may grow during the run: while the brief matches the authorized brief outside its
+findings log section (with its nested sub-headings), `commitments`
+keeps the authorized subject and no new decision is needed (trailing whitespace,
+runs of inner whitespace and blank lines are ignored; leading indentation counts,
+as it carries list structure, and the same comparison decides a delegated
+hand-back). Any other change
 (goal, scope, preamble or another section) no longer matches the authorized
 subject, so implementation, candidates and gates stop until the changed brief is
 authorized again; that decision supersedes earlier authority, acceptance and
@@ -177,8 +180,9 @@ on the verification outcome as `waivedCoverage` (and so in the acceptance
 each waived gate's outcome, reason and any `waivedCoverage` from the milestone
 check when the human decided. A waive-and-accept that is still blocked is refused
 naming what is missing. A PASS with `waivedCoverage` is not a passing gate for
-standing or delegated acceptance and merge (they still need every required gate
-to PASS), and the PR explainer shows each waived residual.
+standing, delegated or autonomous acceptance, adjudication and merge (they still
+need every required gate to PASS), and the PR explainer shows each waived
+residual.
 Optional `findings` narrows an exception to named current blocking findings; it
 cannot satisfy another finding. The core binds command/configuration, evaluator
 rules, blocking findings and live runtime assumptions, including consumed proof

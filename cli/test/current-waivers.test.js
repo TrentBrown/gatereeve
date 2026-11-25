@@ -4,7 +4,8 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { isolatedTests } from './helpers/isolated-tests.js';
 import { fixture, candidate, branchWith, human, BRIEF, authorizeBrief, openPr } from './helpers/lightweight-fixture.js';
-import { allowedRunOutcome } from '../../plugin-src/shared/resources/protocol/current/autonomous.js';
+import { allowedRunOutcome, passingGate } from '../../plugin-src/shared/resources/protocol/current/autonomous.js';
+import { briefScope } from '../../plugin-src/shared/resources/protocol/current/delegation.js';
 import { decisionHas } from '../../plugin-src/shared/resources/protocol/current/contracts.js';
 import { selection, pairedAdapters } from './helpers/paired-review-fixture.js';
 
@@ -17,8 +18,9 @@ const verify = (f, checks, operationId) => f.request('gate.execute', { gates: ['
 // GitHub issue #145 item 1: after a docs-only push the repository's CI reuses an
 // earlier full run and skips its browser/integration checks, one reviewer is
 // UNAVAILABLE, and the human explicitly waives review and verification.
-async function reusedCoverageWithUnavailableReviewer(t, rigor) {
+async function reusedCoverageWithUnavailableReviewer(t, rigor, { unavailable = 'claude-code', setup = null } = {}) {
   const f = await fixture(t, { rigor });
+  if (setup) await setup(f);
   await writeFile(join(f.home, 'scratchpad.md'), '# No pending decisions\n');
   const first = await branchWith(f, 'topic', 'export const answer = 42;\n');
   await candidate(f, 'SLICE', first, 'candidate-first');
@@ -29,7 +31,7 @@ async function reusedCoverageWithUnavailableReviewer(t, rigor) {
   await f.request('candidate.ready', {}, 'ready-second');
   const reused = await verify(f, [check('unit', 'Unit tests')], 'verify-reused');
   await f.request('review.select', selection(), 'select');
-  pairedAdapters(f, { unavailable: 'claude-code' });
+  pairedAdapters(f, { unavailable });
   await f.request('review.execute', { consumed: reused.event.payload.results }, 'review');
   await f.request('gate.execute', { gates: ['context'] }, 'context');
   await f.request('gate.execute', { gates: ['packet'] }, 'packet');
@@ -76,10 +78,37 @@ for (const rigor of ['light', 'full']) test(`${rigor}: an explicit human waiver 
   }
 });
 
-test('a waived verification residual is not a passing gate for standing or delegated authority', () => {
+test('a waived verification residual is not a passing gate for standing, delegated or autonomous authority', () => {
   const state = { dials: { autonomy: { value: 'delegated' } } };
+  const waived = { id: 'verification', outcome: 'PASS', waivedCoverage: ['Verification has uncovered prior behavior'] };
   assert.equal(allowedRunOutcome(state, { id: 'verification', outcome: 'PASS' }), true);
-  assert.equal(allowedRunOutcome(state, { id: 'verification', outcome: 'PASS', waivedCoverage: ['Verification has uncovered prior behavior'] }), false);
+  assert.equal(allowedRunOutcome(state, waived), false);
+  assert.equal(passingGate(waived), false);
+});
+
+test('standing application refuses a verification PASS whose coverage a human waived without accepting', async t => {
+  let grant;
+  const f = await reusedCoverageWithUnavailableReviewer(t, 'light', { unavailable: null, setup: async g => {
+    grant = await g.request('human.decide', { kind: 'authorize-standing', subject: (await g.core.commitments()).subject,
+      scope: { actions: ['accept'], candidateScopes: ['SLICE'], repositories: [{ alias: 'app', headPrefix: 'topic', baseBranch: g.integration }], expiresAt: null },
+      authority: { ...human, instruction: 'Accept slices of this feature when all gates pass; do not merge.' }, reason: 'Unattended acceptance', consequences: 'Acceptance only' }, 'standing-grant');
+  } });
+  const subject = (await f.core.state()).state.candidate.hash;
+  await f.request('human.decide', { kind: 'waive', gates: ['verification'], subject, authority: { ...human, instruction: 'Waive verification for this PR.' },
+    reason: 'CI reused the earlier full run', consequences: 'Browser checks did not run on this head' }, 'waive-verification');
+  const check = await f.request('milestone.check', { name: 'acceptance' });
+  assert.equal(check.allowed, true, check.missing.join('; '));
+  assert.ok(check.outcomes.find(item => item.id === 'verification').waivedCoverage.length);
+  await assert.rejects(f.request('authorization.apply', { grant: grant.event.hash }, 'apply'), /current PASS evidence for every required gate/);
+  assert.ok(!(await f.core.state()).state.decisions.some(item => item.kind === 'accept'));
+});
+
+test('brief comparison keeps leading indentation and ignores other whitespace', () => {
+  const brief = '# Brief\n\n## Goal\nExport 42.\n\n## Scope\n- app.js\n  - keep the name\n\n## Findings log\n- none\n';
+  const same = briefScope(Buffer.from(brief));
+  assert.notEqual(briefScope(Buffer.from(brief.replace('  - keep the name', '- keep the name'))), same, 'promoting a nested bullet is a scope change');
+  assert.equal(briefScope(Buffer.from(brief.replace('Export 42.', 'Export   42.  '))), same, 'inner and trailing whitespace');
+  assert.equal(briefScope(Buffer.from(brief.replace('## Scope\n', '## Scope\n\n'))), same, 'blank lines');
 });
 
 test('without a verification waiver the uncovered coverage still blocks, and the refusal names it', async t => {
