@@ -965,8 +965,9 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
       // (AC6), so a precondition that stops packet assembly, source-view
       // creation or adapter checks never charges one (issue #140).
       const reviewed = await independent(core, state, candidate, prepared, configuration, packet, jobId, history, priorities, ledgers, async () => {
-        if (roundPolicy) await countReviewRound(core, roundPolicy.scope, contentIdentity(candidate), state.candidate);
+        // Mark the launch first, so a failed count never hides a running reviewer.
         launched = progress.launched = true;
+        if (roundPolicy) await countReviewRound(core, roundPolicy.scope, contentIdentity(candidate), state.candidate);
       });
       evaluator = reviewed.evaluator; metrics = reviewed.metrics; artifacts.push(...reviewed.artifacts);
       const returned = reviewed.output.verdicts;

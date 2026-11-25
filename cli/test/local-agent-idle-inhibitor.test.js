@@ -228,3 +228,34 @@ test('a timeout still kills a wrapped reviewer that closes its streams on SIGTER
   await new Promise(resolve => setTimeout(resolve, 2500));
   assert.equal(alive(pid), false, 'the forced kill outlives the wrapper close');
 });
+
+// Issue #140: behind a wrapper, launch is reported only once the reviewer runs.
+test('behind an idle-inhibitor wrapper, spawn is reported for the reviewer, never for the wrapper alone', async t => {
+  const base = await scripts(t);
+  const forwarding = join(base.dir, 'forwarding-inhibit');
+  await writeFile(forwarding, '#!/bin/sh\nwhile [ "${1#--}" != "$1" ]; do shift; done\n"$@"\n'); await chmod(forwarding, 0o755);
+  const slow = join(base.dir, 'slow-reviewer');
+  await writeFile(slow, '#!/bin/sh\nread line\nsleep 0.5\necho "ran:$line"\n'); await chmod(slow, 0o755);
+  let spawned = 0;
+  const result = await runAgentProcess(slow, [], { input: 'x\n', timeoutSeconds: 10, idleLock: { why },
+    inhibitor: { platform: () => 'linux', resolve: () => forwarding, probe: async () => true }, onSpawn: async () => { spawned++; } });
+  assert.equal(result.stdout.trim(), 'ran:x');
+  assert.equal(spawned, 1, 'The reviewer behind the wrapper was reported once');
+  const refusing = join(base.dir, 'refusing-inhibit');
+  await writeFile(refusing, '#!/bin/sh\necho "Failed to inhibit: access denied" >&2\nexit 1\n'); await chmod(refusing, 0o755);
+  let wrapperOnly = 0;
+  await assert.rejects(runAgentProcess(slow, [], { input: 'x\n', timeoutSeconds: 10, idleLock: { why },
+    inhibitor: { platform: () => 'linux', resolve: () => refusing, probe: async () => true }, onSpawn: async () => { wrapperOnly++; } }));
+  assert.equal(wrapperOnly, 0, 'A wrapper that never starts the reviewer is not a launch');
+});
+test('a failing spawn report surfaces as the run error and is never an unhandled rejection', async () => {
+  const unhandled = [];
+  const listener = reason => unhandled.push(reason);
+  process.on('unhandledRejection', listener);
+  try {
+    await assert.rejects(runAgentProcess(process.execPath, ['-e', 'setTimeout(() => {}, 300)'], { input: '', timeoutSeconds: 10,
+      onSpawn: async () => { throw new Error('Round count append failed'); } }), /Round count append failed/);
+    await new Promise(resolve => setTimeout(resolve, 50));
+    assert.deepEqual(unhandled, []);
+  } finally { process.off('unhandledRejection', listener); }
+});

@@ -1,5 +1,5 @@
 import { withScratch, scratchEnvironment } from '../storage/scratch.js';
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { accessSync, constants as fsConstants, readdirSync, readFileSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 
@@ -96,6 +96,14 @@ function killIfSame({ pid, started }) {
   try { process.kill(pid, 'SIGKILL'); } catch { /* already gone */ }
 }
 
+// Whether a process has started a child (the reviewer behind a wrapper).
+function hasChildProcess(pid) {
+  if (!pid) return false;
+  if (process.platform === 'linux') return processDescendants(pid).length > 0;
+  try { return execFileSync('pgrep', ['-P', String(pid)], { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim().length > 0; }
+  catch { return false; }
+}
+
 export async function runAgentProcess(executable, args, { cwd, input, env = process.env, timeoutSeconds, idleLock = null, inhibitor = systemIdleInhibitor, onSpawn = null }) {
   const launch = await idleInhibitedLaunch(executable, args, idleLock, inhibitor);
   assertArgumentSizes(launch.args);
@@ -112,7 +120,14 @@ export async function runAgentProcess(executable, args, { cwd, input, env = proc
       env,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
-    if (onSpawn) child.once('spawn', () => { spawned = Promise.resolve().then(onSpawn); });
+    if (onSpawn) child.once('spawn', () => {
+      const report = () => { spawned = Promise.resolve().then(onSpawn); spawned.catch(() => { /* surfaced when the run settles */ }); };
+      if (!launch.idleInhibitor) return report();
+      // Behind an idle-inhibitor wrapper the reviewer is the wrapper's child:
+      // report launch only once it exists, never for the wrapper alone.
+      const poll = setInterval(() => { if (hasChildProcess(child.pid)) { clearInterval(poll); report(); } }, 50);
+      child.once('close', () => clearInterval(poll));
+    });
     // Ending the run: SIGTERM, then SIGKILL two seconds later. Behind
     // systemd-inhibit the tracked child is the wrapper, which forwards only
     // SIGTERM and may exit (or close its streams) first, so the wrapper's

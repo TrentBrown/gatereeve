@@ -332,3 +332,20 @@ test('runAgentProcess reports the spawn of a started process and never of one th
   await assert.rejects(runAgentProcess('/nonexistent/gatereeve-reviewer', [], { cwd: process.cwd(), input: '', timeoutSeconds: 30, onSpawn: async () => { missing++; } }));
   assert.equal(missing, 0, 'A process that never started is not reported as launched');
 });
+test('both local adapters advertise spawn reporting and forward onSpawn to their runner', async () => {
+  const onSpawn = async () => {};
+  for (const [create, output] of [
+    [createCodexAgentAdapter, async (args) => { await writeFile(args[args.indexOf('--output-last-message') + 1], '{"verdict":"PASS"}\n'); return '{"type":"thread.started","thread_id":"codex-context-1"}\n'; }],
+    [createClaudeCodeAgentAdapter, async () => JSON.stringify({ session_id: 'claude-context-1', structured_output: { verdict: 'PASS' } })],
+  ]) {
+    const received = [];
+    const adapter = create({ model: 'model-test', runner: async (executable, args, options) => {
+      received.push(options.onSpawn);
+      return { code: 0, signal: null, stdout: await output(args), stderr: '', startedAt: new Date(), completedAt: new Date() };
+    } });
+    assert.equal(adapter.reportsSpawn, true);
+    await adapter.runStage(request(), { onSpawn });
+    await adapter.runStage(request());
+    assert.deepEqual(received, [onSpawn, undefined]);
+  }
+});

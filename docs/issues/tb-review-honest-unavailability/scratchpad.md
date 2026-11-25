@@ -117,3 +117,24 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
     desktop runtime jobs.
 - **Note:** `local-agent-adapters.js` gained only the optional spawn hook.
   #142 may also edit this file.
+
+## S9. Boundary review round 3 fixes
+
+- **Answered by:** agent
+- **Decision:**
+  - Behind an idle-inhibitor wrapper, spawn is reported once the reviewer
+    child exists (`/proc` on Linux, `pgrep -P` elsewhere), never for the
+    wrapper alone.
+  - The spawn report is awaited when the run settles, with a handler attached
+    at once, so a failed round count is the run's error, never an unhandled
+    rejection.
+  - The launch flag is set before the round count.
+  - Adapter forwarding of `onSpawn` is tested.
+  - Verification adds the idle-inhibitor suite and the remaining consumer
+    suites, and the CI plan adds the packaged runtime jobs.
+- **Evidence:** on this macOS host, "a timeout kills a reviewer that ignores
+  SIGTERM behind a separate wrapper process" and "a timeout still kills a
+  wrapped reviewer that closes its streams on SIGTERM and then hangs" fail
+  identically on unmodified `main` (e59b02c), run with the same command and a
+  45 s per-test timeout. Local verification skips only those two; Linux CI runs
+  the whole suite.
