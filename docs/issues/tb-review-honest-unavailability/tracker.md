@@ -9,14 +9,14 @@
 
 | # | Criterion (short) | Status | Review | Notes |
 |---|-------------------|--------|----|-------|
-| R1 | Fail fast on verification | NOT YET | - | Planned for P1 / I-1 |
-| R2 | Distinct outcome statuses | NOT YET | - | Planned for P2 / I-2 |
-| R3 | Rounds count only when a reviewer ran | NOT YET | - | Planned for P3 / I-2 |
-| R4 | One transient retry | NOT YET | - | Planned for P4 / I-3 |
-| R5 | Repair turn for both providers | NOT YET | - | Planned for P4 / I-3 |
-| R6 | Rejections name the field or ID | NOT YET | - | Planned for P5 / I-4 |
-| R7 | Documentation | NOT YET | - | Planned for P6 / I-5 |
-| R8 | Measurement recorded | NOT YET | - | Planned for P7 / I-5 |
+| R1 | Fail fast on verification | DONE | pending paired review | current-boundary-review.test.js: no/FAIL/UNAVAILABLE verification refusals, same operationId retry, individual review refusal |
+| R2 | Distinct outcome statuses | DONE | pending paired review | current-boundary-review.test.js: status classes, refused (packet, claim, dial change), outcomeStatus unit cases; round-policy.test.js legacy statuses |
+| R3 | Rounds count only when a reviewer ran | DONE | pending paired review | current-boundary-review.test.js refused rounds; round-policy.test.js all-refused projection and replay |
+| R4 | One transient retry | DONE | pending paired review | current-boundary-review.test.js: retry per provider, second transient, timeout/auth, retry+repair, refused retry, repair timeout, providerFailure category |
+| R5 | Repair turn for both providers | DONE | pending paired review | existing per-provider repair tests plus retry+repair test |
+| R6 | Rejections name the field or ID | DONE | pending paired review | reviewer-contract.test.js message tests; claim message in current-boundary-review.test.js |
+| R7 | Documentation | DONE | pending paired review | PROTOCOL.md Paired review outcomes, review.execute row, round policy, repair sentence; desktop mirror diff |
+| R8 | Measurement recorded | DONE | pending paired review | interview.md Evidence base |
 
 ## Review Log
 

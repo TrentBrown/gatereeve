@@ -11,6 +11,8 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
 
 ## S1. Rigor "standard" maps to full
 
+- **Promoted:** DEC-1 in `decisions.md` (2026-11-25)
+
 - **Answered by:** agent
 - **Decision:** Issue #150 calls this PR "standard" rigor (vs "light" for
   #146). GateReeve offers only full or light, so the run is full, with a
@@ -20,6 +22,8 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
 
 ## S2. Mandated autonomy
 
+- **Promoted:** DEC-2 in `decisions.md` (2026-11-25)
+
 - **Answered by:** human
 - **Decision:** At the design gate the human granted mandated autonomy for
   this work. After the pause the agent proposed the fixed mandate (deliver
@@ -27,6 +31,8 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
   human), and the human replied "Proceed".
 
 ## S3. Spec review took six rounds
+
+- **Promoted:** DEC-3 in `decisions.md` (2026-11-25)
 
 - **Answered by:** human (round-6 choice); agent (fixes)
 - **Decision:** Codex reviewed the spec in five rounds. Each FAILed with
@@ -40,6 +46,8 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
 
 ## S4. Classification follows the attempt that launched
 
+- **Promoted:** DEC-4 in `decisions.md` (2026-11-25)
+
 - **Answered by:** agent
 - **Decision:** Each reviewer runs as up to three attempts in one round:
   first, transient retry, repair. Each attempt records whether a reviewer
@@ -52,6 +60,8 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
 
 ## S5. Round count moved to the provider launch
 
+- **Promoted:** DEC-5 in `decisions.md` (2026-11-25)
+
 - **Answered by:** agent
 - **Decision:** `countReviewRound` now runs immediately before
   `independent()`, not before job admission. A packet-assembly refusal (for
@@ -59,6 +69,8 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
 - **Reversibility:** one-line move.
 
 ## S6. Repair turn already covered both providers (issue #140 scope 6)
+
+- **Promoted:** DEC-6 in `decisions.md` (2026-11-25)
 
 - **Answered by:** agent
 - **Decision:** No code change was needed. The stale PROTOCOL.md sentence
