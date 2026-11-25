@@ -119,11 +119,15 @@ test('brief comparison follows Markdown whitespace: indentation and code count, 
   const blockScope = briefScope(Buffer.from(block));
   assert.notEqual(briefScope(Buffer.from(block.replace('    x  =  1\n\n', '    x  =  1\n'))), blockScope, 'blank line inside indented code');
   assert.notEqual(briefScope(Buffer.from(block.replace('  \tz  =  3', '  \tz = 3'))), blockScope, 'spaces-plus-tab indent');
-  assert.equal(briefScope(Buffer.from(block.replace('## Scope\n', '## Scope\n\n'))), blockScope, 'a prose blank line still does not count');
+  assert.equal(briefScope(Buffer.from(block.replace('- app.js\n\n', '- app.js\n\n\n'))), blockScope, 'a run of blank lines counts as one');
+  // Removing the blank line before an indented block turns the code into paragraph text.
+  const separated = '# Brief\n\n## Goal\nExport 42.\n\n## Scope\nRun:\n\n    rm -rf cache\n\n## Findings log\n- none\n';
+  assert.notEqual(briefScope(Buffer.from(separated.replace('Run:\n\n', 'Run:\n'))), briefScope(Buffer.from(separated)), 'a block-separating blank line counts');
+  assert.equal(briefScope(Buffer.from(`${separated}\n\n`)), briefScope(Buffer.from(separated)), 'trailing blank lines are ignored');
   // Line content can never collide with the comparison's own structure.
   assert.notEqual(briefScope(Buffer.from(brief.replace('Export 42.', `${String.fromCharCode(0)}Export 42.`))), same, 'a NUL in prose is content');
   assert.equal(briefScope(Buffer.from(brief.replace('Export 42.', 'Export   42.  '))), same, 'inner and trailing whitespace');
-  assert.equal(briefScope(Buffer.from(brief.replace('## Scope\n', '## Scope\n\n'))), same, 'blank lines');
+  assert.equal(briefScope(Buffer.from(brief.replace('Export 42.\n\n', 'Export 42.\n\n\n'))), same, 'extra blank lines between blocks');
 });
 
 test('without a verification waiver the uncovered coverage still blocks, and the refusal names it', async t => {

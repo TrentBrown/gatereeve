@@ -76,3 +76,17 @@ it) and closes the two round-5 low findings: blank lines inside indented code,
 and indentation counted in columns with tabs to the next multiple of four. The
 publication escape itself is a separate GateReeve issue.
 **Answered by:** human (round 6: continue)
+
+## S6 - Round 6 result and the proposed round 7
+
+Round 6 (with hosted CI on 70fe635): claude-code PASS; codex confirmed R6 and
+raised one high finding: removing the blank line before an indented code block
+changes what Markdown renders (the code becomes paragraph text) but compared
+equal. Proposed fix, prepared locally and not reviewed: a blank line's presence
+counts as a block separator (runs collapse to one, blank lines at the ends are
+ignored). This fails closed: cosmetic blank-line edits outside the findings log
+now need re-authorization. A new revision is round 7 and needs the human.
+**Answered by:** agent (proposal; awaiting the human)
+**Options:** continue to round 7 with this fix; accept 70fe635 as is with the
+limitation recorded.
+**Reversibility:** high.

@@ -361,7 +361,10 @@ export function briefScope(bytes) {
   // line indented four or more columns (tabs expand to the next multiple of
   // four), which may be an indented code block or a fence nested in a list item,
   // and a blank line between two such lines. This fails closed: such prose only
-  // becomes stricter. Other blank lines are ignored.
+  // becomes stricter. Elsewhere a blank line's presence counts, because it
+  // separates blocks (removing the one before an indented code block turns the
+  // code into paragraph text); runs of blank lines count as one, and blank lines
+  // at either end are ignored.
   const verbatim = outside.map(({ line, code }) => Boolean(code) || indentColumns(line) >= 4 && Boolean(line.trim()));
   const kept = [];
   outside.forEach(({ line }, index) => {
@@ -370,10 +373,12 @@ export function briefScope(bytes) {
       const before = verbatim.slice(0, index).findLastIndex((_, at) => outside[at].line.trim() || verbatim[at]);
       const after = outside.findIndex((item, at) => at > index && (item.line.trim() || verbatim[at]));
       if (before !== -1 && after !== -1 && verbatim[before] && verbatim[after]) kept.push(['code', line]);
+      else if (kept.length && kept.at(-1)[0] !== 'blank') kept.push(['blank']);
       return;
     }
     kept.push(['text', /^\s*/u.exec(line)[0] + proseWithSpans(line.trim())]);
   });
+  while (kept.at(-1)?.[0] === 'blank') kept.pop();
   return identity(kept);
 }
 // Leading indentation in columns, with tabs advancing to the next multiple of four.

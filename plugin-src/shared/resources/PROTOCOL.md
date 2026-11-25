@@ -82,8 +82,9 @@ precedes it. It is accepted in any phase before integration. The findings log
 may grow during the run: while the brief matches the authorized brief outside its
 findings log section (with its nested sub-headings), `commitments`
 keeps the authorized subject and no new decision is needed. Whitespace compares
-as Markdown renders it: in prose, trailing whitespace, inner whitespace runs and
-blank lines are ignored while leading indentation counts (it carries list
+as Markdown renders it: in prose, trailing whitespace and inner whitespace runs
+are ignored, a blank line counts as a block separator (runs of blank lines count
+as one; blank lines at the ends are ignored), and leading indentation counts (it carries list
 structure); fenced code, lines indented four or more columns (tabs advance to the
 next multiple of four; indented code, including blank lines between such lines)
 and inline code spans compare verbatim. The same
