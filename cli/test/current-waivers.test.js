@@ -113,6 +113,15 @@ test('brief comparison follows Markdown whitespace: indentation and code count, 
   assert.equal(briefScope(Buffer.from(brief.replace('- none', '- none\n- Found: more'))), same, 'findings log growth');
   const indented = '# Brief\n\n## Goal\nExport 42.\n\n## Scope\n- app.js\n\n      ```\n      x  =  1\n      ```\n\n    y  =  2\n\n## Findings log\n- none\n';
   for (const [from, to] of [['x  =  1', 'x = 1'], ['y  =  2', 'y = 2']]) assert.notEqual(briefScope(Buffer.from(indented.replace(from, to))), briefScope(Buffer.from(indented)), `indented code: ${from}`);
+  // Round 5 edge cases: a blank line inside an indented code block, and an
+  // indent of spaces plus a tab (four columns), are code too.
+  const block = '# Brief\n\n## Goal\nExport 42.\n\n## Scope\n- app.js\n\n    x  =  1\n\n    y  =  2\n  \tz  =  3\n\n## Findings log\n- none\n';
+  const blockScope = briefScope(Buffer.from(block));
+  assert.notEqual(briefScope(Buffer.from(block.replace('    x  =  1\n\n', '    x  =  1\n'))), blockScope, 'blank line inside indented code');
+  assert.notEqual(briefScope(Buffer.from(block.replace('  \tz  =  3', '  \tz = 3'))), blockScope, 'spaces-plus-tab indent');
+  assert.equal(briefScope(Buffer.from(block.replace('## Scope\n', '## Scope\n\n'))), blockScope, 'a prose blank line still does not count');
+  // Line content can never collide with the comparison's own structure.
+  assert.notEqual(briefScope(Buffer.from(brief.replace('Export 42.', `${String.fromCharCode(0)}Export 42.`))), same, 'a NUL in prose is content');
   assert.equal(briefScope(Buffer.from(brief.replace('Export 42.', 'Export   42.  '))), same, 'inner and trailing whitespace');
   assert.equal(briefScope(Buffer.from(brief.replace('## Scope\n', '## Scope\n\n'))), same, 'blank lines');
 });

@@ -355,16 +355,36 @@ export function briefScope(bytes) {
   const start = level === null ? -1 : lines.findIndex(item => item.level === level && item.title.startsWith('findings'));
   let end = lines.length;
   if (start !== -1) for (let index = start + 1; index < lines.length; index++) if (lines[index].level && lines[index].level <= level) { end = index; break; }
-  const kept = lines.filter((_, index) => start === -1 || index < start || index >= end).map(({ line, code }) => {
-    // Verbatim: fenced code (blank lines included), and any line indented four
-    // or more columns, which may be an indented code block or a fence nested in
-    // a list item (fails closed: such prose only becomes stricter).
-    if (code || /^(?: {4}|\t)/u.test(line)) return `\u0000${line}`;
-    if (!line.trim()) return '';
-    const indent = /^\s*/u.exec(line)[0];
-    return indent + proseWithSpans(line.trim());
+  const outside = lines.filter((_, index) => start === -1 || index < start || index >= end);
+  // Each kept line is a typed entry, so no sentinel text can collide with a
+  // line's content. Verbatim ("code"): fenced code (blank lines included), any
+  // line indented four or more columns (tabs expand to the next multiple of
+  // four), which may be an indented code block or a fence nested in a list item,
+  // and a blank line between two such lines. This fails closed: such prose only
+  // becomes stricter. Other blank lines are ignored.
+  const verbatim = outside.map(({ line, code }) => Boolean(code) || indentColumns(line) >= 4 && Boolean(line.trim()));
+  const kept = [];
+  outside.forEach(({ line }, index) => {
+    if (verbatim[index]) { kept.push(['code', line]); return; }
+    if (!line.trim()) {
+      const before = verbatim.slice(0, index).findLastIndex((_, at) => outside[at].line.trim() || verbatim[at]);
+      const after = outside.findIndex((item, at) => at > index && (item.line.trim() || verbatim[at]));
+      if (before !== -1 && after !== -1 && verbatim[before] && verbatim[after]) kept.push(['code', line]);
+      return;
+    }
+    kept.push(['text', /^\s*/u.exec(line)[0] + proseWithSpans(line.trim())]);
   });
-  return identity(kept.filter(Boolean).join('\n'));
+  return identity(kept);
+}
+// Leading indentation in columns, with tabs advancing to the next multiple of four.
+function indentColumns(line) {
+  let columns = 0;
+  for (const character of line) {
+    if (character === ' ') columns++;
+    else if (character === '\t') columns += 4 - columns % 4;
+    else break;
+  }
+  return columns;
 }
 
 // Qualify a delegated planning decision; returns the recorded citation.

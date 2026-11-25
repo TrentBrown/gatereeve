@@ -62,3 +62,17 @@ hand-back); Markdown-semantic comparison.
 **Reversibility:** high.
 
 Triage 2026-11-25: S1 -> D1; S2, S3 -> D2 and D3; S4 -> D3.
+
+## S5 - Round 5 and the round-6 hand-back
+
+Round 5: both reviewers PASS; acceptance passed on green hosted CI (attempt 1 hit
+the exit-time abort parked in #150; the documented rerun passed). `review.publish`
+then could not verify the PR description: a reviewer quoted the comparison's
+NUL-prefix sentinel as a backslash-u escape, and GitHub stores that escape text
+altered, so the byte-exact read-back never matches. The human chose to continue
+to round 6 (rather than accept as is). Round 6 removes the sentinel (the
+comparison is now a list of typed entries, so no line content can collide with
+it) and closes the two round-5 low findings: blank lines inside indented code,
+and indentation counted in columns with tabs to the next multiple of four. The
+publication escape itself is a separate GateReeve issue.
+**Answered by:** human (round 6: continue)
