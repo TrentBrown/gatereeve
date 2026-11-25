@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
+import { privateScratch, removePrivateRoot } from './private-scratch.js';
 const execute = promisify(execFile);
 
 // Test-only parallelism: each case belongs to exactly one fresh process. Keep
@@ -20,8 +21,12 @@ export function isolatedTests(url, { shards = 4 } = {}) {
   }
   test('core fixtures in isolated process groups', async t => {
     const outcomes = await Promise.allSettled(Array.from({ length: shards }, async (_, index) => {
-      const env = { ...process.env, GATEREEVE_TEST_SHARD: JSON.stringify({ path, index, shards }) };
+      // Each shard gets its own scratch root, so shards never contend for one
+      // maintenance lock (spec AC2, D33).
+      const own = await privateScratch();
+      const env = { ...process.env, ...own.env, GATEREEVE_TEST_SHARD: JSON.stringify({ path, index, shards }) };
       delete env.NODE_TEST_CONTEXT;
+      t.after(() => removePrivateRoot(own.base));
       try {
         const result = await execute(process.execPath, ['--test', '--test-reporter=tap', path], { env, signal: t.signal, maxBuffer: 16 * 1024 * 1024 });
         return { index, ...result };

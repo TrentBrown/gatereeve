@@ -10,6 +10,19 @@ export const DIALS = Object.freeze({ rigor: Object.freeze(['full', 'light']), au
 export const LEGACY_AUTONOMY = Object.freeze({ autonomous: 'mandated' });
 export const autonomyAlias = value => Object.hasOwn(LEGACY_AUTONOMY, value) ? LEGACY_AUTONOMY[value] : value;
 // Normalize a recorded dial value (STARTED choice or DIAL_SET) on replay.
+export const DECISION_KINDS = Object.freeze(['approve-design', 'authorize-implementation', 'accept', 'waive', 'amend', 'policy-amend', 'authorize-merge', 'authorize-standing', 'revoke-standing', 'stay-light', 'review-rounds']);
+// Spec AC2: a decision question is recorded when it is presented, so the
+// human's wait until the answer is measurable. It carries no authority.
+export function decisionQuestion(input) {
+  requireThat(input && typeof input === 'object' && !Array.isArray(input), 'Expected a decision question object');
+  requireThat(Object.keys(input).every(key => ['kind', 'subject', 'question'].includes(key)), 'Unknown decision question field');
+  requireThat(DECISION_KINDS.includes(input.kind), 'Unknown decision kind');
+  requireThat(input.subject === undefined || (typeof input.subject === 'string' && /^sha256:[a-f0-9]{64}$/u.test(input.subject)), 'Decision question subject must be a sha256 identity');
+  requireThat(typeof input.question === 'string' && input.question.trim() && input.question.length <= 500 && !/[\u0000-\u0008\u000b-\u001f]/u.test(input.question),
+    'Decision question needs a short summary of what the human is asked (at most 500 characters)');
+  return { asked: true, decision: { kind: input.kind, ...(input.subject ? { subject: input.subject } : {}) }, question: input.question.trim() };
+}
+
 export function normalizedDial(record) {
   if (record?.dial !== undefined && record.dial !== 'autonomy') return record;
   const value = autonomyAlias(record.value);
@@ -106,8 +119,9 @@ export function delegatedAuthority(value) {
 }
 export function decision(value) {
   object(value, 'Decision');
-  requireThat(Object.keys(value).every(key => ['kind', 'subject', 'authority', 'reason', 'consequences', 'actions', 'gates', 'findings', 'action', 'previousSubject', 'scope', 'waiverBasis'].includes(key)), 'Unsupported decision field; scope must be explicit in the supported contract');
-  requireThat(['approve-design', 'authorize-implementation', 'accept', 'waive', 'amend', 'policy-amend', 'authorize-merge', 'authorize-standing', 'revoke-standing', 'stay-light'].includes(value.kind), 'Unknown decision kind');
+  requireThat(Object.keys(value).every(key => ['kind', 'subject', 'authority', 'reason', 'consequences', 'actions', 'gates', 'findings', 'action', 'previousSubject', 'scope', 'waiverBasis', 'reviewScope', 'choice'].includes(key)), 'Unsupported decision field; scope must be explicit in the supported contract');
+  requireThat((value.reviewScope === undefined && value.choice === undefined) || (value.kind === 'review-rounds' && typeof value.reviewScope === 'string' && typeof value.choice === 'string'), 'reviewScope and choice belong to a review-rounds decision');
+  requireThat(DECISION_KINDS.includes(value.kind), 'Unknown decision kind');
   requireThat(value.scope === undefined || value.kind === 'authorize-standing', 'Scope is only supported on a standing grant');
   if (value.authority?.kind === AUTONOMOUS_AUTHORITY) {
     requireThat(['approve-design', 'authorize-implementation', 'amend'].includes(value.kind)

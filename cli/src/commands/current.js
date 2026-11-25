@@ -95,6 +95,9 @@ export function currentCommands() {
   coverage.action(options => run(options, 'coverage.status'));
   const database = command('database', 'Inspect the current authoritative SQLite store').option('--history','Read bounded workflow history').option('--kind <kind>').option('--limit <count>', 'History rows', Number, 100);
   database.action(options => run(options, options.history ? 'database.history' : 'database.inspect', options.history ? {kind:options.kind,limit:options.limit} : {}));
+  const ask = command('ask', 'Record that a decision question is being presented to the human, so the wait until the answer is measured')
+    .argument('<file>', 'decision.ask input: kind, optional subject and a short question summary');
+  ask.action(async (file, options) => run(options, 'decision.ask', await readJsonFile(file)));
   const note = command('workflow-note', 'Record strategy, friction, fixes or escaped defects without granting authority').argument('<file>');
   note.action(async (file,options) => run(options,'workflow.observe',await readJsonFile(file)));
   const read = command('read', 'Inspect a named artifact, current result, event history or model')
@@ -128,6 +131,10 @@ export function currentCommands() {
   const adjudicateReview = command('adjudicate-review', 'Under autonomous authority, record eligible residual risk and any diminishing-returns stopping reason')
     .argument('<file>', 'Exact candidate/pair, dispositions, retained evidence and rationale')
     .action(async (file, options) => run(options, 'review.adjudicate', await readJsonFile(file)));
+  const abandonJob = command('abandon-job', 'Record that a runner or independent-assessment job whose process is verifiably gone will never finish')
+    .requiredOption('--job <id>', 'Pending job ID from status')
+    .requiredOption('--reason <text>', 'Why the job will never finish')
+    .action(options => run(options, 'job.abandon', { jobId: options.job, reason: options.reason }));
   const workspace = new Command('workspace').description('Workspace configuration for delivery (.agentic-workflow.json)');
   workspace.addCommand(workspaceOptions(command('configure', 'For an existing run without one, write the minimal workspace configuration: the GitHub default branch as integration and release, excluded locally'))
     .action(options => run(options, 'workspace.configure', workspaceInput(options) ?? {})));
@@ -251,5 +258,5 @@ export function currentCommands() {
     .option('--merge <file>', 'Selected repository, PR number and merge method')
     .action(async options => run(options, 'delivery.resume', {
       ...(options.grant ? { grant: options.grant } : {}), ...(options.merge ? { merge: await readJsonFile(options.merge) } : {}) }));
-  return [status, coverage, database, note, read, runCommand, workspace, spec, candidate, ready, gate, selectReviewers, reviewBoundary, adjudicateReview, decide, delegatedDecision, autonomousDecision, planningReview, apply, applyDelegation, milestone, merge, publish, observe, delivery];
+  return [status, coverage, database, ask, note, read, runCommand, workspace, spec, candidate, ready, gate, selectReviewers, reviewBoundary, adjudicateReview, abandonJob, decide, delegatedDecision, autonomousDecision, planningReview, apply, applyDelegation, milestone, merge, publish, observe, delivery];
 }

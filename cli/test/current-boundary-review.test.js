@@ -1,3 +1,4 @@
+import './helpers/private-scratch.js';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { rm } from 'node:fs/promises';
@@ -314,7 +315,7 @@ test('Claude gets one same-model correction and retains the original Codex resul
       const result = await run(request);
       if (provider === 'codex') {
         const verdict = result.output.verdicts[0];
-        verdict.findings = [{ id: 'new-advisory', classId: 'constant', criterion: request.input.criteria[0],
+        verdict.findings = [{ id: 'new-advisory', classId: 'constant', classStatement: 'Fixture defect class', severity: 'high', failureScenario: 'Fixture input -> wrong observable output', criterion: request.input.criteria[0],
           path: 'app.js', evidence: 'Current source has an advisory observation.', blocking: false }];
         verdict.dispositions = [{ id: 'new-advisory', status: 'present', evidence: 'The observation is present in current source.' }];
         result.receipt.digests.output = sha256Digest(result.output);
@@ -333,12 +334,12 @@ test('Claude gets one same-model correction and retains the original Codex resul
   assert.equal((await boundaryReviews(f.core, state, await f.core.store.json(state.candidate))).outcome, 'PASS');
 });
 
-test('Claude can supply an omitted severity and qualify the same pinned source in its retry', async t => {
+test('Claude can supply an omitted blocking flag and qualify the same pinned source in its retry', async t => {
   const f = await prepared(t, 'full');
   const launches = pairedAdapters(f);
   const adapter = f.core.runtime.evaluators['claude-code'];
   const run = adapter.runStage.bind(adapter);
-  const advisory = { id: 'omitted-severity', classId: 'constant', criterion: 'R1',
+  const advisory = { id: 'omitted-severity', classId: 'constant', classStatement: 'Fixture defect class', severity: 'high', failureScenario: 'Fixture input -> wrong observable output', criterion: 'R1',
     path: 'app.js', evidence: 'The constant could use a comment.' };
   adapter.runStage = async request => {
     const result = await run(request);
@@ -359,4 +360,58 @@ test('Claude can supply an omitted severity and qualify the same pinned source i
   const { state } = await f.core.state();
   const pair = await boundaryReviews(f.core, state, await f.core.store.json(state.candidate));
   assert.equal(pair.outcome, 'PASS');
+});
+
+// PR B1 (spec AC5): either provider gets exactly one automatic format-repair
+// turn; a repair that still fails is UNAVAILABLE with a reason code.
+for (const provider of ['codex', 'claude-code']) test(`${provider} gets exactly one automatic repair turn and a failed repair stays UNAVAILABLE`, async t => {
+  const f = await prepared(t, 'full');
+  const launches = pairedAdapters(f);
+  const adapter = f.core.runtime.evaluators[provider];
+  const run = adapter.runStage.bind(adapter);
+  const inputs = [];
+  adapter.runStage = async request => {
+    inputs.push(request.input);
+    const result = await run(request);
+    // Both the first answer and its repair omit the failure scenario.
+    result.output.verdicts[0].findings = [{ id: 'advisory', classId: 'constant', classStatement: 'Constant naming', severity: 'low',
+      criterion: 'R1', path: 'app/app.js', evidence: 'The constant could use a comment.', blocking: false }];
+    result.receipt.digests.output = sha256Digest(result.output);
+    return result;
+  };
+  const done = await f.request('review.execute', {}, `repair-fails-${provider}`);
+  assert.equal(launches(), 3, 'One reviewer once, the other once plus one repair turn');
+  assert.equal(inputs.length, 2);
+  assert.ok(Array.isArray(inputs[0].dispositionsRequired), 'Reviewer input names the required dispositions');
+  assert.equal(inputs[0].repair, null);
+  assert.equal(inputs[1].repair.original.findings[0].id, 'advisory', 'The repair turn receives its original verdict');
+  assert.match(inputs[1].repair.diagnostic, /failureScenario/);
+  const row = done.event.payload.outcomes.find(item => item.provider === provider);
+  const report = await f.core.store.json(row.results[0]);
+  assert.equal(report.outcome, 'UNAVAILABLE');
+  assert.equal(report.unavailableReason, 'contract');
+});
+
+test('a repaired verdict that rewords dependent text qualifies the pair', async t => {
+  const f = await prepared(t, 'full');
+  const launches = pairedAdapters(f);
+  const adapter = f.core.runtime.evaluators.codex;
+  const run = adapter.runStage.bind(adapter);
+  adapter.runStage = async request => {
+    const result = await run(request);
+    const verdict = result.output.verdicts[0];
+    verdict.findings = [{ id: 'advisory', classId: 'constant', classStatement: 'Constant naming', severity: 'low',
+      criterion: 'R1', path: 'app/app.js', evidence: 'The constant could use a comment.', blocking: false,
+      ...(request.input.repair ? { failureScenario: 'A reader misreads 41 -> wrong mental model, no runtime effect' } : {}) }];
+    if (request.input.repair) verdict.summary = `${verdict.summary} (repaired: failure scenario supplied)`;
+    result.receipt.digests.output = sha256Digest(result.output);
+    return result;
+  };
+  const done = await f.request('review.execute', {}, 'repair-rewords');
+  assert.equal(launches(), 3);
+  const reports = await Promise.all(done.event.payload.outcomes.map(item => f.core.store.json(item.results[0])));
+  assert.deepEqual(reports.map(report => report.outcome), ['PASS', 'PASS']);
+  assert.equal(reports[0].findings[0].severity, 'low');
+  const { state } = await f.core.state();
+  assert.equal((await boundaryReviews(f.core, state, await f.core.store.json(state.candidate))).outcome, 'PASS');
 });

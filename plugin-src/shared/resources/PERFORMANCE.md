@@ -13,7 +13,37 @@ gatereeve metrics export --limit 1000 --offset 0 > performance.json
 gatereeve metrics config --enabled false
 gatereeve metrics cleanup                 # preview
 gatereeve metrics cleanup --apply         # eligible owned measurement data only
+gatereeve metrics purge-test-data         # preview rows from test-suite fixtures
+gatereeve metrics purge-test-data --apply # remove them
 ```
+
+`metrics status` reports `records` as everything the store holds, with a
+`breakdown` of execution records, reporting observations, known workflows and
+datasets. `metrics capture` keeps a stored value when a local row conflicts with
+it (same observation identity and time, different content), skips that row and
+lists it under `skipped`; explicit snapshot imports still refuse conflicts.
+`metrics purge-test-data` previews candidate test-fixture workflows: a workflow
+whose database lived below a temporary directory (the host temporary directory,
+`/tmp`, `/var/tmp` or macOS `/var/folders`) in a directory with the exact shape
+the test suites create (`gatereeve-current-`, `gatereeve-current-surface-`,
+`gatereeve-dials-`, `gatereeve-light-`, `gatereeve-s5-` or `gatereeve-targets-`
+plus a six-character `mkdtemp` suffix, or `gatereeve session start ` plus an
+eight-character `tempfile` suffix) and whose folder no longer exists. The
+preview lists each candidate's ID and folder. Nothing is removed automatically:
+`--apply` removes only the workflows named with `--workflow <id...>` or
+`--workflows-file <path>` (one ID per line), each of which must still be a
+candidate, together with their observations. Observations under a project key
+that any other workflow also uses are kept.
+
+The CLI test suite (`npm test --prefix cli`) runs through
+`cli/scripts/isolated-test.js`, which gives every test process a private scratch
+root and metrics store, so tests never write to the shared store or the host
+scratch area.
+
+Human wait is measured from a recorded question to the human-confirmed answer of
+the same decision kind in the same workflow. Record the question with the
+`decision.ask` operation (`gatereeve ask <file>`) when it is presented;
+a decision with no recorded question is counted as unmeasured, not as zero.
 
 Without the optional CLI, use the plugin's `resources/performance/command.js` with the same wrapper options and `-- command args...`. Pass the real project/workspace identity consistently across local and CI imports. Omit unknown feature/source identity instead of guessing it. Do not redirect a test's normal output to the measurement store.
 

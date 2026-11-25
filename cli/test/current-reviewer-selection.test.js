@@ -1,3 +1,4 @@
+import './helpers/private-scratch.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { reviewerSelection } from '../../plugin-src/shared/resources/protocol/current/reviewer-selection.js';

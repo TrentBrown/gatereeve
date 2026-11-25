@@ -1,3 +1,4 @@
+import './helpers/private-scratch.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { access, chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
@@ -450,7 +451,7 @@ test('status recovery actions and messages name only installed entry points', as
 
   await f.request('run.start', { implementers: ['implementer'] }, 'start');
   const governed = await currentSnapshot(context, {}, { environment: NO_CLI });
-  assert.deepEqual(governed.actions.map(item => item.operation), ['status', 'next', 'gate.execute', 'review.select', 'review.execute', 'review.adjudicate', 'human.decide', 'authorization.apply', 'planning.review', 'delegation.apply']);
+  assert.deepEqual(governed.actions.map(item => item.operation), ['status', 'next', 'gate.execute', 'review.select', 'review.execute', 'review.adjudicate', 'job.abandon', 'human.decide', 'authorization.apply', 'planning.review', 'delegation.apply']);
   assert.equal(governed.actions[0].command, `node '${ADAPTER}' status --cwd '${f.repo}'`);
   assert.ok(governed.actions.every(item => item.entryPoint === 'adapter' && item.command.includes(ADAPTER)));
   const governedCli = await currentSnapshot(context, {}, { environment: { PATH } });

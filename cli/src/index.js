@@ -5,6 +5,7 @@ import { pluginCommands } from './commands/plugin.js';
 import { currentCommands } from './commands/current.js';
 import { addTreeCommand } from './help-tree.js';
 import { cleanupCommands } from './commands/cleanup.js';
+import { worktreeCommands } from './commands/worktree.js';
 
 export function createProgram() {
   const program = new Command().enablePositionalOptions();
@@ -19,6 +20,7 @@ export function createProgram() {
   for (const command of currentCommands()) program.addCommand(command);
   program.addCommand(pluginCommands());
   for (const command of cleanupCommands()) program.addCommand(command);
+  program.addCommand(worktreeCommands());
   addTreeCommand(program, { cliName: 'GateReeve CLI' });
 
   return program;

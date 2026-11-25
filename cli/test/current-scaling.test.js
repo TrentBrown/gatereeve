@@ -1,3 +1,4 @@
+import './helpers/private-scratch.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { shapeHistory, fitHistory, HISTORY_PRIORITY, HISTORY_TIERS } from '../../plugin-src/shared/resources/protocol/current/review-history.js';
@@ -10,7 +11,7 @@ function report(index, { gate = 'code', open = false } = {}) {
     gate, outcome: open ? 'FAIL' : 'PASS', summary: prose, mode: 'full',
     coverage: { complete: true, paths: Array.from({ length: 40 }, (_, i) => `app/src/module${i}.js`), interactions: [prose.slice(0, 500)], limitations: [] },
     criteria: [{ id: 'R1', outcome: open ? 'FAIL' : 'PASS', evidence: prose.slice(0, 1500) }],
-    findings: open ? [{ id: `finding-${index}`, classId: 'class', criterion: 'gate:code', path: 'app/src/shared.js', evidence: 'Current defect in shared module', blocking: true }] : [],
+    findings: open ? [{ id: `finding-${index}`, classId: 'class', classStatement: 'Fixture defect class', severity: 'high', failureScenario: 'Fixture input -> wrong observable output', criterion: 'gate:code', path: 'app/src/shared.js', evidence: 'Current defect in shared module', blocking: true }] : [],
     dispositions: [{ id: `finding-${index - 1}`, status: 'resolved', evidence: prose.slice(0, 800) }], historyAssessment: null } };
 }
 test('review history shaping stays bounded for any number of rounds and keeps open findings inline', () => {

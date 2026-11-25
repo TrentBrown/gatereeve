@@ -1,8 +1,9 @@
 import { withScratch, scratchEnvironment } from '../storage/scratch.js';
 import { spawn } from 'node:child_process';
+import { accessSync, constants as fsConstants, readdirSync, readFileSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 
-import { join } from 'node:path';
+import { delimiter, isAbsolute, join } from 'node:path';
 
 import { sha256Digest, AGENT_WORKFLOW_PROTOCOL_VERSION, validateEvaluatorCapability } from './agent-workflow.js';
 import { ContractError } from './errors.js';
@@ -14,14 +15,122 @@ function iso(value) {
   return value instanceof Date ? value.toISOString() : value;
 }
 
-export function runAgentProcess(executable, args, { cwd, input, env = process.env, timeoutSeconds }) {
+// Idle-stop automation (for example Fleet) treats a held systemd idle
+// inhibitor as "kept awake". A reviewer waits on the model API for long quiet
+// stretches inside one tool call, so it declares itself with a lock tied to its
+// own process: released on exit or crash, visible to every local user.
+export const IDLE_INHIBITOR_WHY_LIMIT = 120;
+export function idleInhibitorWhy({ provider, stage, feature }) {
+  const role = stage === 'review' ? 'boundary' : String(stage ?? 'agent').replace(/-review$/u, '');
+  const text = `${provider} ${role} review: ${feature}`.replace(/[\u0000-\u001f\u007f]+/gu, ' ').replace(/\s+/gu, ' ').trim();
+  return text.slice(0, IDLE_INHIBITOR_WHY_LIMIT);
+}
+function findExecutable(name, pathValue) {
+  for (const directory of String(pathValue ?? '').split(delimiter)) {
+    if (!directory || !isAbsolute(directory)) continue;
+    const candidate = join(directory, name);
+    try { accessSync(candidate, fsConstants.X_OK); return candidate; } catch { /* next */ }
+  }
+  return null;
+}
+function inhibitorArgs(why) {
+  return ['--what=idle', '--mode=block', '--who=GateReeve', `--why=${why}`];
+}
+function probeIdleInhibitor(inhibitor, why) {
+  // A refused lock (no logind, policy denial) must not look like a reviewer
+  // failure: take and release it once with a no-op before the real launch.
+  return new Promise(resolve => {
+    let child;
+    try { child = spawn(inhibitor, [...inhibitorArgs(why), 'true'], { stdio: 'ignore' }); }
+    catch { resolve(false); return; }
+    const timer = setTimeout(() => { child.kill('SIGKILL'); resolve(false); }, 10_000);
+    child.on('error', () => { clearTimeout(timer); resolve(false); });
+    child.on('close', code => { clearTimeout(timer); resolve(code === 0); });
+  });
+}
+export const systemIdleInhibitor = Object.freeze({
+  platform: () => process.platform,
+  resolve: () => findExecutable('systemd-inhibit', process.env.PATH),
+  probe: probeIdleInhibitor,
+});
+// The launch to use: wrapped in `systemd-inhibit` on Linux when it is present
+// and grants the lock, otherwise exactly the requested command.
+export async function idleInhibitedLaunch(executable, args, idleLock, inhibitor = systemIdleInhibitor) {
+  const unwrapped = { executable, args, idleInhibitor: false };
+  if (!idleLock?.why || inhibitor.platform() !== 'linux') return unwrapped;
+  const wrapper = inhibitor.resolve();
+  if (!wrapper || !(await inhibitor.probe(wrapper, idleLock.why))) return unwrapped;
+  return { executable: wrapper, args: [...inhibitorArgs(idleLock.why), executable, ...args], idleInhibitor: true };
+}
+
+// Linux process table helpers for ending a wrapped reviewer: the start time
+// guards a recorded PID against reuse before the delayed SIGKILL.
+function processStat(pid) {
+  try {
+    const text = readFileSync(`/proc/${pid}/stat`, 'utf8');
+    const fields = text.slice(text.lastIndexOf(')') + 2).split(' ');
+    return { parent: Number(fields[1]), started: fields[19] };
+  } catch { return null; }
+}
+export function processDescendants(root) {
+  if (process.platform !== 'linux' || !root) return [];
+  let entries;
+  try { entries = readdirSync('/proc'); } catch { return []; }
+  const children = new Map();
+  for (const name of entries) {
+    if (!/^\d+$/u.test(name)) continue;
+    const stat = processStat(name);
+    if (!stat) continue;
+    if (!children.has(stat.parent)) children.set(stat.parent, []);
+    children.get(stat.parent).push({ pid: Number(name), started: stat.started });
+  }
+  const found = [];
+  const queue = [root];
+  while (queue.length) {
+    for (const item of children.get(queue.shift()) ?? []) { found.push(item); queue.push(item.pid); }
+  }
+  return found;
+}
+function killIfSame({ pid, started }) {
+  if (processStat(pid)?.started !== started) return;
+  try { process.kill(pid, 'SIGKILL'); } catch { /* already gone */ }
+}
+
+export async function runAgentProcess(executable, args, { cwd, input, env = process.env, timeoutSeconds, idleLock = null, inhibitor = systemIdleInhibitor }) {
+  const launch = await idleInhibitedLaunch(executable, args, idleLock, inhibitor);
+  assertArgumentSizes(launch.args);
   return new Promise((resolve, reject) => {
     const startedAt = new Date();
-    const child = spawn(executable, args, {
+    // The launch stays in the evaluator's process group, so an interrupt,
+    // hangup or cancellation of the evaluator still reaches the reviewer.
+    const child = spawn(launch.executable, launch.args, {
       cwd,
       env,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
+    // Ending the run: SIGTERM, then SIGKILL two seconds later. Behind
+    // systemd-inhibit the tracked child is the wrapper, which forwards only
+    // SIGTERM and may exit (or close its streams) first, so the wrapper's
+    // descendants are recorded before the first signal. The SIGKILL then
+    // goes to them and to anything they or the wrapper started since, and it
+    // still fires after the wrapper closes: closed streams do not mean the
+    // recorded reviewer has exited.
+    let killTimer = null;
+    let recorded = [];
+    const terminate = () => {
+      if (killTimer !== null) return;
+      recorded = launch.idleInhibitor ? processDescendants(child.pid) : [];
+      child.kill('SIGTERM');
+      killTimer = setTimeout(() => {
+        const seen = new Set(recorded.map(item => item.pid));
+        const targets = [...recorded];
+        for (const root of [child.pid, ...recorded.map(item => item.pid)]) {
+          for (const item of processDescendants(root)) if (!seen.has(item.pid)) { seen.add(item.pid); targets.push(item); }
+        }
+        child.kill('SIGKILL');
+        for (const item of targets) killIfSame(item);
+      }, 2_000);
+    };
     const stdout = [];
     const stderr = [];
     let size = 0;
@@ -32,38 +141,37 @@ export function runAgentProcess(executable, args, { cwd, input, env = process.en
     let stdinError = null;
     child.stdin.on('error', (error) => { stdinError ??= error; });
     let timedOut = false;
-    let killTimer = null;
     const timer = setTimeout(() => {
       timedOut = true;
-      child.kill('SIGTERM');
-      killTimer = setTimeout(() => child.kill('SIGKILL'), 2_000);
+      terminate();
     }, timeoutSeconds * 1000);
     child.stdout.on('data', (chunk) => {
       size += chunk.length;
-      if (size > MAX_OUTPUT_BYTES) child.kill('SIGTERM');
+      if (size > MAX_OUTPUT_BYTES) terminate();
       else stdout.push(chunk);
     });
     child.stderr.on('data', (chunk) => {
       size += chunk.length;
-      if (size > MAX_OUTPUT_BYTES) child.kill('SIGTERM');
+      if (size > MAX_OUTPUT_BYTES) terminate();
       else stderr.push(chunk);
     });
     child.on('error', reject);
-    child.on('close', (code, signal) => {
+    child.on('close', (code, exitSignal) => {
       clearTimeout(timer);
-      if (killTimer !== null) clearTimeout(killTimer);
+      if (killTimer !== null && recorded.length === 0) clearTimeout(killTimer);
       const completedAt = new Date();
       if (timedOut) return reject(Object.assign(new Error(`${executable} timed out`), {code:'AGENT_PROVIDER_TIMEOUT'}));
       if (size > MAX_OUTPUT_BYTES) return reject(new Error(`${executable} exceeded the output limit`));
       const result = {
         code,
-        signal,
+        signal: exitSignal,
+        idleInhibitor: launch.idleInhibitor,
         stdout: Buffer.concat(stdout).toString('utf8'),
         stderr: Buffer.concat(stderr).toString('utf8'),
         startedAt,
         completedAt,
       };
-      if (code !== 0 || signal !== null) {
+      if (code !== 0 || exitSignal !== null) {
         const diagnostic = `${result.stderr}\n${result.stdout}`;
         const transient = /rate.?limit|\b429\b|\b50[234]\b|temporar(?:y|ily)|connection reset|timed out/iu.test(diagnostic);
         const category = /credit balance|insufficient credit/iu.test(diagnostic) ? 'credit-unavailable'
@@ -72,14 +180,14 @@ export function runAgentProcess(executable, args, { cwd, input, env = process.en
           : transient ? 'transient-service-failure' : 'configuration-or-execution';
         return reject(Object.assign(new Error(`Evaluator unavailable: ${category}; check the provider configuration before retrying.`), {
           code: transient ? 'AGENT_PROVIDER_TRANSIENT' : 'AGENT_PROVIDER_CONFIGURATION',
-          providerFailure: { category, exitCode: code, signal, startedAt: iso(startedAt), completedAt: iso(completedAt) },
+          providerFailure: { category, exitCode: code, signal: exitSignal, startedAt: iso(startedAt), completedAt: iso(completedAt) },
         }));
       }
       // Exit 0 without the complete prompt delivered is not a trustworthy run.
       if (stdinError) {
         return reject(Object.assign(new Error('Evaluator unavailable: configuration-or-execution; the provider did not accept the complete prompt on standard input.'), {
           code: 'AGENT_PROVIDER_CONFIGURATION',
-          providerFailure: { category: 'configuration-or-execution', exitCode: code, signal, stdin: stdinError.code ?? 'error', startedAt: iso(startedAt), completedAt: iso(completedAt) },
+          providerFailure: { category: 'configuration-or-execution', exitCode: code, signal: exitSignal, stdin: stdinError.code ?? 'error', startedAt: iso(startedAt), completedAt: iso(completedAt) },
         }));
       }
       resolve(result);
@@ -157,7 +265,7 @@ function receiptFor(request, descriptor, output, contextId, method, processResul
       reasoningEffort: descriptor.reasoningEffort,
       contextId,
     },
-    isolation: { method, freshContext: true, inheritedTurns: 0 },
+    isolation: { method, freshContext: true, inheritedTurns: 0, idleInhibitor: processResult.idleInhibitor === true },
     policy: {
       repositoryAccess: request.policy.repositoryAccess,
       networkAccess: request.policy.networkAccess,
@@ -288,6 +396,7 @@ export function createCodexAgentAdapter({
           input: promptFor(request),
           env: await scratchEnvironment(scratchRun, environment),
           timeoutSeconds: request.timeoutSeconds,
+          idleLock: { why: idleInhibitorWhy({ provider: 'codex', stage: request.stage.id, feature: request.featureId ?? request.runId }) },
         });
         const output = parseObject(await readFile(outputPath, 'utf8'), 'Codex structured output');
         const contextId = parseCodexContextId(processResult.stdout);
@@ -351,6 +460,7 @@ export function createClaudeCodeAgentAdapter({
         input: promptFor(request),
         env: await scratchEnvironment(scratchRun, environment),
         timeoutSeconds: request.timeoutSeconds,
+        idleLock: { why: idleInhibitorWhy({ provider: 'claude-code', stage: request.stage.id, feature: request.featureId ?? request.runId }) },
       });
       const parsed = parseClaudeStructuredOutput(processResult.stdout);
       if (typeof parsed.contextId !== 'string' || parsed.contextId === '') {

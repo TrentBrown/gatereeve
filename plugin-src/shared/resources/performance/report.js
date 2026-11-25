@@ -1,4 +1,5 @@
 import { MetricsStore, CATEGORIES } from './store.js';
+import { reportingCounts } from './fleet.js';
 const sumKnown=values=>values.every(Number.isFinite)?values.reduce((a,b)=>a+b,0):null;
 const displayed=value=>Number.isFinite(value)?value.toFixed(1):'unknown';
 const placed=r=>r.provenance==='observed';
@@ -99,4 +100,8 @@ export function renderReport(value, format='json') {
   const timeline=value.records.map(r=>`<details class="event" data-category="${r.category}"><summary>${escape(new Date(r.startedAt).toISOString())} · ${escape(r.category)} · ${escape(r.outcome)} · ${r.durationMs??'unknown'} ms</summary><pre>${escape(JSON.stringify(r,null,2))}</pre></details>`).join('');
   return `<!doctype html><html lang="en"><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>GateReeve performance</title><style>body{font:16px system-ui;max-width:1000px;margin:3rem auto;padding:1rem;color:#18312d;background:#f5f8f6}pre{white-space:pre-wrap;overflow-wrap:anywhere}summary,label{cursor:pointer}.event{padding:12px;border-bottom:1px solid #cad8d3}input:checked+label{font-weight:bold}label{margin-right:12px}${css}</style><h1>GateReeve performance</h1><pre>${escape(lines.slice(2,lines.indexOf('## Timeline (selected page)')).join('\n'))}</pre><h2>Timeline</h2><p>Filter the selected page by category; expand a record for provenance. Use query dates and pagination to select another window.</p><input type="radio" name="category" id="filter-all" checked><label for="filter-all">All</label> ${filters}<div class="timeline">${timeline}</div><details><summary>Structured report and aggregate identities</summary><pre>${escape(JSON.stringify(value,null,2))}</pre></details></html>`;
 }
-export async function status(store=new MetricsStore()) { const summary=await store.summary(); return { schemaVersion:1, settings:await store.config(), bytes:summary.bytes, captureIncomplete:summary.captureIncomplete===true, records:summary.records, incomplete:summary.untimed, blindSpots:['Uninstrumented commands','Unavailable remote details'], activation:'Collector version describes this process only; existing sessions may be uninstrumented.' }; }
+// Spec AC2: `records` counts everything the store holds (execution records and
+// reporting observations); the breakdown names each kind.
+export async function status(store=new MetricsStore()) { const summary=await store.summary(); const reporting=await reportingCounts(store);
+  return { schemaVersion:1, settings:await store.config(), bytes:summary.bytes, captureIncomplete:summary.captureIncomplete===true, records:summary.records+reporting.observations,
+    breakdown:{ executionRecords:summary.records, ...reporting }, incomplete:summary.untimed, blindSpots:['Uninstrumented commands','Unavailable remote details'], activation:'Collector version describes this process only; existing sessions may be uninstrumented.' }; }

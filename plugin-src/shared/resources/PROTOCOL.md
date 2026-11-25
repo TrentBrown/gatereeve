@@ -30,10 +30,12 @@ identity and exact input after an uncertain response. Conflicting reuse fails.
 | `delegation.apply` | `action`: the exact prepared `SLICE` merge action into the integration branch. Under delegation only: records `accept` + `authorize-merge` with the `delegated-evaluator` authority when every required gate PASSes and the review summary is published |
 | `run.resume-current` | Same run identity; optional `planning.design` and `planning.implementation` observed human decisions. Establishes current authority without interpreting old journals. When nothing is retained to resume (no current run and no earlier activation), it starts a fresh run under the `run.start` workspace rules, including `workspace`; resuming an existing run or activation refuses `workspace` and writes nothing |
 | `human.decide` | See decisions below |
+| `decision.ask` | `kind`, optional `subject`, `question` (at most 500 characters): record that a decision question is being presented to the human, as a `DECISION_PENDING` event with `asked: true`. It carries no authority and is not a pending decision; metrics measure the human's wait from it to the human-confirmed answer of the same kind |
 | `spec.validate` | Run trusted spec lint after the model's semantic review of AC, rubric and boundary feasibility |
-| `candidate.prepare` | `repositories: [{alias,base,head,target?}]` full commit IDs, `scope: SLICE|FEATURE`, `criteria: ["R1", ...]`; FEATURE requires every rubric row. A light run has no rubric: `criteria` is exactly `["brief"]` for either scope, and its change is classified by the tripwires (result `tripwires`) |
+| `candidate.prepare` | `repositories: [{alias,base,head,target?}]` full commit IDs, `scope: SLICE|FEATURE`, `criteria: ["R1", ...]`; FEATURE requires every rubric row. A full-rigor run fails naming `decisions.md` when the feature's decisions log is missing. A light run has no rubric: `criteria` is exactly `["brief"]` for either scope, and its change is classified by the tripwires (result `tripwires`) |
 | `candidate.ready` | Declare the pinned candidate ready; launches nothing |
 | `gate.execute` | `gates: [id]` or `["code","spec"]`, explicit `configuration`, typed `consumed`, bounded `history`, labeled `claims`, optional `prior` for a delta |
+| `job.abandon` | `jobId`, `reason`: records `JOB_ABANDONED` for a pending verification or acceptance-assessment job whose owning process is verifiably gone (its recorded process identity no longer matches). An abandoned job no longer invalidates proof recorded before it. Refused for a live process, a job with a retained outcome (reconcile it), a job without an owner record, and delivery (completion) jobs |
 | `milestone.check` | `name: implementation|acceptance|merge|completion`; reports missing proof/authority without writing |
 | `milestone.pass` | Record an allowed milestone; merge must use its protected action |
 | `merge.prepare` | `repository`, PR `number`, `method`; derive the exact source/target action, including `deliveryTarget: integration|release`, to present for authorization. Rejects a PR whose candidate scope does not match its target (see Delivery targets). Without a workspace configuration it fails naming `workspace.configure` |
@@ -271,13 +273,81 @@ remain available.
 Use the test pyramid as a heuristic: choose quick focused deterministic checks
 and useful early independent discovery while implementing. Run wider integration
 and browser checks when changed behavior warrants them. The agent chooses order,
-review count, batching, scope and model diversity; no fixed ratios or round cap.
+review count, batching, scope and model diversity, within the round policy below.
 Strongly consider independent models for consequential persistence/authority
 changes, uncertain findings, repeated misses or divergent conclusions. Record a
 short strategy/reason through `workflow.observe`, preferably at an existing work
 boundary. Ordinary implementer self-review is not another mandatory gate.
 
-Runner configuration is `checks: [{repository,command,args,purpose,timeoutMs?}]`.
+### Round policy
+
+Each review scope has a round counter: the slice PR candidate scope (`slice`),
+the feature-final review (`feature-final`) or one planning document
+(`planning:<artifact>`). One round is one paired review of one candidate revision
+(one planning review of one document revision), including rounds where a reviewer
+was UNAVAILABLE. Only consecutive reviews of one revision share a round: returning
+to an earlier revision is a new round, so the counter never moves backwards, and
+retained proof of an earlier revision is qualified under the scope's next round
+(it cannot pass the round 6 hand-back). Planning regression history reads every
+completed planning review of the scope, retries of one revision included. Only a
+human-approved amendment (`amend`, or in a light run a human re-authorization of a
+changed brief) resets the counters; observing a slice's integration closes its
+scope, so the next slice PR starts at round 1. Rounds executed before this policy
+are not counted. `status.rounds` shows each scope, its round and band, and advice.
+
+- Rounds 1-3: every in-scope finding with a failure scenario that is not low
+  blocks (the reviewer's `blocking` flag).
+- Rounds 4-5: only `high` findings and `medium` regressions of the previous fix
+  block. A regression is a finding new in this round on a path (planning: a
+  document) the previous round's fix changed; it keeps the status of the round
+  that first raised it, even when re-reported, until it is resolved; a finding
+  fixed and later reintroduced is judged afresh. Peer reviews of one round are
+  judged together: a finding counts as resolved only when no reviewer of that
+  round still marks it present, so a disagreement keeps its regression status. A planning round that failed at
+  the provider keeps its documents as the next round's regression baseline. Reviewers
+  receive `packet.roundPolicy` (scope, round, band and the previous fix's changed
+  paths) and apply the band themselves. Other findings stop blocking and stay
+  visible on the pair member (`demotedFindings`). The mechanical demotion only
+  corrects a blocking flag the band no longer allows: a reviewer FAIL counts as
+  PASS for the pair only when it rests on demoted findings alone, with every
+  criterion, responsibility and coverage decision passing, complete coverage and
+  a passing mandate; any failed row keeps the FAIL. Such a demoted peer FAIL is
+  not newer blocking evidence against the other reviewer's PASS in the same
+  round.
+- Low never blocks in any round, including a low regression. Findings without a
+  severity (earlier contracts) read as `unrated` and block exactly as before.
+- Round 6: the review is not qualifying until the human records
+  `human.decide {kind:"review-rounds", reviewScope, choice:"continue"|"split",
+  subject}` (subject: the current candidate hash, or for a planning scope its
+  current document revision), an `amend`, or a `waive`. After continue, later
+  rounds keep the round 4-5 band; a split ends the scope, so each part starts at
+  round 1. A new revision is not reviewed past round
+  6 until then. In a goal run the hand-back is `goal.park` with the PR and round
+  evidence. `review.adjudicate` (and autonomous planning judgment) at round 6 or
+  later is refused.
+
+A round is counted (`ROUND_COUNTED`) when the first review of a new revision
+starts, on every entry path: `review.execute`, an individual selection-tagged
+`gate.execute` review, or a planning review. A provider error, timeout or
+malformed output therefore still uses its round. A new revision past round 6 is
+refused without the human decision. A review run under this policy records
+`roundPolicy` in its input.
+
+Every execution input records `reviewContractVersion`. A result retained from an
+earlier version keeps its recorded qualification on resume although the
+evaluator rules changed since (spec AC11); within one version the rules
+fingerprint must match exactly.
+
+Planning reviews and light runs follow the same schedule; when a light run's
+counter reaches 4, `status` advises raising rigor (advice only).
+
+Runner configuration is `checks: [{repository,command,args,purpose,ciCheck?,timeoutMs?,replaces?}]`.
+`replaces: [{repository?,command,args,reason}]` declares earlier check identities
+the check replaces (the repository defaults to the check's own). Each declaration
+becomes a `check-replacement` coverage claim in any review, spec or judge
+assessment that consumes the verification; acceptance counts the replaced identity
+as covered once that assessment passes the matching coverage decision, with no
+extra round. A rejected replacement leaves the identity uncovered.
 No dependency directory, toolchain or external runtime-tree fingerprint is taken.
 `externalRuntimeInputs` from older configurations is historical declaration only;
 it creates no equivalence assurance. Declared controlled environment, runtime
@@ -295,6 +365,44 @@ actual local check receipts. This is a proposal until independently assessed.
 A green badge alone is insufficient. Focused local loops do not require this
 broad backstop until acceptance is requested. A CI run reporting no jobs is "no CI
 checks" and leaves Verification UNAVAILABLE; it is never passing CI.
+
+**CI after review convergence.** `candidate.prepare`, `review.execute` and
+`alternative` Verification work on a head that exists only as a local commit.
+During rounds, the Verification a round consumes needs at least one passing
+runner receipt on the candidate tree (otherwise the review is not qualifying), plus
+receipts for the focused tests of every changed source area and every affected
+test suite; reviewers assess that coverage in the evidence dimension and report a
+missing receipt as an evidence finding. After the scope converges, push once and
+record a `ci` Verification for the exact head (`checks` may be empty for a `ci`
+Verification). A runner-role check, with no model call, qualifies it against the
+converged reviews: the run is on the exact candidate head (a same-tree other
+commit never qualifies); every CI job the converged reviews' consumed local
+Verification planned in `validation.ciRequiredChecks` (assessed by the
+reviewers during the rounds; a list applies to every selected repository, an
+object names jobs per repository alias) is a passing required check of that
+repository's run; every required check
+passed, every other job of the run succeeded or was skipped; and every local
+receipt the reviews
+consumed is covered, either because its `ciCheck` (else its `purpose`) is among
+the run's passing required checks, or because the final Verification carries a
+passing receipt of the same check on the identical tree. An uncovered receipt
+fails the check by name. A qualified CI Verification keeps the converged reviews
+qualifying and reusable (`review.execute` reuses them; reuse reason
+`ci-qualified`); `milestone.check` shows the result as `ciQualification` on the
+verification outcome. A `ci` Verification for a different tree is rejected naming
+both trees, and a different commit with the same tree is not the exact head.
+Acceptance refuses a latest Verification that is local evidence the converged
+reviews did not assess (rerunning the same checks on the same tree is the same
+evidence). A candidate repository with hosted CI (workflows under
+`.github/workflows/` in its tree) is accepted only on a passing `ci`
+Verification for the exact candidate head; local evidence alone never suffices
+there. A repository without hosted CI keeps the independently assessed local
+alternative (interview D35). These acceptance rules apply once a pair member was reviewed under
+the round policy; a pair retained from an earlier contract keeps its recorded
+qualification (spec AC11). After a hosted CI failure, fix locally, run one paired delta review of
+the fix (one round), then rerun hosted CI. The PreToolUse guard warns, without
+denying, on `git push` to a topic branch while the current candidate's paired
+review is not a qualifying PASS.
 
 Every Verification result and runner record carries `provenance` (both rigors):
 `agentRun` lists each agent-run command with outcome and receipt (index and
@@ -335,6 +443,23 @@ consumes applicable Verification. Supplemental assessments are optional. Prior r
 instructions; claimed dispositions are labeled. Reviewers must find new
 supported defects, verify affected fixes and cover interactions. Missing or
 contradictory output is UNAVAILABLE, never PASS.
+
+**Idle-stop inhibitor.** Reviewers wait on the model API for long quiet
+stretches. On Linux, when `systemd-inhibit` is on `PATH` and grants the lock,
+every reviewer process runs as `systemd-inhibit --what=idle --mode=block
+--who=GateReeve --why="<provider> <role> review: <feature>"` (the reason is at
+most 120 characters, single-line, and carries no prompt text or environment
+values; every local user can read it with `systemd-inhibit --list`). The lock
+belongs to the reviewer process and is released when it exits or crashes, so
+idle-stop automation such as Fleet treats the host as busy while a review runs.
+A refused lock, a missing `systemd-inhibit` or another platform launches the
+reviewer exactly as before. Receipts record `isolation.idleInhibitor:
+true|false`. The wrapped launch stays in the evaluator's process group, so an
+interrupt or cancellation of the evaluator still ends the reviewer and releases
+the lock. A timeout or the output limit sends SIGTERM and, two seconds later,
+SIGKILL to the wrapper, the descendants recorded before the first signal and
+any they started since; the SIGKILL fires even if the wrapper has already
+closed, so a reviewer that ignores SIGTERM is still ended.
 
 Frozen requirements, source manifests, inputs, results and receipts live beneath
 canonical `docs/issues/<featureId>/.gatereeve-current/`. Git is optional for those
@@ -555,6 +680,44 @@ batch, without enumerating unaffected IDs again. No relevance assertion from the
 implementer substitutes for this independent assessment. Historical reports from
 unselected repositories are rejected before export; expand the explicitly declared
 scope when that prior proof is needed.
+
+Reviewer verdicts separate substance from bookkeeping. GateReeve computes, from
+the supplied history, the earlier findings that need a disposition and gives
+them to each reviewer as `dispositionsRequired` (reason `open`, `claimed` or
+`reconsider`). The structured-output schema is built per request: dispositions
+and `historyAssessment.affected` enumerate the finding IDs that request
+disclosed. An ID disclosed anywhere in the supplied history (including inside an
+earlier UNAVAILABLE result) that appears where it is not required, and repeated
+IDs, are dropped and recorded under `normalized`, never rejected. Contract errors
+remain for substantive contradictions: a PASS with a present blocking finding, a
+missing disposition for an open or claimed finding, or an ID disclosed nowhere.
+
+Every finding carries `severity` (`high`, `medium` or `low`, defined by its
+`failureScenario`), a `classId` and a one-line `classStatement`. Low findings
+never block; a low finding marked blocking is recorded non-blocking under
+`normalized`. A historical finding still present but now rated low takes the
+`present-low` disposition, which no longer blocks. Findings retained from
+earlier contracts read as `unrated` and block exactly as recorded. A FAIL with
+no blocking finding other than low ones (non-blocking findings of any severity
+may accompany them) is recorded as PASS (`normalized` rule `low-only-fail`)
+only when every criterion, responsibility and coverage decision already passes,
+coverage is complete, the mandate passes or is not assessed, and the verdict
+then satisfies every PASS check. Otherwise the reviewer's FAIL stands and is
+never rewritten over another failure; a FAIL left without a material finding
+still needs reviewer clarification before adjudication. When paired
+reviewers rate one class differently, the pair records the higher rating
+(`severities` on the boundary review).
+
+A reviewer contract error triggers exactly one automatic format-repair turn
+with the same reviewer, for either provider, given the validation error. The
+repair is judged by substance identity: outcome, mandate assessment, findings with
+severity and evidence, criterion outcomes, coverage completeness and
+limitations, coverage decisions, dispositions and responsibility outcomes. Text
+that depends on a repaired field may change, and a field the original omitted
+may be supplied. A repair that still fails or changes substance is UNAVAILABLE.
+Repair turns share the round's baseline and are not rounds. Every UNAVAILABLE
+result carries one `unavailableReason`: `contract`, `malformed-json`,
+`provider-error`, `timeout`, `missing-evidence` or `other`.
 
 Missing historical evidence is recorded in `historyGaps` and shown in status and
 desktop. It never qualifies proof. Fresh full evidence can replace its current
@@ -898,8 +1061,9 @@ perspective. Findings receive provider-specific identities and original-ID
 provenance. Rebuttals are claims until evaluated or legitimately adjudicated.
 Supervised/delegated modes require material clearance from both reviewers; on
 persistent dispute, record the evidence/reason and return control to the human
-(`run.set-dial autonomy supervised`, actor agent, under delegation). There is no
-fixed review-round cap. Do not endlessly retry unchanged disputed claims.
+(`run.set-dial autonomy supervised`, actor agent, under delegation). Rounds
+follow the round policy above, with its round 6 hand-back. Do not endlessly retry
+unchanged disputed claims.
 
 `mandated` (formerly `autonomous`) is a third explicit per-run choice, independent of rigor. Defaults
 remain full/supervised. Grant it only from an observed human instruction bound to

@@ -56,6 +56,7 @@ function snapshotActions(entry, cwd, resume) {
     action('select-reviewers', 'review.select', 'Select two available daily-driver reviewer providers and record discovery'),
     action('review-boundary', 'review.execute', 'Run both independent boundary reviewers in parallel'),
     action('adjudicate-review', 'review.adjudicate', 'With autonomous authority, record eligible residual risk and stopping rationale'),
+    action('abandon-job', 'job.abandon', 'Record that a runner or assessment job whose process is gone will never finish'),
     action('decide', 'human.decide', 'Record observed human decisions and scoped exceptions'),
     action('apply-authorization', 'authorization.apply', 'Apply recorded standing permission after all required gates pass'),
     action('review-planning', 'planning.review', 'Request an independent planning review (design, spec or brief) for a delegated decision'),

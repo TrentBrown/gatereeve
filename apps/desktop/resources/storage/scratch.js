@@ -10,6 +10,8 @@ import { pathToFileURL } from 'node:url';
 
 const execute = promisify(execFile);
 const KIND = 'gatereeve-scratch/1';
+// Runs being deleted are renamed to a dot-name that inspection never lists as a run.
+const TOMBSTONE = '.removing-';
 const ID = /^[a-z0-9][a-z0-9-]{0,47}-[a-f0-9-]{36}$/u;
 const uid = () => process.getuid?.();
 const same = (a, b) => a.dev === b.dev && a.ino === b.ino;
@@ -68,6 +70,10 @@ async function rootInfo(root, create = false) {
   }
 }
 
+// Register a private root for a supervised tree (test harness shards) so
+// processes that inherit it may create runs without registering it again.
+export async function registerScratchRoot(root) { return (await rootInfo(root, true)).root; }
+
 export async function processIdentity(pid) {
   assert(Number.isSafeInteger(pid) && pid > 0, 'Invalid process identity');
   try {
@@ -85,39 +91,52 @@ async function alive(owner, probe = processIdentity) {
   return (await probe(owner.processId)) === owner.processStartedAt;
 }
 
-async function lock(root, callback) {
+// A process's own start identity never changes; resolve it once so a lock
+// holder publishes its owner record immediately after taking the lock.
+let ownIdentity = null;
+const selfIdentity = () => (ownIdentity ??= processIdentity(process.pid).catch(error => { ownIdentity = null; throw error; }));
+
+// Spec AC2 (D33): a waiter keeps waiting while the holder is verified alive and
+// never fails on elapsed time alone. A holder verified gone, or a lock that
+// stays unattributable (no owner record, failed probes) past LOCK_UNKNOWN_MS,
+// is reported as interrupted; locks are never removed by age or PID.
+export const LOCK_UNKNOWN_MS = 5000;
+async function lock(root, callback, { probe = processIdentity } = {}) {
   const path = join(root, '.maintenance-lock');
-  const started = Date.now();
-  let observed = null, observedAt = started;
-  for (let attempt = 0; ; attempt++) {
+  const record = JSON.stringify({ kind: KIND, processId: process.pid, processStartedAt: await selfIdentity() });
+  let observed = null, observedAt = 0, checkedAt = 0, unknownSince = null;
+  for (;;) {
     try { await mkdir(path, { mode: 0o700 }); break; }
     catch (error) {
       if (error.code !== 'EEXIST') throw error;
-      // Do not steal a lock on PID/age alone. An interrupted maintenance lock
-      // needs inspection; otherwise two recoverers could remove each other's lock.
-      // Short waits suffice for an unknown/interrupted lock. A verified live
-      // maintainer may be removing a large tree; let concurrent producers wait
-      // without treating normal cleanup contention as a broken root.
       let current;
       try { current = await directory(path); }
       catch (readError) { if (absent(readError)) continue; throw readError; }
-      if (!observed || !same(observed, current)) { observed = current; observedAt = Date.now(); }
-      if (Date.now() - observedAt >= 2000) {
-        let live = false;
-        try { live = await alive(await regularJson(join(path, 'owner.json'))); }
-        catch (readError) {
+      if (!observed || !same(observed, current)) { observed = current; observedAt = Date.now(); checkedAt = 0; unknownSince = null; }
+      // Throttle process probes: many waiters must not flood the host with ps.
+      if (Date.now() - observedAt >= 2000 && Date.now() - checkedAt >= 1000) {
+        checkedAt = Date.now();
+        let state = 'unknown';
+        try {
+          const owner = await regularJson(join(path, 'owner.json'));
+          state = (await probe(owner.processId)) === owner.processStartedAt ? 'alive' : 'gone';
+        } catch (readError) {
           if (absent(readError)) {
             const latest = await lstat(path).catch(() => null);
             if (!latest || !same(latest, current)) continue;
           }
         }
-        assert(live && Date.now() - started < 90000, 'Scratch maintenance is active or interrupted; inspect the maintenance lock before retrying');
+        // An unattributable state is timed from its own first observation, so
+        // one failed probe of a long-held live lock is not an interruption.
+        if (state === 'unknown') unknownSince ??= Date.now(); else unknownSince = null;
+        assert(state === 'alive' || (state === 'unknown' && Date.now() - unknownSince < LOCK_UNKNOWN_MS),
+          'Scratch maintenance was interrupted; inspect the maintenance lock before retrying');
       }
       await delay(50 + Math.floor(Math.random() * 25));
     }
   }
   const stat = await directory(path);
-  await writeFile(join(path, 'owner.json'), JSON.stringify({ kind: KIND, processId: process.pid, processStartedAt: await processIdentity(process.pid) }), { mode: 0o600, flag: 'wx' });
+  await writeFile(join(path, 'owner.json'), record, { mode: 0o600, flag: 'wx' });
   try { return await callback(); }
   finally {
     assert(same(stat, await directory(path)), 'Maintenance lock changed');
@@ -136,17 +155,18 @@ export async function createScratch({ purpose, root = scratchRoot(), keepUntil =
   assert(keepUntil === null || Number.isFinite(Date.parse(keepUntil)), 'Invalid retention expiry');
   // Inherited roots must already be registered by the supervising invocation.
   const info = await rootInfo(root, root !== process.env.GATEREEVE_SCRATCH_ROOT);
-  return lock(info.root, async () => {
-    const label = purpose.toLowerCase().replace(/[^a-z0-9]+/gu, '-').replace(/^-|-$/gu, '').slice(0, 48) || 'run';
-    const id = `${label}-${randomUUID()}`, path = join(info.root, 'runs', id);
-    await mkdir(path, { mode: 0o700 });
-    const owner = { kind: KIND, id, uid: uid(), ...identity(await directory(path)), purpose,
-      createdAt: new Date().toISOString(), processId: process.pid, processStartedAt: await processIdentity(process.pid),
-      state: 'active', keepUntil, children: [] };
-    await saveOwner(path, owner);
-    await writeFile(join(path, '.active'), id, { mode: 0o600, flag: 'wx' });
-    return { root: info.root, id, path, owner };
-  });
+  // Spec AC2 (D33): no global lock. The run name is unique and the owner record
+  // is published by an atomic rename; until it exists cleanup sees the run as
+  // uncertain and never removes it.
+  const label = purpose.toLowerCase().replace(/[^a-z0-9]+/gu, '-').replace(/^-|-$/gu, '').slice(0, 48) || 'run';
+  const id = `${label}-${randomUUID()}`, path = join(info.root, 'runs', id);
+  await mkdir(path, { mode: 0o700 });
+  const owner = { kind: KIND, id, uid: uid(), ...identity(await directory(path)), purpose,
+    createdAt: new Date().toISOString(), processId: process.pid, processStartedAt: await selfIdentity(),
+    state: 'active', keepUntil, children: [] };
+  await writeFile(join(path, '.active'), id, { mode: 0o600, flag: 'wx' });
+  await saveOwner(path, owner);
+  return { root: info.root, id, path, owner };
 }
 
 async function loadRun(root, id) {
@@ -161,8 +181,16 @@ async function loadRun(root, id) {
   return { path, owner, stat };
 }
 
-async function treeSize(path, device, openInodes) {
-  let bytes = 0;
+// Allocated bytes count each inode once, so hard-linked reviewer views are not
+// multiplied; `files` counts every entry (the inode cost of keeping the run).
+async function treeSize(path, device, openInodes, counted = null) {
+  const totals = await treeTotals(path, device, openInodes);
+  if (counted) counted.files = totals?.files ?? null;
+  return totals?.bytes ?? null;
+}
+async function treeTotals(path, device, openInodes = new Set()) {
+  let bytes = 0, files = 0;
+  const seen = new Set();
   const pending = [path];
   while (pending.length) {
     // Keep enough filesystem work in flight to size large sealed reviews
@@ -171,7 +199,9 @@ async function treeSize(path, device, openInodes) {
       const stat = await lstat(child, { bigint: true });
       assert(stat.dev === device, 'Scratch contains another filesystem');
       if (openInodes.has(stat.ino)) return null;
-      return stat.isDirectory() ? (await readdir(child)).map(name => join(child, name)) : Number(stat.blocks * 512n);
+      files += 1;
+      const first = !seen.has(stat.ino); seen.add(stat.ino);
+      return stat.isDirectory() ? (await readdir(child)).map(name => join(child, name)) : first ? Number(stat.blocks * 512n) : 0;
     }));
     if (results.includes(null)) return null;
     for (const result of results) {
@@ -179,7 +209,7 @@ async function treeSize(path, device, openInodes) {
       else for (const child of result) pending.push(child);
     }
   }
-  return bytes;
+  return { bytes, files };
 }
 
 async function linuxOpenFiles(path, device, openInodes) {
@@ -187,7 +217,7 @@ async function linuxOpenFiles(path, device, openInodes) {
   // the review tree. Request NUL-terminated fields so spaces and line breaks in
   // a handle's name cannot be mistaken for record separators.
   const { stdout, stderr } = await execute('lsof', ['-nP', '-F0fDin'], {
-    timeout: 10000, maxBuffer: 32 * 1024 * 1024, env: { ...process.env, LC_ALL: 'C' },
+    timeout: 30000, maxBuffer: 32 * 1024 * 1024, env: { ...process.env, LC_ALL: 'C' },
   });
   assert(!stderr.trim() && stdout.endsWith('\0\n'), 'Open-file inventory is incomplete');
   let controller = false, descriptor = '', matchingDevice = false, sawControllerCwd = false;
@@ -220,7 +250,7 @@ async function openFiles(path, device, openInodes) {
     return linuxOpenFiles(path, device, openInodes);
   }
   try {
-    const { stdout, stderr } = await execute('lsof', ['-t', '+D', path], { timeout: 10000, maxBuffer: 1024 * 1024 });
+    const { stdout, stderr } = await execute('lsof', ['-t', '+D', path], { timeout: 30000, maxBuffer: 1024 * 1024 });
     if (stdout.trim()) return true;
     assert(!stderr.trim(), 'Open-file inventory is incomplete');
     return false;
@@ -246,7 +276,13 @@ export async function activity(path, device, openInodes = new Set()) {
     if (contains(path, mount)) return 'mounted';
   }
   try {
-    if (await openFiles(path, device, openInodes)) return 'active';
+    // Concurrent cleanups (parallel test shards, simultaneous reviews) each
+    // enumerate host handles; under load one probe may exceed its limit.
+    // Retry a timed-out probe once; any failure still retains the run.
+    let open;
+    try { open = await openFiles(path, device, openInodes); }
+    catch (error) { if (!error.killed) throw error; open = await openFiles(path, device, openInodes); }
+    if (open) return 'active';
   } catch (error) {
     const reason = error.killed ? 'probe timed out' : error.code === 'ENOENT' ? 'lsof is unavailable' : 'incomplete inventory';
     throw new Error(`Open-file activity could not be established (${reason})`, { cause: error });
@@ -291,7 +327,9 @@ async function assess(root, id, { quick = false, now = Date.now(), probe = proce
       // The sizing and filesystem-safety walk also checks device/inode identity.
       // This catches handles opened through outside hard links or mount aliases.
       if (item.status === 'eligible') {
-        item.bytes = await treeSize(path, device, openInodes);
+        const counted = {};
+        item.bytes = await treeSize(path, device, openInodes, counted);
+        item.files = counted.files;
         if (item.bytes === null) item.status = 'active';
       }
     }
@@ -306,7 +344,42 @@ async function assess(root, id, { quick = false, now = Date.now(), probe = proce
       }
     }
   }
+  if (!quick) await markStranded(root, item, now);
   return item;
+}
+
+// Spec AC2: a run older than STRANDED_DAYS whose owner and children are gone
+// is labeled with its file count and the exact removal command. Removal still
+// requires the ordinary eligibility checks.
+export const STRANDED_DAYS = 7;
+async function markStranded(root, item, now) {
+  if (!['eligible', 'uncertain'].includes(item.status) || !item.createdAt || Date.parse(item.createdAt) > now - STRANDED_DAYS * 86400000) return;
+  item.stranded = true;
+  if (item.files === undefined || item.files === null) {
+    try { item.files = (await treeTotals(item.path, BigInt((await lstat(item.path, { bigint: true })).dev)))?.files ?? null; } catch { item.files = null; }
+  }
+  item.command = `GATEREEVE_SCRATCH_ROOT='${root}' gatereeve cleanup --run ${item.id} --apply`;
+}
+
+// Spec AC2: diagnostic reports are kept REPORT_DAYS, then at most REPORT_LIMIT
+// newest; a report whose run folder still exists is never removed.
+export const REPORT_DAYS = 30, REPORT_LIMIT = 5000;
+async function reportRetention(root, now = Date.now()) {
+  const directory = join(root, 'reports');
+  const names = (await readdir(directory)).filter(name => name.endsWith('.json'));
+  const live = new Set(await readdir(join(root, 'runs')));
+  const reports = [];
+  for (const name of names) {
+    try { const stat = await lstat(join(directory, name)); if (stat.isFile()) reports.push({ name, id: name.slice(0, -5), mtime: stat.mtimeMs }); } catch { /* raced */ }
+  }
+  reports.sort((a, b) => b.mtime - a.mtime);
+  const byAge = [], byCount = [];
+  reports.forEach((report, index) => {
+    if (live.has(report.id)) return;
+    if (report.mtime < now - REPORT_DAYS * 86400000) byAge.push(report.name);
+    else if (index >= REPORT_LIMIT) byCount.push(report.name);
+  });
+  return { total: reports.length, removable: { age: byAge.length, count: byCount.length }, names: [...byAge, ...byCount] };
 }
 
 export async function inspectScratch({ root = scratchRoot(), run, quick = false, ...options } = {}) {
@@ -317,39 +390,120 @@ export async function inspectScratch({ root = scratchRoot(), run, quick = false,
     return { root: resolve(root), entries: [], eligibleBytes: null, quick, error: error.message };
   }
   if (run !== undefined) assert(ID.test(run), 'Invalid scratch run ID');
-  const names = run ? [run] : await readdir(join(info.root, 'runs'));
+  const listed = run ? [run] : await readdir(join(info.root, 'runs'));
+  const names = listed.filter(name => !name.startsWith(TOMBSTONE)), tombstoneNames = listed.filter(name => name.startsWith(TOMBSTONE) && !name.endsWith('.json') && !name.startsWith(`${TOMBSTONE}pending-`)), tombstones = tombstoneNames.length;
   const entries = [];
   for (const name of names.sort()) entries.push(await assess(info.root, name, { ...options, quick }));
-  return { root: info.root, entries, eligibleBytes: quick ? null : entries.reduce((sum, item) => sum + (item.status === 'eligible' ? item.bytes : 0), 0), quick };
+  // Spec AC2: previews and doctor count files for every run, not only eligible ones.
+  // A mounted run is not walked: the mount may be a large or remote tree.
+  for (const item of entries) if (item.files === undefined && !['removed', 'mounted'].includes(item.status)) item.files = await treeTotals(item.path, BigInt((await lstat(item.path, { bigint: true }).catch(() => ({ dev: 0n }))).dev)).then(totals => totals?.files ?? null, () => null);
+  // Interrupted deletions stay visible: count their files too.
+  let tombstoneFiles = 0;
+  for (const name of tombstoneNames) {
+    const path = join(info.root, 'runs', name);
+    tombstoneFiles += await treeTotals(path, BigInt((await lstat(path, { bigint: true })).dev)).then(totals => totals?.files ?? 0, () => 0);
+  }
+  const reports = run ? null : await reportRetention(info.root).then(({ names: _names, ...summary }) => summary, () => null);
+  return { root: info.root, entries, eligibleBytes: quick ? null : entries.reduce((sum, item) => sum + (item.status === 'eligible' ? item.bytes : 0), 0),
+    files: entries.reduce((sum, item) => sum + (item.files ?? 0), 0), reports, tombstones, tombstoneFiles, quick };
 }
 
 export async function cleanupScratch({ root = scratchRoot(), run, apply = false, ...options } = {}) {
   const preview = await inspectScratch({ root, run, ...options, quick: false });
-  if (!apply || preview.error || preview.entries.length === 0) return { ...preview, applied: false, removed: [], reclaimedBytes: 0 };
-  const info = await rootInfo(root);
-  return lock(info.root, async () => {
-    const removed = [], errors = [], skipped = [];
-    for (const item of preview.entries.filter(entry => entry.status === 'eligible')) {
-      try {
-        const current = await assess(info.root, item.id, { ...options, quick: false });
-        assert(current.status === 'eligible' && same(item.identity, current.identity),
-          `Run changed or is no longer eligible (${current.reason ?? current.status})`);
-        // All cooperating creators/finishers use this root lock. Re-read parent
-        // and run identities immediately before removal. rm never follows links.
-        assert(same(info, await rootInfo(root)), 'Scratch root changed');
-        assert(same(current.identity, await directory(current.path)), 'Run directory changed');
-        await makeWritable(current.path, current.identity.dev);
-        await rm(current.path, { recursive: true });
-        removed.push({ id: item.id, bytes: current.bytes });
-      } catch (error) { errors.push({ id: item.id, reason: error.message }); }
+  if (!apply || preview.error || (preview.entries.length === 0 && (run || !(preview.reports?.removable.age || preview.reports?.removable.count || preview.tombstones)))) return { ...preview, applied: false, removed: [], reclaimedBytes: 0 };
+  const info = await rootInfo(root), { removeTree = path => rm(path, { recursive: true }) } = options;
+  const removed = [], errors = [], skipped = [];
+  for (const item of preview.entries.filter(entry => entry.status === 'eligible')) {
+    let entombed = false;
+    try {
+      // Activity probes run outside the lock. An eligible run's owner has
+      // finished or is gone, and only the owner changes its record, so the
+      // lock only has to cover the identity recheck and the rename (spec AC2, D33).
+      const current = await assess(info.root, item.id, { ...options, quick: false });
+      assert(current.status === 'eligible' && same(item.identity, current.identity),
+        `Run changed or is no longer eligible (${current.reason ?? current.status})`);
+      const tombstone = await entomb(info, root, async () => {
+        // All cooperating finishers use this root lock. Re-read parent and run
+        // identities immediately before the rename.
+        let loaded;
+        try { loaded = await loadRun(info.root, item.id); }
+        catch (error) { if (absent(error) && await lstat(current.path).then(() => false, absent)) return null; throw error; }
+        assert(same(current.identity, loaded.stat) && !loaded.owner.supervisionPending, 'Run directory changed');
+        return current.path;
+      });
+      // A concurrent cleanup already removed it: nothing failed.
+      if (!tombstone) { skipped.push({ id: item.id, status: 'removed' }); continue; }
+      entombed = true; // From here a failure is a deletion failure, never a concurrent removal.
+      await bury(tombstone, current.identity, removeTree);
+      removed.push({ id: item.id, bytes: current.bytes, files: current.files });
+    } catch (error) {
+      // A concurrent cleanup removed the run while it was being rechecked.
+      if (!entombed && await lstat(item.path).then(() => false, absent)) skipped.push({ id: item.id, status: 'removed' });
+      else errors.push({ id: item.id, reason: error.message });
     }
-    for (const item of preview.entries.filter(entry => entry.status !== 'eligible')) skipped.push({ id: item.id, status: item.status });
-    return { ...preview, applied: true, removed, skipped, errors, reclaimedBytes: removed.reduce((sum, item) => sum + item.bytes, 0) };
+  }
+  // A tombstone whose deleter is gone (interrupted removal) is reclaimed: its
+  // owner record is rechecked and replaced under the lock, then it is deleted.
+  let tombstonesRemoved = 0;
+  if (!run) for (const name of (await readdir(join(info.root, 'runs'))).filter(item => item.startsWith(TOMBSTONE) && item.endsWith('.json'))) {
+    const path = join(info.root, 'runs', name.slice(0, -5));
+    try {
+      const reclaimed = await entomb(info, root, async () => {
+        const owner = await regularJson(join(info.root, 'runs', name)).catch(error => { if (absent(error)) return null; throw error; });
+        if (!owner || owner.kind !== KIND || await alive(owner, options.probe)) return null;
+        if (await lstat(path).then(() => false, absent)) { await unlink(join(info.root, 'runs', name)); return null; }
+        return path;
+      }, join(info.root, 'runs', name));
+      if (reclaimed) { await bury(reclaimed, identity(await lstat(reclaimed)), removeTree); tombstonesRemoved += 1; }
+    } catch (error) { errors.push({ id: name.slice(0, -5), reason: error.message }); }
+  }
+  for (const item of preview.entries.filter(entry => entry.status !== 'eligible')) skipped.push({ id: item.id, status: item.status });
+  let reportsRemoved = 0;
+  if (!run) {
+    // A report is never removed while its run folder exists; finishers publish
+    // reports with exclusive creation, so retention needs no lock.
+    const retention = await reportRetention(info.root);
+    for (const name of retention.names) {
+      try { await unlink(join(info.root, 'reports', name)); reportsRemoved += 1; } catch (error) { errors.push({ id: name, reason: error.message }); }
+    }
+  }
+  return { ...preview, applied: true, removed, skipped, errors, reportsRemoved, tombstonesRemoved, reclaimedBytes: removed.reduce((sum, item) => sum + item.bytes, 0),
+    reclaimedFiles: removed.reduce((sum, item) => sum + (item.files ?? 0), 0) };
+}
+
+// Under the maintenance lock: select a directory (via choose) and rename it to
+// a fresh tombstone whose owner record (this process) is published first. A
+// replaced owner record of a reclaimed tombstone is removed after the rename.
+async function entomb(info, root, choose, previousOwner = null) {
+  return lock(info.root, async () => {
+    assert(same(info, await rootInfo(root)), 'Scratch root changed');
+    const source = await choose();
+    if (!source) return null;
+    const tombstone = join(info.root, 'runs', `${TOMBSTONE}${randomUUID()}`);
+    await saveRecord(`${tombstone}.json`, { kind: KIND, processId: process.pid, processStartedAt: await selfIdentity(), source: basename(source) });
+    await rename(source, tombstone);
+    if (previousOwner) await unlink(previousOwner);
+    return tombstone;
   });
 }
 
+// Outside the lock: delete a tombstone, then its owner record.
+async function bury(tombstone, expected, removeTree) {
+  assert(same(expected, await directory(tombstone)), 'Run directory changed');
+  await makeWritable(tombstone, expected.dev);
+  await removeTree(tombstone);
+  await unlink(`${tombstone}.json`);
+}
+
+async function saveRecord(path, value) {
+  // The pending name is a tombstone-prefixed non-record, never listed as a run.
+  const pending = join(dirname(path), `${TOMBSTONE}pending-${randomUUID()}`);
+  await writeFile(pending, JSON.stringify(value), { mode: 0o600, flag: 'wx' });
+  await rename(pending, path);
+}
+
 // Reviewer views deliberately seal directories read-only. Restore owner access
-// only after activity/mount checks and under the same cleanup lock. Never follow links.
+// only after activity/mount checks, on the renamed tombstone. Never follow links.
 async function makeWritable(path, device) {
   const info = await lstat(path);
   if (!info.isDirectory() || info.isSymbolicLink()) return;
@@ -387,7 +541,7 @@ export async function finishScratch(scratch, { error = null, diagnostics = '' } 
   const info = await rootInfo(scratch.root);
   await lock(info.root, async () => {
     const { path, owner } = await loadRun(info.root, scratch.id);
-    assert(same(owner, scratch.owner) && owner.processId === process.pid && owner.processStartedAt === await processIdentity(process.pid), 'Scratch belongs to a different invocation');
+    assert(same(owner, scratch.owner) && owner.processId === process.pid && owner.processStartedAt === await selfIdentity(), 'Scratch belongs to a different invocation');
     const report = { kind: KIND, id: owner.id, purpose: owner.purpose, createdAt: owner.createdAt,
       finishedAt: new Date().toISOString(), outcome: error ? 'FAIL' : 'PASS',
       error: error ? String(error.message ?? error).slice(-4096) : null, diagnostics: String(diagnostics).slice(-16384) };

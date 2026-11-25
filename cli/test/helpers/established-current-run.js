@@ -15,6 +15,8 @@ export async function establishCurrentRun(core, { refresh = false } = {}) {
     await writeFile(join(home, 'plan.md'), '# Plan\n## P1 - Implement R1\n');
     await writeFile(join(home, 'issues.md'), '# Issues\n## I-1 - Implement\n**Status:** in-review\n**Plan steps:** P1\n**Rubric criteria:** R1\n');
     await writeFile(join(home, 'tracker.md'), '# Tracker\n## Rubric Status\n| R1 | AC1 | NOT YET | pending |\n## Review Log\n');
+    // candidate.prepare requires the decisions log (spec AC13); keep a caller's own.
+    await writeFile(join(home, 'decisions.md'), '# Decisions\nNo changes.\n', { flag: 'wx' }).catch(error => { if (error.code !== 'EEXIST') throw error; });
     await request('run.start', { runId: 'desktop-established', implementers: ['fixture-implementer'] }, 'start');
     const design = await core.store.capture('design.md');
     await request('human.decide', { kind: 'approve-design', subject: design.hash, authority, reason: 'Fixture', consequences: 'Validate fixture' }, 'design');
@@ -46,7 +48,7 @@ export function fixtureEvaluator(f, { malformed = false, inherited = false, bloc
       launches++;
       const output = { verdicts: request.input.gates.map(id => ({ gate: id, outcome,
         summary: 'Fixture assessment', criteria: criterionRows ?? request.input.criteria.map(id => ({ id, outcome, evidence: 'Fixture source and command receipt' })), coverage: coverage ?? { complete: true, paths: request.input.changedPaths ?? ['app/app.js'], interactions: ['app/app.js'], limitations: [] },
-        coverageDecisions: [], findings: blocking ? [{ id: findingId, classId: 'class-1', criterion: 'R1', path: 'app/app.js', evidence: 'Current defect', blocking: true }] : [], dispositions, historyAssessment })) };
+        coverageDecisions: [], findings: blocking ? [{ id: findingId, classId: 'class-1', classStatement: 'Fixture defect class', severity: 'high', failureScenario: 'Fixture input -> wrong observable output', criterion: 'R1', path: 'app/app.js', evidence: 'Current defect', blocking: true }] : [], dispositions, historyAssessment })) };
       if (malformed) output.verdicts.pop();
       const { sha256Digest } = await import('../../../plugin-src/shared/resources/protocol/agent-workflow.js');
       return { schemaVersion: 1, protocolVersion: request.protocolVersion, stageId: request.stage.id, status: 'completed', output, receipt: { schemaVersion: 1, kind: 'gatereeve-agent-workflow-receipt', protocolVersion: request.protocolVersion, module: request.module, stage: request.stage.id, capabilityProfile: request.capabilityProfile, startedAt: '2026-10-23T00:00:00Z', completedAt: '2026-10-23T00:00:01Z', status: 'completed', runId: request.runId, attemptId: request.attemptId,
