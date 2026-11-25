@@ -603,7 +603,7 @@ export async function consumedProof(core, state, candidate, input, memo = new Ma
     if (input.gates[0] === 'packet' || proof.outcome === 'PASS') continue;
     // A failed or unavailable verification is the same precondition as none.
     if (assessed && proof.gate === 'verification') throw new VerificationRequiredError(
-      `This assessment requires actual applicable verification evidence: the current verification result is ${proof.outcome}. Fix it, then run ${VERIFICATION_ORDER}`);
+      `This assessment requires actual applicable verification evidence: the current verification result is ${proof.outcome}, not passing. Fix it, then run ${VERIFICATION_ORDER}`);
     requireThat(false, 'Consumed proof is not passing/current');
   }
   if (assessed) {
