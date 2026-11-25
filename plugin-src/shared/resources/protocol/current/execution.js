@@ -25,7 +25,7 @@ import { findingObligations, reviewScope } from './review-findings.js';
 import { qualifyCi, isCiVerification } from './ci-qualification.js';
 import { sha256Digest, validateAgentWorkflowStageResult, AGENT_WORKFLOW_PROTOCOL_VERSION, HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-workflow.js';
 import { validateJsonSchema } from '../json-schema.js';
-import { ContractError } from '../errors.js';
+import { ContractError, ProtocolError } from '../errors.js';
 
 const OUTCOMES = ['PASS', 'FAIL', 'UNAVAILABLE'];
 // Severity (spec AC3, D8). Findings retained from earlier contracts have none
@@ -136,12 +136,14 @@ export function reviewSchema(gates, criteria, ledgers = {}) {
 export function validateFormatRepair(original, corrected, selectedCriteria = [], eligibleAffected = null, resolvePath = path => path) {
   const permitted = new Set([...selectedCriteria, `gate:${original.gate}`]);
   const substance = 'Substantive assessment changes are not format repair';
-  requireThat(corrected.gate === original.gate && corrected.outcome === original.outcome, 'Verdict changes require substantive reassessment, not format repair');
+  requireThat(corrected.gate === original.gate && corrected.outcome === original.outcome,
+    `Verdict changes require substantive reassessment, not format repair: gate/outcome changed from ${original.gate}/${original.outcome} to ${corrected.gate}/${corrected.outcome}`);
   requireThat(identity(original.mandateAssessment ?? null) === identity(corrected.mandateAssessment ?? null),
-    'Format repair must preserve mandate assessment');
+    'Format repair must preserve mandate assessment: mandateAssessment changed');
   const oldFindings = original.findings ?? [];
-  requireThat(Array.isArray(corrected.findings) && corrected.findings.length === oldFindings.length, 'Format repair must preserve all original findings');
-  for (const before of oldFindings) {
+  requireThat(Array.isArray(corrected.findings) && corrected.findings.length === oldFindings.length,
+    `Format repair must preserve all original findings: findings has ${Array.isArray(corrected.findings) ? corrected.findings.length : 'no'} entries; the original had ${oldFindings.length}`);
+  for (const [index, before] of oldFindings.entries()) {
     const after = corrected.findings.find(item => item.id === before.id);
     const source = resolvePath(before.path);
     // A field the original omitted may be supplied; one it stated is kept.
@@ -150,29 +152,41 @@ export function validateFormatRepair(original, corrected, selectedCriteria = [],
       && ['severity', 'failureScenario', 'classStatement', 'blocking'].every(kept)
       && (after.path === before.path || (source && source === resolvePath(after.path)))
       && typeof after.blocking === 'boolean',
-      'Format repair must preserve finding identity, severity and evidence');
-    if (permitted.has(before.criterion)) requireThat(after.criterion === before.criterion, 'Valid finding criterion cannot be reassigned by format repair');
+      `Format repair must preserve finding identity, severity and evidence: ${after ? `findings[${corrected.findings.indexOf(after)}] (${before.id})` : `original findings[${index}] (${before.id}) is missing`}`);
+    if (permitted.has(before.criterion)) requireThat(after.criterion === before.criterion,
+      `Valid finding criterion cannot be reassigned by format repair: findings[${corrected.findings.indexOf(after)}].criterion (${before.id}) must stay ${before.criterion}`);
   }
   if (original.criteria !== undefined) {
-    requireThat(Array.isArray(corrected.criteria) && corrected.criteria.length === original.criteria.length, 'Format repair must retain every criterion assessment');
+    requireThat(Array.isArray(corrected.criteria) && corrected.criteria.length === original.criteria.length,
+      `Format repair must retain every criterion assessment: criteria has ${Array.isArray(corrected.criteria) ? corrected.criteria.length : 'no'} entries; the original had ${original.criteria.length}`);
     for (const [index, before] of original.criteria.entries()) {
       const after = corrected.criteria[index];
-      requireThat(after && after.outcome === before.outcome, 'Format repair must preserve criterion outcomes and evidence');
-      if (permitted.has(before.id)) requireThat(after.id === before.id, 'Valid criterion cannot be reassigned by format repair');
+      requireThat(after && after.outcome === before.outcome,
+        `Format repair must preserve criterion outcomes and evidence: criteria[${index}] (${before.id}) must keep outcome ${before.outcome}`);
+      if (permitted.has(before.id)) requireThat(after.id === before.id, `Valid criterion cannot be reassigned by format repair: criteria[${index}].id must stay ${before.id}`);
     }
   }
   if (original.coverage !== undefined) requireThat(corrected.coverage?.complete === original.coverage?.complete
-    && identity(original.coverage?.limitations ?? []) === identity(corrected.coverage?.limitations ?? []), substance);
+    && identity(original.coverage?.limitations ?? []) === identity(corrected.coverage?.limitations ?? []), `${substance}: coverage.complete or coverage.limitations changed`);
   const rows = (value, fields) => identity([...(value ?? [])].map(row => fields.map(field => row?.[field] ?? null)).sort((a, b) => String(a[0]).localeCompare(String(b[0]))));
-  if (original.dispositions !== undefined) requireThat(rows(original.dispositions, ['id', 'status']) === rows(corrected.dispositions, ['id', 'status']), substance);
-  if (original.coverageDecisions !== undefined) requireThat(rows(original.coverageDecisions, ['id', 'outcome']) === rows(corrected.coverageDecisions, ['id', 'outcome']), substance);
-  if (original.dimensions !== undefined) requireThat(rows(original.dimensions, ['name', 'outcome']) === rows(corrected.dimensions, ['name', 'outcome']), substance);
+  // Name the rows whose identity or status differs between the two verdicts.
+  const changedRows = (before, after, [key, value]) => {
+    const read = list => new Map((list ?? []).map(row => [row?.[key], row?.[value]]));
+    const a = read(before), b = read(after);
+    return [...new Set([...a.keys(), ...b.keys()])].filter(id => a.get(id) !== b.get(id)).join(', ');
+  };
+  if (original.dispositions !== undefined) requireThat(rows(original.dispositions, ['id', 'status']) === rows(corrected.dispositions, ['id', 'status']),
+    `${substance}: dispositions changed for ${changedRows(original.dispositions, corrected.dispositions, ['id', 'status']) || 'duplicate rows'}`);
+  if (original.coverageDecisions !== undefined) requireThat(rows(original.coverageDecisions, ['id', 'outcome']) === rows(corrected.coverageDecisions, ['id', 'outcome']),
+    `${substance}: coverageDecisions changed for ${changedRows(original.coverageDecisions, corrected.coverageDecisions, ['id', 'outcome']) || 'duplicate rows'}`);
+  if (original.dimensions !== undefined) requireThat(rows(original.dimensions, ['name', 'outcome']) === rows(corrected.dimensions, ['name', 'outcome']),
+    `${substance}: dimensions changed for ${changedRows(original.dimensions, corrected.dimensions, ['name', 'outcome']) || 'duplicate rows'}`);
   // An omitted assessment may be supplied; a stated one keeps its affected set.
   if (original.historyAssessment !== undefined && original.historyAssessment !== null) {
     // Affected IDs are compared as the set that bookkeeping keeps.
     const affected = value => Array.isArray(value?.affected)
       ? [...new Set(value.affected.filter(id => !eligibleAffected || eligibleAffected.includes(id)))].sort() : null;
-    requireThat(identity(affected(original.historyAssessment)) === identity(affected(corrected.historyAssessment)), substance);
+    requireThat(identity(affected(original.historyAssessment)) === identity(affected(corrected.historyAssessment)), `${substance}: historyAssessment.affected changed`);
   }
 }
 export function changedPaths(before, after) {
@@ -451,18 +465,22 @@ function checkVerdict(verdict, ids, candidate, changes, history, claims, reconsi
   // Bookkeeping that is not substance is normalized and recorded, never rejected (AC5).
   const normalized = [];
   const resolveFindingPath = findingPathResolver(candidate, verdict.gate);
-  const findings = verdict.findings.map(finding => {
-    ['id', 'classId', 'classStatement', 'failureScenario', 'criterion', 'path', 'evidence'].forEach(key => text(finding[key], `Finding ${key}`));
-    requireThat(SEVERITIES.includes(finding.severity), 'Finding severity must be high, medium or low');
+  // Rejections name the field path and finding ID to fix (issue #140).
+  const named = (index, finding, field = '') => `findings[${index}]${field}${typeof finding?.id === 'string' && finding.id ? ` (${finding.id})` : ''}`;
+  const findings = verdict.findings.map((finding, index) => {
+    ['id', 'classId', 'classStatement', 'failureScenario', 'criterion', 'path', 'evidence'].forEach(key => text(finding[key], `Finding ${key} at ${named(index, finding, `.${key}`)}`));
+    requireThat(SEVERITIES.includes(finding.severity), `Finding severity must be high, medium or low: ${named(index, finding, '.severity')}`);
     const path = resolveFindingPath(finding.path);
-    requireThat(path && typeof finding.blocking === 'boolean', 'Finding must name source in scope');
+    requireThat(path, `Finding must name source in scope: ${named(index, finding, '.path')} names ${JSON.stringify(finding.path)}, which is not a source path in this candidate`);
+    requireThat(typeof finding.blocking === 'boolean', `Finding must name source in scope: ${named(index, finding, '.blocking')} must be true or false`);
     let row = path === finding.path ? finding : { ...finding, path };
     if (row.blocking && row.severity === 'low') {
       // Low never blocks (AC3); the recorded severity stands.
       row = { ...row, blocking: false };
       normalized.push({ rule: 'low-never-blocks', field: 'findings.blocking', id: row.id });
     }
-    if (row.blocking) requireThat(candidate.criteria.includes(row.criterion) || row.criterion === `gate:${verdict.gate}`, 'Blocking finding lacks approved criterion');
+    if (row.blocking) requireThat(candidate.criteria.includes(row.criterion) || row.criterion === `gate:${verdict.gate}`,
+      `Blocking finding lacks approved criterion: ${named(index, finding, '.criterion')} is ${JSON.stringify(row.criterion)}; use one of ${[...candidate.criteria, `gate:${verdict.gate}`].join(', ')}`);
     return row;
   });
   requireThat(new Set(verdict.findings.map(item => item.id)).size === verdict.findings.length, 'Duplicate finding identity');
@@ -482,7 +500,10 @@ function checkVerdict(verdict, ids, candidate, changes, history, claims, reconsi
   const disclosed = new Set([...ledger.disclosed, ...verdict.findings.map(row => row.id)]);
   // As before, the consolidated review names only disclosed findings; other
   // gates may dispose of findings whose retained record was lost.
-  if (verdict.gate === 'review') requireThat(dispositions.every(row => disclosed.has(row.id)), 'A review disposition must name a finding disclosed in supplied history, claims or current findings');
+  if (verdict.gate === 'review') {
+    const undisclosed = dispositions.filter(row => !disclosed.has(row.id)).map(row => `dispositions[${verdict.dispositions.indexOf(row)}] (${row.id})`);
+    requireThat(!undisclosed.length, `A review disposition must name a finding disclosed in supplied history, claims or current findings: ${undisclosed.join(', ')}`);
+  }
   let historyAssessment = verdict.historyAssessment;
   if (historyAssessment && Array.isArray(historyAssessment.affected)) {
     // Keep only IDs that need a decision; drop disclosed extras and repeats.
@@ -499,15 +520,22 @@ function checkVerdict(verdict, ids, candidate, changes, history, claims, reconsi
     if (kept.length !== historyAssessment.affected.length) historyAssessment = { ...historyAssessment, affected: kept };
   }
   if (verdict.outcome === 'PASS') {
-    requireThat(!dispositions.some(item => item.status === 'present' && prior.has(item.id) && findingBlocks(prior.get(item.id))), 'PASS contradicts a present blocking finding');
+    const contradicted = dispositions.filter(item => item.status === 'present' && prior.has(item.id) && findingBlocks(prior.get(item.id)))
+      .map(item => `dispositions[${verdict.dispositions.indexOf(item)}] (${item.id})`);
+    requireThat(!contradicted.length, `PASS contradicts a present blocking finding: ${contradicted.join(', ')} marks a blocking finding present`);
     if (ledger.reconsider.length) {
-      requireThat(historyAssessment && Array.isArray(historyAssessment.affected), 'Reconsider affected closed findings and justify any carried closures', { eligibleAffected: ledger.eligibleAffected });
+      requireThat(historyAssessment && Array.isArray(historyAssessment.affected),
+        `Reconsider affected closed findings and justify any carried closures: historyAssessment.affected must list the affected IDs among ${ledger.reconsider.join(', ')}`, { eligibleAffected: ledger.eligibleAffected });
       for (const id of historyAssessment.affected) required.add(id);
       if (ledger.reconsider.some(id => !historyAssessment.affected.includes(id))) text(historyAssessment.carryForwardReason, 'Unaffected closure applicability justification');
     }
+    const claimedIds = new Set(claims.map(claim => claim.findingId));
     for (const id of required) {
       const disposition = dispositions.find(item => item.id === id);
-      requireThat(disposition && ['resolved', 'unsupported', 'unaffected', 'present-low'].includes(disposition.status), `Missing supported disposition for ${id}`);
+      const found = disposition ? `dispositions[${verdict.dispositions.indexOf(disposition)}] has status ${disposition.status}` : 'dispositions has no entry for it';
+      requireThat(disposition && ['resolved', 'unsupported', 'unaffected', 'present-low'].includes(disposition.status), claimedIds.has(id)
+        ? `Missing supported disposition for ${id}: your claim about ${id} needs a resolved, unsupported, unaffected or present-low disposition (${found})`
+        : `Missing supported disposition for ${id}: a PASS needs a resolved, unsupported, unaffected or present-low disposition (${found})`);
       requireThat(!prior.get(id)?.open || disposition.status !== 'unaffected', `Open finding ${id} cannot be carried as unaffected`);
     }
   }
@@ -546,6 +574,50 @@ async function ciSupersedes(core, state, candidate, before, after, memo, equival
   return true;
 }
 
+// The order a missing verification names (issue #140). Assessments consume an
+// actual passing verification of the candidate; a run without one is refused
+// before any reviewer starts, never recorded as a reviewer outage.
+export const VERIFICATION_ORDER = 'candidate.prepare -> gate.execute ["verification"] -> review.execute';
+export class VerificationRequiredError extends ProtocolError {
+  constructor(message) { super('VERIFICATION_REQUIRED', message); this.name = 'VerificationRequiredError'; }
+}
+// Resolve the typed consumed proof for an execution and check the assessment
+// preconditions on it. Shared by each reviewer's execution and by
+// review.execute, which checks it once before the round starts.
+export async function consumedProof(core, state, candidate, input, memo = new Map()) {
+  requireThat(input.consumed === undefined || Array.isArray(input.consumed), 'Consumed proof must be an array');
+  const consumed = [...(input.consumed ?? [])];
+  const assessed = input.gates.some(id => ['review', 'spec', 'judge'].includes(id));
+  if (input.consumed === undefined && assessed) {
+    // Required evidence is a typed input, not a sequencing graph or a transport
+    // file the orchestrator must assemble. Never reach behind a current FAIL.
+    for (const ref of [...state.results].reverse()) {
+      let report; try { report = await core.store.json(ref); } catch { continue; }
+      if (report.gate !== 'verification') continue;
+      try { await core.currentResult(ref, candidate, state, new Set(), memo); consumed.push(ref); break; }
+      catch { /* Earlier proof may apply to the selected unchanged content. */ }
+    }
+  }
+  for (const ref of consumed) {
+    const proof = await core.currentResult(ref, candidate, state, new Set(), memo);
+    if (input.gates[0] === 'packet' || proof.outcome === 'PASS') continue;
+    // A failed or unavailable verification is the same precondition as none.
+    if (assessed && proof.gate === 'verification') throw new VerificationRequiredError(
+      `This assessment requires actual applicable verification evidence: the current verification result is ${proof.outcome}. Fix it, then run ${VERIFICATION_ORDER}`);
+    requireThat(false, 'Consumed proof is not passing/current');
+  }
+  if (assessed) {
+    const proof = await Promise.all(consumed.map(ref => core.store.json(ref)));
+    if (!proof.some(item => item.gate === 'verification' && item.outcome === 'PASS')) throw new VerificationRequiredError(
+      `This assessment requires actual applicable verification evidence: no current passing verification result for this candidate. Run ${VERIFICATION_ORDER}`);
+    if (input.gates.includes('review')) {
+      const scopes = await Promise.all(proof.filter(item => item.gate === 'verification').map(async item => (await core.store.json(item.runner)).validation));
+      requireThat(scopes.some(scope => ['ci', 'alternative'].includes(scope?.kind)), 'Acceptance needs observed CI scope or an explicit local alternative for independent assessment');
+    }
+  }
+  return consumed;
+}
+
 export async function executeGates(core, input, operation, reviewBaseline) {
   const id = randomUUID(), startedAt = Date.now(), start = performance.now(); let finished = false;
   const finish = async outcome => {
@@ -555,10 +627,17 @@ export async function executeGates(core, input, operation, reviewBaseline) {
   };
   await record({id,startedAt,category:'setup',label:'execution-preparation',worker:true,outcome:'RUNNING',pid:process.pid,
     project:core.context.workspaceRoot,feature:core.context.featureId});
-  try { const value = await executeGatesPrepared(core,input,operation,finish,reviewBaseline); await finish(value.reused ? 'REUSED' : 'PASS'); return value; }
-  catch(error) { await finish('UNAVAILABLE'); throw error; }
+  const progress = { launched: false };
+  try { const value = await executeGatesPrepared(core,input,operation,finish,reviewBaseline,progress); await finish(value.reused ? 'REUSED' : 'PASS'); return value; }
+  catch(error) {
+    // Whether a reviewer ran before the failure: a paired review records a
+    // failure before job admission or provider launch as a refusal, not a
+    // reviewer outage (issue #140).
+    if (error && typeof error === 'object') { if (!finished) error.beforeAdmission = true; error.reviewerLaunched = progress.launched; }
+    await finish('UNAVAILABLE'); throw error;
+  }
 }
-async function executeGatesPrepared(core, input, operation, preparationFinished, reviewBaseline) {
+async function executeGatesPrepared(core, input, operation, preparationFinished, reviewBaseline, progress = { launched: false }) {
   // A paired round shares one prior-history snapshot. A fast peer must never
   // become input to the other initial assessment during preparation. Live
   // authority and candidate checks still run before each job is admitted.
@@ -581,28 +660,7 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
   const configuration = input.configuration ?? {};
   const supplied = await coverageClaims(core, state, candidate, input.coverageClaims ?? []);
   requireThat(!supplied.length || input.gates.some(id => ['review', 'spec', 'judge'].includes(id)), 'Coverage replacement needs an existing spec or Judge assessment');
-  requireThat(input.consumed === undefined || Array.isArray(input.consumed), 'Consumed proof must be an array');
-  const consumed = [...(input.consumed ?? [])];
-  if (input.consumed === undefined && input.gates.some(id => ['review', 'spec', 'judge'].includes(id))) {
-    // Required evidence is a typed input, not a sequencing graph or a transport
-    // file the orchestrator must assemble. Never reach behind a current FAIL.
-    for (const ref of [...state.results].reverse()) {
-      let report; try { report = await core.store.json(ref); } catch { continue; }
-      if (report.gate !== 'verification') continue;
-      try { await core.currentResult(ref, candidate, state, new Set(), applicabilityMemo); consumed.push(ref); break; }
-      catch { /* Earlier proof may apply to the selected unchanged content. */ }
-    }
-  }
-  requireThat(Array.isArray(consumed), 'Consumed proof must be an array');
-  for (const ref of consumed) { const proof = await core.currentResult(ref, candidate, state, new Set(), applicabilityMemo); requireThat(input.gates[0] === 'packet' || proof.outcome === 'PASS', 'Consumed proof is not passing/current'); }
-  if (input.gates.some(id => ['review', 'spec', 'judge'].includes(id))) {
-    const proof = await Promise.all(consumed.map(ref => core.store.json(ref)));
-    requireThat(proof.some(item => item.gate === 'verification' && item.outcome === 'PASS'), 'This assessment requires actual applicable verification evidence');
-    if (input.gates.includes('review')) {
-      const scopes = await Promise.all(proof.filter(item => item.gate === 'verification').map(async item => (await core.store.json(item.runner)).validation));
-      requireThat(scopes.some(scope => ['ci', 'alternative'].includes(scope?.kind)), 'Acceptance needs observed CI scope or an explicit local alternative for independent assessment');
-    }
-  }
+  const consumed = await consumedProof(core, state, candidate, input, applicabilityMemo);
   const replacements = input.gates.some(id => ['review', 'spec', 'judge'].includes(id))
     ? [...supplied, ...await checkReplacementClaims(core, consumed)] : supplied;
   requireThat(Array.isArray(input.history ?? []) && (input.history ?? []).length <= 64, 'Select at most 64 relevant prior review records');
@@ -706,7 +764,8 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
       history.push({ reference: await core.store.putJson(context), reviewerResult: context });
     } else history.push({ reference: ref, reviewerResult: report });
   }
-  for (const claim of input.claims ?? []) requireThat(history.some(item => item.reviewerResult.findings?.some(finding => finding.id === claim.findingId)), 'Disposition claim lacks a retained finding');
+  for (const [index, claim] of (input.claims ?? []).entries()) requireThat(history.some(item => item.reviewerResult.findings?.some(finding => finding.id === claim.findingId)),
+    `Disposition claim lacks a retained finding: claims[${index}] names ${claim.findingId}, which no retained review in this run reports; claim only findings GateReeve still holds`);
   let changes = null, priorCandidate = null;
   if (input.prior) {
     requireThat(role === 'independent' && input.gates.length === 1, 'Delta requires one qualified independent gate');
@@ -818,8 +877,6 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
       return { reused:true, results:input.gates.map(id=>reusable.get(id)), currentCandidate:state.candidate };
     }
   }
-  // The review of a new revision counts its round before it starts (AC6).
-  if (roundPolicy) await countReviewRound(core, roundPolicy.scope, contentIdentity(candidate), state.candidate);
   const jobId = identity({ run: state.runId, operation }).slice(7);
   const started = events.find(event => event.type === 'JOB_STARTED' && event.payload.jobId === jobId);
   if (started) {
@@ -848,7 +905,7 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
   await preparationFinished('PASS');
   const startedAt = new Date().toISOString();
   const artifacts = [];
-  let evaluator = null, runner = null, verdicts = [], metrics = { tokens: null, cost: null };
+  let evaluator = null, runner = null, verdicts = [], metrics = { tokens: null, cost: null }, launched = false;
   try {
     if (role === 'independent' || role === 'assessment') {
       const packet = { contract: CONTRACT, rules: input.gates.map(id => ({ id, rule: gate(id).rule })), pattern: value.pattern, gates: input.gates, criteria: candidate.criteria, scope: candidate.scope,
@@ -865,6 +922,10 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
       const ledgers = Object.fromEntries(input.gates.map(id => [id, findingLedger(id, history, input.claims ?? [], value.reconsiderClosures)]));
       packet.dispositionsRequired = input.gates.flatMap(id => ledgers[id].dispositionsRequired);
       if (roundPolicy) packet.roundPolicy = roundPolicy;
+      // A round counts once a reviewer is launched on a new revision (AC6), so a
+      // precondition that stops packet assembly never charges one (issue #140).
+      if (roundPolicy) await countReviewRound(core, roundPolicy.scope, contentIdentity(candidate), state.candidate);
+      launched = progress.launched = true;
       const reviewed = await independent(core, state, candidate, prepared, configuration, packet, jobId, history, priorities, ledgers);
       evaluator = reviewed.evaluator; metrics = reviewed.metrics; artifacts.push(...reviewed.artifacts);
       const returned = reviewed.output.verdicts;
@@ -976,11 +1037,15 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
     verdicts = input.gates.map(id => ({ gate: id, outcome: error.outcome ?? 'UNAVAILABLE', ...((error.outcome ?? 'UNAVAILABLE') === 'UNAVAILABLE' ? { unavailableReason: unavailableReason(error) } : {}),
       summary: error.message, findings: [], dispositions: [],
       ...(error.invalidVerdictContract || error.providerFailure?.category === 'malformed-output' ? { invalidVerdictContract: true } : {}),
+      ...(error.providerFailure?.category ? { providerFailure: { category: error.providerFailure.category } } : {}),
       ...(error.provenance ? { provenance: error.provenance } : {}) }));
   }
   for (const verdict of verdicts) {
     // A reviewer- or runner-reported UNAVAILABLE is missing evidence (AC5).
     if (verdict.outcome === 'UNAVAILABLE' && !verdict.unavailableReason) verdict.unavailableReason = 'missing-evidence';
+    // Whether an evaluator was launched, so a paired review can tell a
+    // packet-assembly refusal from a reviewer that ran (issue #140).
+    if (role === 'independent' || role === 'assessment') verdict.reviewerLaunched = launched;
   }
   const receipt = await core.store.putJson({ contract: CONTRACT, kind: 'execution', runId: state.runId,
     input: prepared.hash, jobId, gates: input.gates, role, evaluator, startedAt, completedAt: new Date().toISOString(), metrics });

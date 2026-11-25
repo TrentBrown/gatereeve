@@ -248,3 +248,63 @@ test('planning reviews require the same finding fields; low never blocks', () =>
   validatePlanningReview(mixed, documents);
   assert.equal(mixed.outcome, 'FAIL');
 });
+
+// Issue #140: every touched rejection keeps its leading sentence and names the
+// offending field path or finding/claim ID.
+test('verdict rejections name the field path or finding ID', () => {
+  const carried = { affected: [], carryForwardReason: 'C1 untouched.' };
+  const cases = [
+    [() => validate(pass({ dispositions: [disposition('C1'), disposition('O1', 'present')], historyAssessment: carried })),
+      /PASS contradicts a present blocking finding: dispositions\[1\] \(O1\)/],
+    [() => validate(pass({ dispositions: [disposition('C1')], historyAssessment: carried })),
+      /Missing supported disposition for O1: a PASS needs a resolved, unsupported, unaffected or present-low disposition \(dispositions has no entry for it\)/],
+    [() => validate(pass({ findings: [finding('F1', { path: 'app/missing.js', blocking: false })], dispositions: [disposition('O1'), disposition('C1')], historyAssessment: carried })),
+      /Finding must name source in scope: findings\[0\]\.path \(F1\) names "app\/missing\.js"/],
+    [() => validate(pass({ outcome: 'FAIL', findings: [finding('F1', { blocking: 'yes' })] })),
+      /Finding must name source in scope: findings\[0\]\.blocking \(F1\) must be true or false/],
+    [() => validate(pass({ outcome: 'FAIL', findings: [finding('F1'), finding('F2', { criterion: 'R7' })] })),
+      /Blocking finding lacks approved criterion: findings\[1\]\.criterion \(F2\) is "R7"/],
+    [() => validate(pass({ outcome: 'FAIL', findings: [finding('F1', { failureScenario: '' })] })),
+      /Finding failureScenario at findings\[0\]\.failureScenario \(F1\) must be nonempty text/],
+    [() => validate(pass({ dispositions: [disposition('O1'), disposition('C1')], historyAssessment: null })),
+      /Reconsider affected closed findings and justify any carried closures: historyAssessment\.affected must list the affected IDs among C1/],
+  ];
+  for (const [run, message] of cases) assert.throws(run, message);
+  const review = pass({ gate: 'review', criteria: [{ id: 'R1', outcome: 'PASS', evidence: 'Checked.' }], dimensions: dimensionRows('PASS'),
+    dispositions: [disposition('Z9')] });
+  assert.throws(() => validateVerdict(review, ['review'], candidate, null, history, [], []),
+    /A review disposition must name a finding disclosed in supplied history, claims or current findings: dispositions\[0\] \(Z9\)/);
+});
+test('a claimed finding without a supported disposition says what the claim needs', () => {
+  const claims = [{ findingId: 'A1', claim: 'Left unchanged on purpose: a product decision.' }];
+  const verdict = pass({ dispositions: [disposition('O1'), disposition('C1'), disposition('A1', 'present')], historyAssessment: { affected: [], carryForwardReason: 'C1 untouched.' } });
+  assert.throws(() => validateVerdict(verdict, ['code'], candidate, null, history, claims, reconsider),
+    /Missing supported disposition for A1: your claim about A1 needs a resolved, unsupported, unaffected or present-low disposition \(dispositions\[2\] has status present\)/);
+});
+test('format repair rejections name the changed field or ID', () => {
+  const original = pass({ outcome: 'FAIL', summary: 'One defect.', findings: [finding('F1')],
+    criteria: [{ id: 'R1', outcome: 'FAIL', evidence: 'Defect' }], dispositions: [disposition('O1', 'present')],
+    dimensions: dimensionRows('FAIL'), coverageDecisions: [{ id: 'K1', outcome: 'PASS', evidence: 'Covered.' }] });
+  const cases = [
+    [value => { value.outcome = 'PASS'; }, /Verdict changes require substantive reassessment, not format repair: gate\/outcome changed from code\/FAIL to code\/PASS/],
+    [value => { value.mandateAssessment = { outcome: 'PASS', evidence: 'x' }; }, /Format repair must preserve mandate assessment: mandateAssessment changed/],
+    [value => { value.findings = []; }, /Format repair must preserve all original findings: findings has 0 entries; the original had 1/],
+    [value => { value.findings[0].severity = 'medium'; }, /Format repair must preserve finding identity, severity and evidence: findings\[0\] \(F1\)/],
+    [value => { value.findings[0].id = 'F9'; }, /Format repair must preserve finding identity, severity and evidence: original findings\[0\] \(F1\) is missing/],
+    [value => { value.findings[0].criterion = 'gate:code'; }, /Valid finding criterion cannot be reassigned by format repair: findings\[0\]\.criterion \(F1\) must stay R1/],
+    [value => { value.criteria = []; }, /Format repair must retain every criterion assessment: criteria has 0 entries; the original had 1/],
+    [value => { value.criteria[0].outcome = 'PASS'; }, /Format repair must preserve criterion outcomes and evidence: criteria\[0\] \(R1\) must keep outcome FAIL/],
+    [value => { value.criteria[0].id = 'R2'; }, /Valid criterion cannot be reassigned by format repair: criteria\[0\]\.id must stay R1/],
+    [value => { value.coverage.complete = false; }, /Substantive assessment changes are not format repair: coverage\.complete or coverage\.limitations changed/],
+    [value => { value.dispositions[0].status = 'resolved'; }, /Substantive assessment changes are not format repair: dispositions changed for O1/],
+    [value => { value.coverageDecisions[0].outcome = 'FAIL'; }, /Substantive assessment changes are not format repair: coverageDecisions changed for K1/],
+    [value => { value.dimensions[0].outcome = 'PASS'; }, /Substantive assessment changes are not format repair: dimensions changed for code/],
+  ];
+  for (const [change, message] of cases) {
+    const changed = structuredClone(original); change(changed);
+    assert.throws(() => validateFormatRepair(original, changed, ['R1'], []), message);
+  }
+  const affected = pass({ outcome: 'FAIL', findings: [finding('F1')], historyAssessment: { affected: ['O1'], carryForwardReason: '' } });
+  assert.throws(() => validateFormatRepair(affected, { ...structuredClone(affected), historyAssessment: { affected: [], carryForwardReason: '' } }, ['R1'], ['O1']),
+    /Substantive assessment changes are not format repair: historyAssessment\.affected changed/);
+});

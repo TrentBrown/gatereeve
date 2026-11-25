@@ -124,7 +124,10 @@ export function project(events) {
       case 'REVIEWERS_SELECTED': state.reviewerSelection = { ...value, event: event.hash, at: event.recordedAt }; break;
       case 'REVIEW_ROUND_STARTED': state.reviewRounds.push({ ...value, event: event.hash, at: event.recordedAt }); break;
       case 'BOUNDARY_REVIEWED': state.boundaryReviewHistory.push({ ...value, event: event.hash, at: event.recordedAt });
-        if (value.roundPolicy) countRound(state, value.roundPolicy.scope, value.roundPolicy.revision, { candidate: value.candidate, event: event.hash, at: event.recordedAt });
+        // A round in which no reviewer ran (every outcome refused) is not a
+        // round (issue #140). Earlier events have no refused rows and count as before.
+        if (value.roundPolicy && !(value.outcomes?.length && value.outcomes.every(row => row.status === 'refused')))
+          countRound(state, value.roundPolicy.scope, value.roundPolicy.revision, { candidate: value.candidate, event: event.hash, at: event.recordedAt });
         break;
       case 'REVIEW_ADJUDICATED': state.adjudications.push({ ...value, event: event.hash, at: event.recordedAt }); break;
       case 'SOURCE_PREPARING': state.sourcePreparations.push(value); state.sourcePreparationStatus[value.id] = { status: 'preparing', reason: 'Preparation has not published a candidate; owned references are retained for retry.' }; break;
