@@ -137,8 +137,9 @@ same human question. It never covers the release branch: the final PR needs a
 per-PR human instruction, and with integration equal to release no standing grant
 exists.
 Keep merge permission explicit and deployment separately authorized. Revocation,
-expiry and changed scope invalidate further use. Open drafts remain the default;
-client-specific closed drafts are an explicit repository setting.
+expiry and changed scope invalidate further use. Open PRs remain the default (draft
+or ready for review; draft status is never a precondition); client-specific
+closed PRs are an explicit repository setting.
 
 ## Delegated autonomy
 
@@ -205,7 +206,7 @@ Under `goal`, grill-me and decision records answer their own questions as
 `Answered by: agent` entries, which both independent reviewers assess and the
 PR lists. The harness question tools are denied until a recorded park. The
 native goal, or the Stop hook, keeps the run active. While CI is pending, wait
-with a PR watcher. A real blocker gets a draft PR listing it, then
+with a PR watcher. A real blocker gets an open PR listing it, then
 `goal.park`, then a question; a human `run.continue` resumes the run. The grant
 also covers the test methods needed to prove the change, even where project
 files say to ask first. List each method in the PR. Production, data deletion

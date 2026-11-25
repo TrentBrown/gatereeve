@@ -87,7 +87,8 @@ export async function prepareMerge(core, input) {
   const base = (await runGit(repository.path, ['ls-remote', '--exit-code', repository.remote ?? 'origin', `refs/heads/${pr.baseRefName}`])).split(/\s/u)[0];
   requireThat(base === pin.target, 'PR target differs from the assessed target; refresh candidate target and interaction review before merge');
   if (repository.keepPullRequestsClosed) requireThat(pr.state === 'CLOSED', 'PR must remain closed until the authorized merge window');
-  else requireThat(pr.state === 'OPEN' && pr.isDraft, 'PR must be an open draft during preparation');
+  // Draft status is no precondition: a draft or a PR ready for review is accepted.
+  else requireThat(pr.state === 'OPEN', 'PR must be open during preparation');
   await core.assertContext();
   return { contract: CONTRACT, kind: 'github-pr', repository: input.repository, number: input.number,
     ownerRepo: name, url: pr.url, headBranch: head, baseBranch: pr.baseRefName, head: pin.head, base,
@@ -167,7 +168,6 @@ export async function merge(core, input, operation) {
   // The PR must still present the current review summary for this head.
   const review = await requirePublishedReview(core, action);
   let opened = false;
-  let madeReady = false;
   await requireCurrentState(core, state);
   try {
     if (action.keepClosed) {
@@ -184,10 +184,9 @@ export async function merge(core, input, operation) {
       await requirePublishedReview(core, action);
       await requireCurrentState(core, state);
     }
-    if (current.isDraft) {
-      madeReady = true;
-      await run(repository.path, ['pr', 'ready', String(action.number), '--repo', action.ownerRepo]);
-    }
+    // GitHub cannot merge a draft. The PR stays ready afterwards, merged or
+    // not: preparation accepts a ready PR, so a retry needs no draft restored.
+    if (current.isDraft) await run(repository.path, ['pr', 'ready', String(action.number), '--repo', action.ownerRepo]);
     const hostedChecks = await waitForHostedChecks(repository.path, action, run);
     await requireCurrentState(core, state);
     const currentProof = await core.check('merge', state);
@@ -230,17 +229,6 @@ export async function merge(core, input, operation) {
         await run(repository.path, ['pr', 'close', String(action.number), '--repo', action.ownerRepo]);
         const closed = JSON.parse(await run(repository.path, ['pr', 'view', String(action.number), '--repo', action.ownerRepo, '--json', 'state']));
         requireThat(closed.state === 'CLOSED', 'Merge cleanup could not verify PR closure');
-      }
-    } else if (madeReady) {
-      // Restore only the open draft this invocation promoted. Otherwise an
-      // expired/revoked attempt would leave merge.prepare unable to retry.
-      const observed = JSON.parse(await run(repository.path, ['pr', 'view', String(action.number), '--repo', action.ownerRepo,
-        '--json', 'number,state,isDraft,headRefName,headRefOid,baseRefName']));
-      if (observed.number === action.number && observed.state === 'OPEN' && !observed.isDraft
-        && observed.headRefName === action.headBranch && observed.headRefOid === action.head && observed.baseRefName === action.baseBranch) {
-        await run(repository.path, ['pr', 'ready', String(action.number), '--repo', action.ownerRepo, '--undo']);
-        const restored = JSON.parse(await run(repository.path, ['pr', 'view', String(action.number), '--repo', action.ownerRepo, '--json', 'state,isDraft']));
-        requireThat(restored.state === 'MERGED' || restored.state === 'OPEN' && restored.isDraft, 'Merge cleanup could not verify draft restoration');
       }
     }
   }

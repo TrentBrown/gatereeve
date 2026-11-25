@@ -119,7 +119,7 @@ export function currentCommands() {
   runCommand.addCommand(command('set-dial', 'Record a per-run human choice or permitted agent return/escalation')
     .argument('<file>', 'Exact run.set-dial input; mandated and goal require the named run, human authority and fixed mandate')
     .action(async (file, options) => run(options, 'run.set-dial', await readJsonFile(file))));
-  runCommand.addCommand(command('park', 'Under goal autonomy, park the run behind an open draft PR that lists every blocker')
+  runCommand.addCommand(command('park', 'Under goal autonomy, park the run behind an open PR (draft or ready) that lists every blocker')
     .argument('<file>', 'Exact goal.park input: pr {repository, number}, blockers and evidence')
     .action(async (file, options) => run(options, 'goal.park', await readJsonFile(file))));
   const selectReviewers = command('select-reviewers', 'Record runtime capability observations and two cross-provider reviewer choices')

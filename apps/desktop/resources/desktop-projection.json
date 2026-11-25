@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:c4a326acc076941921d2bd40f39b85883ffe42c1875204971cce6f0dc43dba35",
+  "protocolHash": "sha256:95741cab33aebbeb911a8b34a73b58cb9848e831c98273adafc312fb4fb57d99",
   "contract": "gatereeve/current/8",
   "contractSha256": "1df0afc21301595b72a5f9bdad3ab2aade7452ad1c5a4f97455bde354bf1120a",
   "files": [
@@ -22,8 +22,8 @@
     },
     {
       "path": "current/actions.js",
-      "size": 21248,
-      "sha256": "edb55067013cba52839e95983f20e5cce240000647c931779aca2d4e02cea497"
+      "size": 20348,
+      "sha256": "12f2f3ea194048220cc15a0faf347acb5f18c65852bd1a58a1e8ead885896cef"
     },
     {
       "path": "current/adapter.js",
@@ -77,8 +77,8 @@
     },
     {
       "path": "current/delivery.js",
-      "size": 7885,
-      "sha256": "546b98345ebf3ca282388b645311401c5d59d705307caa5a75979201b23958d6"
+      "size": 7831,
+      "sha256": "ff5ebc96c18510562eff4da259e1d09aedb6d5758da29a06e707d4e0aaf95f46"
     },
     {
       "path": "current/diagnostics.js",
@@ -122,8 +122,8 @@
     },
     {
       "path": "current/goal.js",
-      "size": 9601,
-      "sha256": "823fd8d0e548802446c8fa3fb7c91f5dd9b01ddd2ad1e8f5453d0fba64ebf1fc"
+      "size": 9490,
+      "sha256": "e267186fdc04c8a21bc036d68045dfc423528f9a8b63634f3ad9845961dfcb83"
     },
     {
       "path": "current/observation.js",
@@ -207,8 +207,8 @@
     },
     {
       "path": "current/validation-scope.js",
-      "size": 5620,
-      "sha256": "fa4f6fff5c983bcb92215d195ea7da638b3b12605650a9782460057f7c21307a"
+      "size": 5983,
+      "sha256": "301024d66650765069b5462fe4ccbc24994adf476970038b145059ff0bc03c87"
     },
     {
       "path": "current/workflow-database.js",
@@ -237,8 +237,8 @@
     },
     {
       "path": "local-agent-adapters.js",
-      "size": 22082,
-      "sha256": "54211699f7919d8ee1ffd14c61dd4be2e22a2a9746501f382f0cbfda0e7e38f9"
+      "size": 22714,
+      "sha256": "cf84588f89addccf58b2448245ad54ce4d8797eb1ea88d5a48337aa961074405"
     },
     {
       "path": "module-runtime.js",

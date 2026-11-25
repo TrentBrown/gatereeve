@@ -150,6 +150,9 @@ test('non-interactive apply removes only worktrees with nothing listed, and prev
 });
 
 test('every regenerable directory name is omitted at any depth; an ignored file with such a name and .env are listed', async t => {
+  // Pinned to the spec's exact list: iterating the constant alone would not
+  // notice a name added to or dropped from it.
+  assert.deepEqual([...REGENERABLE], ['node_modules', 'dist', 'build', 'out', '.next', '.turbo', '.cache', 'coverage', '__pycache__', '.pytest_cache', '.venv', 'target']);
   const w = await world(t);
   const path = await w.add('regen');
   await writeFile(join(path, '.gitignore'), [...REGENERABLE, '.env', ''].join('\n'));

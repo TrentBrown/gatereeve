@@ -395,10 +395,7 @@ def _validate_snapshot_identity(
         raise PullRequestContextError(
             f"Pull request #{snapshot.number} is {snapshot.state}, not {required_state}"
         )
-    if not snapshot.is_draft and not repository.context.keep_pull_requests_closed:
-        raise PullRequestContextError(
-            f"Pull request #{snapshot.number} must be draft when the boundary begins"
-        )
+    # Draft status is no precondition: an open draft or ready PR is accepted.
     configured_repository = _github_repository_from_remote(
         repository.git("remote", "get-url", repository.remote)
     )
@@ -772,7 +769,7 @@ def main() -> int:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     resolve_parser = subparsers.add_parser(
-        "resolve", help="Resolve and preflight one draft pull request"
+        "resolve", help="Resolve and preflight one open pull request (draft or ready)"
     )
     resolve_parser.add_argument("--cwd", default=".")
     resolve_parser.add_argument("--repository")

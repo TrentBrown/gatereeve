@@ -356,7 +356,7 @@ async function markStranded(root, item, now) {
   if (!['eligible', 'uncertain'].includes(item.status) || !item.createdAt || Date.parse(item.createdAt) > now - STRANDED_DAYS * 86400000) return;
   item.stranded = true;
   if (item.files === undefined || item.files === null) {
-    try { item.files = (await treeTotals(item.path, BigInt((await lstat(item.path, { bigint: true })).dev)))?.files ?? null; } catch { item.files = null; }
+    try { item.files = (await treeTotals(item.path, (await lstat(join(root, 'runs'), { bigint: true })).dev))?.files ?? null; } catch { item.files = null; }
   }
   item.command = `GATEREEVE_SCRATCH_ROOT='${root}' gatereeve cleanup --run ${item.id} --apply`;
 }
@@ -395,14 +395,16 @@ export async function inspectScratch({ root = scratchRoot(), run, quick = false,
   const entries = [];
   for (const name of names.sort()) entries.push(await assess(info.root, name, { ...options, quick }));
   // Spec AC2: previews and doctor count files for every run, not only eligible ones.
-  // A mounted run is not walked: the mount may be a large or remote tree.
-  for (const item of entries) if (item.files === undefined && !['removed', 'mounted'].includes(item.status)) item.files = await treeTotals(item.path, BigInt((await lstat(item.path, { bigint: true }).catch(() => ({ dev: 0n }))).dev)).then(totals => totals?.files ?? null, () => null);
-  // Interrupted deletions stay visible: count their files too.
+  // A mounted run is not walked: the mount may be a large or remote tree. The
+  // walk is bound to the runs directory's filesystem, so a run whose folder is
+  // itself a mount root is not walked either, including by the quick inventory
+  // that never classifies runs as mounted.
+  const runsDevice = (await lstat(join(info.root, 'runs'), { bigint: true })).dev;
+  for (const item of entries) if (item.files === undefined && !['removed', 'mounted'].includes(item.status)) item.files = await treeTotals(item.path, runsDevice).then(totals => totals?.files ?? null, () => null);
+  // Interrupted deletions stay visible: count their files too. A tombstone
+  // removed after the listing (a concurrent cleanup) counts as no files.
   let tombstoneFiles = 0;
-  for (const name of tombstoneNames) {
-    const path = join(info.root, 'runs', name);
-    tombstoneFiles += await treeTotals(path, BigInt((await lstat(path, { bigint: true })).dev)).then(totals => totals?.files ?? 0, () => 0);
-  }
+  for (const name of tombstoneNames) tombstoneFiles += await treeTotals(join(info.root, 'runs', name), runsDevice).then(totals => totals?.files ?? 0, () => 0);
   const reports = run ? null : await reportRetention(info.root).then(({ names: _names, ...summary }) => summary, () => null);
   return { root: info.root, entries, eligibleBytes: quick ? null : entries.reduce((sum, item) => sum + (item.status === 'eligible' ? item.bytes : 0), 0),
     files: entries.reduce((sum, item) => sum + (item.files ?? 0), 0), reports, tombstones, tombstoneFiles, quick };

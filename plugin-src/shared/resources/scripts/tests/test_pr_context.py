@@ -135,12 +135,12 @@ class PullRequestContextTests(unittest.TestCase):
                 git_executable=self.git,
             )
 
-        with self.assertRaisesRegex(PullRequestContextError, "must be draft"):
-            resolve_pull_request_context(
-                self.repository,
-                self.provider(isDraft=False),
-                git_executable=self.git,
-            )
+        # Draft status is no precondition: a PR ready for review resolves.
+        resolve_pull_request_context(
+            self.repository,
+            self.provider(isDraft=False),
+            git_executable=self.git,
+        )
 
     def test_rejects_closed_or_mismatched_pull_request_identity(self) -> None:
         with self.assertRaisesRegex(PullRequestContextError, "not OPEN"):

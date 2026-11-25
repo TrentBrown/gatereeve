@@ -335,7 +335,8 @@ only for the current approved feature run; a UTC timestamp limits it further.
 Changed requirements/approval, repository configuration, expiry or revocation
 block subsequent use. Feature completion still requires actual integration and
 all completion obligations. This grant never authorizes deployment or publishing.
-Open drafts remain default; clients can explicitly select closed drafts through
+Open PRs remain default, draft or ready for review (draft status is never a
+precondition); clients can explicitly select closed PRs through
 `keepPullRequestsClosed: true` in repository configuration.
 
 ### Preserved exception policy

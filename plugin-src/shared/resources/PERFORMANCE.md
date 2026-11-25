@@ -14,7 +14,8 @@ gatereeve metrics config --enabled false
 gatereeve metrics cleanup                 # preview
 gatereeve metrics cleanup --apply         # eligible owned measurement data only
 gatereeve metrics purge-test-data         # preview rows from test-suite fixtures
-gatereeve metrics purge-test-data --apply # remove them
+gatereeve metrics purge-test-data --apply --workflow <id...>  # remove the named previewed workflows
+gatereeve metrics purge-test-data --apply --workflows-file <path>  # one previewed ID per line
 ```
 
 `metrics status` reports `records` as everything the store holds, with a

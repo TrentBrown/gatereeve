@@ -195,14 +195,15 @@ when you start, or after you have led the interview yourself. The agent then:
 
 It ends in one of two states:
 - **Ready:** a ready, unmerged final PR.
-- **Parked:** at a real blocker, a draft PR that lists the blockers, followed
+- **Parked:** at a real blocker, an open PR that lists the blockers, followed
   by a question to you.
 
 Confirm or override any agent entry when you return. A park resumes with your
 `run.continue`.
 
 The boundary deliberately refuses to evaluate an ambiguous local state. The
-intended code must be committed, pushed, represented by the draft PR, and
+intended code must be committed, pushed, represented by an open PR (draft or
+ready for review), and
 synchronized with the remote PR head.
 
 Review the resulting evidence and residual risks before requesting another
@@ -412,7 +413,7 @@ This is often a synchronization safeguard rather than a defect. Check for:
 
 - uncommitted intended changes;
 - commits that have not been pushed;
-- no draft PR for the current delivery branch;
+- no open PR for the current delivery branch;
 - a local branch that differs from the PR head;
 - a dirty target repository; or
 - the wrong repository selected in a multi-repository workspace.
