@@ -97,3 +97,23 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
   `local-agent-idle-inhibitor.test.js` (also on unmodified `main`), and the
   user's global git `pre-commit` hook breaks fixture commits to `main` unless
   `GIT_CONFIG_GLOBAL` is isolated, as CI does.
+
+## S8. Boundary review round 2 fixes
+
+- **Answered by:** agent
+- **Decision:** Fixed the four Codex findings and Claude's low notes:
+  - Launch is now the actual process spawn: `runAgentProcess` takes
+    `onSpawn`, and the local adapters advertise `reportsSpawn`. Other
+    adapters keep "stage invoked" as the launch.
+  - Verification from another candidate, supplied explicitly, refuses with
+    `VERIFICATION_REQUIRED`.
+  - A reused retained result is a `refused` row (`reused: true`, with its
+    results), because no reviewer launched, per AC2 precedence.
+  - A claimed blocking finding marked present on PASS carries the claim
+    wording.
+  - Verification now also runs the consumer suites (CI after convergence,
+    workflow robustness, autonomous, goal, delivery, light) and prints the
+    committed `interview.md` measurement for R8. The CI plan adds the
+    desktop runtime jobs.
+- **Note:** `local-agent-adapters.js` gained only the optional spawn hook.
+  #142 may also edit this file.

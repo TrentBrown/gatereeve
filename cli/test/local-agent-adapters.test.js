@@ -320,3 +320,15 @@ test('Codex usage totals remain unknown for incomplete fields across completed t
     validateAgentWorkflowStageResult(result);
   }
 });
+
+// Issue #140: the reviewer counts as launched only once its process spawns.
+test('runAgentProcess reports the spawn of a started process and never of one that cannot start', async () => {
+  let spawned = 0;
+  const result = await runAgentProcess(process.execPath, ['-e', 'process.stdout.write("ok")'],
+    { cwd: process.cwd(), input: '', timeoutSeconds: 30, onSpawn: async () => { spawned++; } });
+  assert.equal(result.stdout, 'ok');
+  assert.equal(spawned, 1);
+  let missing = 0;
+  await assert.rejects(runAgentProcess('/nonexistent/gatereeve-reviewer', [], { cwd: process.cwd(), input: '', timeoutSeconds: 30, onSpawn: async () => { missing++; } }));
+  assert.equal(missing, 0, 'A process that never started is not reported as launched');
+});

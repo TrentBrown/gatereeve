@@ -308,3 +308,9 @@ test('format repair rejections name the changed field or ID', () => {
   assert.throws(() => validateFormatRepair(affected, { ...structuredClone(affected), historyAssessment: { affected: [], carryForwardReason: '' } }, ['R1'], ['O1']),
     /Substantive assessment changes are not format repair: historyAssessment\.affected changed/);
 });
+test('a claimed blocking finding marked present on PASS uses the claim wording', () => {
+  const claims = [{ findingId: 'O1', claim: 'Fixed in this revision.' }];
+  const verdict = pass({ dispositions: [disposition('O1', 'present'), disposition('C1')], historyAssessment: { affected: [], carryForwardReason: 'C1 untouched.' } });
+  assert.throws(() => validateVerdict(verdict, ['code'], candidate, null, history, claims, reconsider),
+    /PASS contradicts a present blocking finding: dispositions\[0\] \(O1\) marks a blocking finding present; your claim about O1 needs a resolved, unsupported, unaffected or present-low disposition/);
+});

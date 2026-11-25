@@ -736,14 +736,16 @@ Each `BOUNDARY_REVIEWED` outcome row has one `status`, and every row that is not
 | Status | Meaning |
 | --- | --- |
 | `completed` | The reviewer returned a validated PASS or FAIL |
-| `refused` | No reviewer was launched: a precondition stopped it before the provider started (for example planning lint or a claim naming a finding no retained review reports), or an earlier execution of the job is uncertain or already claimed |
+| `refused` | This execution launched no reviewer process: a precondition stopped it before the provider started (for example planning lint, a claim naming a finding no retained review reports, or adapter preparation before spawn), an earlier execution of the job is uncertain or already claimed, or a retained result for unchanged inputs was reused (`reused: true`, with its `results`) |
 | `provider-failed` | The provider failed (`provider-error`, `timeout`, `other`), or the execution failed after the reviewer launched |
 | `verdict-rejected` | The verdict failed the contract, JSON or schema (`contract`, `malformed-json`) |
 | `could-not-assess` | The reviewer itself returned UNAVAILABLE (`missing-evidence`) |
 
 A row describes the reviewer across its attempts in the round (first attempt,
 transient retry, repair turn): it is `refused` only when no attempt launched a
-reviewer, and otherwise follows the latest attempt that did. A round whose
+reviewer, and otherwise follows the latest attempt that did. The local adapters
+report the reviewer process spawn, so a failure before spawn is a refusal; for
+another adapter, invoking its stage is the launch. A round whose
 outcomes are all `refused` is not counted. A provider-failure result records
 `providerFailure: {category}`; a `transient-service-failure` is retried once
 automatically under its own operation identity on the round baseline, and is not

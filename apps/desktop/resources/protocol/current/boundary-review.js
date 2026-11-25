@@ -251,6 +251,8 @@ const transientFailure = result => result.outcome === 'UNAVAILABLE' && result.pr
 export function outcomeStatus(settled, result) {
   if (settled.status === 'rejected') return settled.reason?.beforeAdmission || settled.reason?.reviewerLaunched === false ? 'refused' : 'provider-failed';
   if (!result) return 'refused';
+  // A reused retained result: this execution launched no reviewer.
+  if (settled.value?.reused) return 'refused';
   if (result.outcome !== 'UNAVAILABLE') return 'completed';
   if (result.reviewerLaunched === false) return 'refused';
   if (['contract', 'malformed-json'].includes(result.unavailableReason)) return 'verdict-rejected';
@@ -268,8 +270,10 @@ async function attemptRow(core, provider, settled) {
   if (results[0]) { try { result = await core.store.json(results[0]); } catch { /* An unreadable result is classified without it. */ } }
   // A retained but unreadable result came from an execution that ran.
   const status = results[0] && !result ? 'provider-failed' : outcomeStatus(settled, result);
-  const reason = status === 'completed' ? null : result?.summary ?? value.reason ?? 'No reviewer result was retained';
-  return { provider, status, results, ...(reason ? { reason } : {}) };
+  const reason = status === 'completed' ? null
+    : value.reused ? `No reviewer was launched: the retained ${result?.outcome ?? ''} result ${results[0]?.hash ?? ''} for these unchanged inputs was reused`.replace(/  +/gu, ' ')
+      : result?.summary ?? value.reason ?? 'No reviewer result was retained';
+  return { provider, status, results, ...(value.reused ? { reused: true } : {}), ...(reason ? { reason } : {}) };
 }
 // One row per reviewer: `refused` only when no attempt launched a reviewer;
 // otherwise the latest attempt that did, so a later attempt refused before

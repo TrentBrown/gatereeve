@@ -717,3 +717,51 @@ test('a repair turn refused before launch keeps the rejected verdict and its res
   assert.deepEqual(row.results, await jobResults(f, 'codex'), 'The row keeps the launched attempt result');
   assert.equal((await rounds(f)).slice.round, 1);
 });
+test('a reviewer whose adapter reports spawn counts only once its process starts', async t => {
+  const f = await prepared(t, 'full');
+  pairedAdapters(f);
+  const codex = f.core.runtime.evaluators.codex;
+  let spawn = 'never';
+  f.core.runtime.evaluators.codex = { describe: codex.describe.bind(codex), reportsSpawn: true,
+    async runStage(request, hooks) {
+      if (spawn === 'never') throw Object.assign(new Error('Scratch preparation failed before spawn'), { code: 'EACCES' });
+      await hooks.onSpawn();
+      throw Object.assign(new Error('codex timed out'), { code: 'AGENT_PROVIDER_TIMEOUT' });
+    } };
+  const claude = f.core.runtime.evaluators['claude-code'];
+  claude.runStage = async () => { throw Object.assign(new Error('Prelaunch argument check failed'), { code: 'E2BIG' }); };
+  claude.reportsSpawn = true;
+  let done = await f.request('review.execute', {}, 'prelaunch-failures');
+  assert.deepEqual(done.event.payload.outcomes.map(row => row.status), ['refused', 'refused'], JSON.stringify(done.event.payload.outcomes));
+  assert.deepEqual(await rounds(f), {}, 'No process spawned, so no round');
+  spawn = 'then-timeout';
+  done = await f.request('review.execute', {}, 'spawned-then-timeout');
+  assert.equal(done.event.payload.outcomes[0].status, 'provider-failed');
+  assert.equal((await rounds(f)).slice.round, 1, 'A spawned reviewer counts the round');
+});
+test('reused retained results launch no reviewer and are reported as refused with reused', async t => {
+  const f = await prepared(t, 'full'), launches = pairedAdapters(f);
+  const first = await f.request('review.execute', {}, 'original-pair');
+  const again = await f.request('review.execute', {}, 'reused-pair');
+  assert.equal(launches(), 2);
+  for (const [index, row] of again.event.payload.outcomes.entries()) {
+    assert.equal(row.status, 'refused', JSON.stringify(row));
+    assert.equal(row.reused, true);
+    assert.match(row.reason, /No reviewer was launched: the retained PASS result/);
+    assert.deepEqual(row.results, first.event.payload.outcomes[index].results, 'The reused row references the retained result');
+  }
+  assert.equal((await rounds(f)).slice.round, 1);
+  const { state } = await f.core.state();
+  assert.equal((await boundaryReviews(f.core, state, await f.core.store.json(state.candidate))).outcome, 'PASS', 'Reuse keeps the qualifying pair');
+});
+test('verification from an earlier candidate supplied explicitly is refused with VERIFICATION_REQUIRED', async t => {
+  const f = await prepared(t, 'full'), launches = pairedAdapters(f);
+  const { state } = await f.core.state();
+  const earlier = state.results.slice(-1);
+  const head = await branchWith(f, 'changed-unverified', { 'app.js': 'export const answer = 41; // changed\n' });
+  await candidate(f, 'SLICE', head, 'changed-unverified-candidate');
+  const before = await eventCount(f);
+  await assert.rejects(f.request('review.execute', { consumed: earlier }, 'stale-candidate-proof'), error => verificationRequired(error) && /does not apply to this candidate/.test(error.message));
+  assert.equal(launches(), 0);
+  assert.equal(await eventCount(f), before);
+});

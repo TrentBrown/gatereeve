@@ -326,9 +326,13 @@ async function independent(core, state, candidate, prepared, configuration, pack
       policy: { repositoryAccess: 'read-only', networkAccess: 'deny', scratch: 'isolated' },
       repositoryPath: root, snapshotDigest: contentIdentity(candidate), instructions,
       input: packet, outputSchema, timeoutSeconds: configuration.timeoutSeconds ?? 900 };
-    // The provider is launched next: everything before this is preparation.
-    await onLaunch();
-    const result = await observe({category:'review',label:'provider-execution',project:core.context.workspaceRoot,feature:core.context.featureId,worker:true}, () => adapter.runStage(request));
+    // A reviewer counts as launched when its process spawns (adapters that
+    // report it); for any other adapter, when its stage is invoked.
+    let launchReported = false;
+    const launch = async () => { if (!launchReported) { launchReported = true; await onLaunch(); } };
+    if (adapter.reportsSpawn !== true) await launch();
+    const result = await observe({category:'review',label:'provider-execution',project:core.context.workspaceRoot,feature:core.context.featureId,worker:true},
+      () => adapter.reportsSpawn === true ? adapter.runStage(request, { onSpawn: launch }) : adapter.runStage(request));
     retained = [await core.store.putJson(result.receipt), await core.store.putJson(result.output)];
     try { requireThat(result.output && Array.isArray(result.output.verdicts) && Object.keys(result.output).length === 1, 'Invalid verdict envelope'); }
     catch (error) { error.artifacts = retained; error.invalidVerdictContract = true; throw error; }
@@ -523,9 +527,10 @@ function checkVerdict(verdict, ids, candidate, changes, history, claims, reconsi
     if (kept.length !== historyAssessment.affected.length) historyAssessment = { ...historyAssessment, affected: kept };
   }
   if (verdict.outcome === 'PASS') {
-    const contradicted = dispositions.filter(item => item.status === 'present' && prior.has(item.id) && findingBlocks(prior.get(item.id)))
-      .map(item => `dispositions[${verdict.dispositions.indexOf(item)}] (${item.id})`);
-    requireThat(!contradicted.length, `PASS contradicts a present blocking finding: ${contradicted.join(', ')} marks a blocking finding present`);
+    const presentBlocking = dispositions.filter(item => item.status === 'present' && prior.has(item.id) && findingBlocks(prior.get(item.id)));
+    const claimedPresent = presentBlocking.filter(item => claims.some(claim => claim.findingId === item.id))
+      .map(item => `your claim about ${item.id} needs a resolved, unsupported, unaffected or present-low disposition`);
+    requireThat(!presentBlocking.length, `PASS contradicts a present blocking finding: ${presentBlocking.map(item => `dispositions[${verdict.dispositions.indexOf(item)}] (${item.id})`).join(', ')} marks a blocking finding present${claimedPresent.length ? `; ${claimedPresent.join('; ')}` : ''}`);
     if (ledger.reconsider.length) {
       requireThat(historyAssessment && Array.isArray(historyAssessment.affected),
         `Reconsider affected closed findings and justify any carried closures: historyAssessment.affected must list the affected IDs among ${ledger.reconsider.join(', ')}`, { eligibleAffected: ledger.eligibleAffected });
@@ -613,7 +618,16 @@ export async function consumedProof(core, state, candidate, input, memo = new Ma
     }
   }
   for (const ref of consumed) {
-    const proof = await core.currentResult(ref, candidate, state, new Set(), memo);
+    let proof;
+    try { proof = await core.currentResult(ref, candidate, state, new Set(), memo); }
+    catch (error) {
+      // Verification from another candidate or inputs is the same
+      // precondition as none: name it, with the order to follow.
+      let report = null; try { report = await core.store.json(ref); } catch { /* unreadable: keep the original error */ }
+      if (assessed && report?.gate === 'verification') throw new VerificationRequiredError(
+        `This assessment requires actual applicable verification evidence: the supplied verification ${ref.hash} does not apply to this candidate (${error.message}). Run ${VERIFICATION_ORDER}`);
+      throw error;
+    }
     if (input.gates[0] === 'packet' || proof.outcome === 'PASS') continue;
     // A failed or unavailable verification is the same precondition as none.
     if (assessed && proof.gate === 'verification') throw new VerificationRequiredError(
