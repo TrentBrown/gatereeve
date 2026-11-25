@@ -311,7 +311,9 @@ export async function reviewPlanning(core, input, operation) {
 // Preamble, goal, scope, other sections and any differently-levelled or nested
 // "findings..." heading all count, and `#` lines inside fenced code are never
 // headings. The findings log may grow during a run; any other change is a
-// scope-changing amendment. Whitespace-only differences are ignored.
+// scope-changing amendment. Whitespace-only differences are ignored, except
+// with `exact` (used to carry implementation authority forward, GitHub issue
+// #145), where every byte outside the findings log counts, indentation included.
 const FENCE = /^ {0,3}(`{3,}|~{3,})/u;
 export function briefLines(bytes) {
   const lines = []; let fence = null;
@@ -324,14 +326,16 @@ export function briefLines(bytes) {
   }
   return lines;
 }
-export function briefScope(bytes) {
+export function briefScope(bytes, { exact = false } = {}) {
   const lines = briefLines(bytes);
   const sectionLevels = lines.filter(item => item.level && ['goal', 'scope'].some(name => item.title.startsWith(name))).map(item => item.level);
   const level = sectionLevels.length ? Math.min(...sectionLevels) : null;
   const start = level === null ? -1 : lines.findIndex(item => item.level === level && item.title.startsWith('findings'));
   let end = lines.length;
   if (start !== -1) for (let index = start + 1; index < lines.length; index++) if (lines[index].level && lines[index].level <= level) { end = index; break; }
-  const kept = lines.filter((_, index) => start === -1 || index < start || index >= end).map(item => item.line.trim().replace(/\s+/gu, ' '));
+  const outside = lines.filter((_, index) => start === -1 || index < start || index >= end);
+  if (exact) return identity({ outside: outside.map(item => item.line), findingsLog: start !== -1 });
+  const kept = outside.map(item => item.line.trim().replace(/\s+/gu, ' '));
   return identity(kept.filter(Boolean).join('\n'));
 }
 

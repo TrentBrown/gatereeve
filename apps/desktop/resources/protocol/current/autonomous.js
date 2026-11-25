@@ -99,5 +99,7 @@ export async function currentAdjudication(core, state, pair) {
   return record;
 }
 
-export const allowedRunOutcome = (state, outcome) => outcome.outcome === 'PASS'
+// A PASS whose verification obligations were waived (GitHub issue #145,
+// `waivedCoverage`) is not a passing gate for standing or delegated authority.
+export const allowedRunOutcome = (state, outcome) => outcome.outcome === 'PASS' && !outcome.waivedCoverage?.length
   || isAutonomous(state) && outcome.id === 'review' && outcome.outcome === 'FAIL' && Boolean(outcome.adjudication);

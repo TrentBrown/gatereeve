@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { isolatedTests } from './helpers/isolated-tests.js';
-import { fixture, candidate, branchWith, human, BRIEF } from './helpers/lightweight-fixture.js';
+import { fixture, candidate, branchWith, human, BRIEF, authorizeBrief, openPr } from './helpers/lightweight-fixture.js';
+import { allowedRunOutcome } from '../../plugin-src/shared/resources/protocol/current/autonomous.js';
 import { decisionHas } from '../../plugin-src/shared/resources/protocol/current/contracts.js';
 import { selection, pairedAdapters } from './helpers/paired-review-fixture.js';
 
@@ -65,6 +66,20 @@ for (const rigor of ['light', 'full']) test(`${rigor}: an explicit human waiver 
   const milestone = passed.event.payload.outcomes;
   assert.equal(milestone.find(item => item.id === 'review').outcome, 'UNAVAILABLE');
   assert.match(milestone.find(item => item.id === 'verification').waivedCoverage[0], /uncovered prior behavior/);
+  // The PR explainer a human reads shows the waived residual, not a bare PASS.
+  if (rigor === 'light') {
+    const head = (await f.core.store.json((await f.core.state()).state.candidate)).repositories[0].head;
+    openPr(f, 'topic', f.integration, head);
+    const published = await f.request('review.publish', { repository: 'app', number: 12 }, 'publish');
+    const explainer = await readFile(published.handoff.path, 'utf8');
+    assert.match(explainer, /waived by human decision: Verification has uncovered prior behavior/);
+  }
+});
+
+test('a waived verification residual is not a passing gate for standing or delegated authority', () => {
+  const state = { dials: { autonomy: { value: 'delegated' } } };
+  assert.equal(allowedRunOutcome(state, { id: 'verification', outcome: 'PASS' }), true);
+  assert.equal(allowedRunOutcome(state, { id: 'verification', outcome: 'PASS', waivedCoverage: ['Verification has uncovered prior behavior'] }), false);
 });
 
 test('without a verification waiver the uncovered coverage still blocks, and the refusal names it', async t => {
@@ -107,4 +122,15 @@ test('light: a findings-log append keeps implementation authority; a scope edit 
   // Restoring the scope restores the authorized subject; the log stays grown.
   await writeFile(join(f.home, 'brief.md'), (await readFile(join(f.home, 'brief.md'), 'utf8')).replace('app.js and the CLI.', 'app.js only.'));
   assert.equal((await f.core.commitments()).subject, authorized);
+});
+
+test('light: re-indenting a scope list outside the findings log needs a new authorization', async t => {
+  const f = await fixture(t, { rigor: 'light', authorize: false });
+  const nested = BRIEF.replace('app.js only.', '- app.js only.\n  - keep the export name.');
+  await writeFile(join(f.home, 'brief.md'), nested);
+  await authorizeBrief(f);
+  const authorized = (await f.core.commitments()).subject;
+  await writeFile(join(f.home, 'brief.md'), nested.replace('  - keep the export name.', '- keep the export name.'));
+  assert.notEqual((await f.core.commitments()).subject, authorized);
+  assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, false);
 });

@@ -379,7 +379,8 @@ export class CurrentCore {
     try {
       const current = await this.store.localBytes(ref.path);
       if (digest(current) !== ref.hash) return subject; // Changed while reading: fail closed.
-      return briefScope(await this.store.get(previous)) === briefScope(current) ? authorized.subject : subject;
+      const exact = { exact: true };
+      return briefScope(await this.store.get(previous), exact) === briefScope(current, exact) ? authorized.subject : subject;
     } catch { return subject; } // An unreadable authorized brief never carries authority forward.
   }
   async pendingDecision(value, operation, expectedState = null) {
