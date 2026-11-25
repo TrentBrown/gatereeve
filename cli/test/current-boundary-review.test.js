@@ -432,6 +432,14 @@ const eventCount = async f => (await f.core.state()).events.length;
 const rounds = async f => (await f.core.state()).state.reviewScopes;
 const verificationRequired = error => error.code === 'VERIFICATION_REQUIRED'
   && /candidate\.prepare -> gate\.execute \["verification"\] -> review\.execute/.test(error.message);
+// The results of the latest job each provider ran, from the journal.
+async function jobResults(f, provider) {
+  const { events } = await f.core.state();
+  const started = events.filter(event => event.type === 'JOB_STARTED');
+  let latest = null;
+  for (const event of started) if ((await f.core.store.json(event.payload.input)).configuration.provider === provider) latest = event.payload.jobId;
+  return events.findLast(event => event.type === 'JOB_OUTCOME_READY' && event.payload.jobId === latest)?.payload.results;
+}
 const transientError = () => Object.assign(new Error('Evaluator unavailable: transient-service-failure; check the provider configuration before retrying.'),
   { code: 'AGENT_PROVIDER_TRANSIENT', providerFailure: { category: 'transient-service-failure' } });
 
@@ -510,7 +518,7 @@ test('each status class is reported with its reason, and a round with a reviewer
     assert.equal(codex.status, status, JSON.stringify(codex));
     assert.ok(codex.reason, 'A non-completed row carries a reason');
     assert.equal(codex.results.length, 1);
-    assert.equal(codex.results[0].hash, (await f.core.store.json(codex.results[0])) && codex.results[0].hash);
+    assert.deepEqual(codex.results, await jobResults(f, 'codex'), 'The row keeps the exact results of its latest launched job');
     assert.equal(claude.status, 'completed');
     assert.equal(claude.reason, undefined);
     assert.ok(done.event.payload.outcomes.every(row => ['completed', 'refused', 'provider-failed', 'verdict-rejected', 'could-not-assess'].includes(row.status)));
@@ -555,10 +563,11 @@ test('a second transient failure is a provider failure and timeouts or non-trans
   const f = await prepared(t, 'full');
   pairedAdapters(f);
   const adapter = f.core.runtime.evaluators.codex;
-  for (const [label, error, expectedCalls] of [
-    ['transient twice', transientError, 2],
-    ['timeout', () => Object.assign(new Error('codex timed out'), { code: 'AGENT_PROVIDER_TIMEOUT' }), 1],
-    ['authentication', () => Object.assign(new Error('Evaluator unavailable: authentication; check the provider configuration before retrying.'), { code: 'AGENT_PROVIDER_CONFIGURATION', providerFailure: { category: 'authentication' } }), 1],
+  for (const [label, error, expectedCalls, category] of [
+    ['transient twice', transientError, 2, 'transient-service-failure'],
+    ['timeout', () => Object.assign(new Error('codex timed out'), { code: 'AGENT_PROVIDER_TIMEOUT' }), 1, 'timeout'],
+    ['authentication', () => Object.assign(new Error('Evaluator unavailable: authentication; check the provider configuration before retrying.'), { code: 'AGENT_PROVIDER_CONFIGURATION', providerFailure: { category: 'authentication' } }), 1, 'authentication'],
+    ['unclassified', () => new Error('Provider process crashed'), 1, 'unclassified'],
   ]) {
     let calls = 0;
     adapter.runStage = async () => { calls++; throw error(); };
@@ -567,6 +576,7 @@ test('a second transient failure is a provider failure and timeouts or non-trans
     const row = done.event.payload.outcomes[0];
     assert.equal(row.status, 'provider-failed', label);
     assert.ok(row.reason);
+    assert.deepEqual((await f.core.store.json(row.results[0])).providerFailure, { category }, `${label} records its provider failure category`);
   }
 });
 test('a retried reviewer whose verdict is then rejected gets exactly one repair turn', async t => {
@@ -653,4 +663,57 @@ test('a repair turn whose provider fails ends provider-failed, and provider fail
   const results = await Promise.all(state.results.map(ref => f.core.store.json(ref)));
   const transient = results.find(result => result.gate === 'review' && result.providerFailure);
   assert.deepEqual(transient.providerFailure, { category: 'transient-service-failure' });
+});
+test('explicit earlier passing proof cannot reach behind a later failing verification', async t => {
+  const f = await unverified(t), launches = pairedAdapters(f);
+  const passing = (await verify(f, 'passing-verification')).event.payload.results;
+  await verify(f, 'later-failing-verification', 42);
+  const before = await eventCount(f);
+  await assert.rejects(f.request('review.execute', { consumed: passing }, 'explicit-stale-proof'), error => verificationRequired(error) && /latest current verification result is FAIL/.test(error.message));
+  assert.equal(launches(), 0);
+  assert.equal(await eventCount(f), before);
+  assert.deepEqual(await rounds(f), {});
+});
+test('a failure before the provider launches (adapter checks) is refused and counts no round', async t => {
+  const f = await prepared(t, 'full'), launches = pairedAdapters(f);
+  for (const adapter of Object.values(f.core.runtime.evaluators)) adapter.describe = async () => { throw new Error('Adapter descriptor unavailable'); };
+  const done = await f.request('review.execute', {}, 'describe-fails');
+  assert.equal(launches(), 0);
+  for (const row of done.event.payload.outcomes) {
+    assert.equal(row.status, 'refused', JSON.stringify(row));
+    assert.match(row.reason, /descriptor unavailable/);
+    assert.equal((await f.core.store.json(row.results[0])).reviewerLaunched, false);
+  }
+  assert.deepEqual(await rounds(f), {});
+  const selected = (await f.core.state()).state.reviewerSelection;
+  await f.request('gate.execute', { gates: ['review'], configuration: { provider: 'codex', model: 'fixture', reasoningEffort: 'high', reviewerSelection: selected.event } }, 'individual-describe-fails');
+  assert.deepEqual(await rounds(f), {}, 'An individual review that never launched counts no round');
+});
+test('a repair turn refused before launch keeps the rejected verdict and its result', async t => {
+  const f = await prepared(t, 'full');
+  pairedAdapters(f);
+  const adapter = f.core.runtime.evaluators.codex, run = adapter.runStage.bind(adapter);
+  let calls = 0;
+  adapter.runStage = async request => {
+    calls++;
+    const result = await run(request);
+    result.output.verdicts[0].findings = [{ id: 'advisory', classId: 'constant', classStatement: 'Constant naming', severity: 'low',
+      criterion: 'R1', path: 'app/app.js', evidence: 'The constant could use a comment.', blocking: false }];
+    result.receipt.digests.output = sha256Digest(result.output);
+    return result;
+  };
+  const append = f.core.append.bind(f.core);
+  const codexJobs = new Set();
+  f.core.append = async (...args) => {
+    if (args[1] === 'JOB_STARTED' && (await f.core.store.json(args[2].input)).configuration.provider === 'codex'
+      && codexJobs.add(args[2].jobId).size === 2) throw new Error('Repair admission refused');
+    return append(...args);
+  };
+  const done = await f.request('review.execute', {}, 'repair-refused');
+  assert.equal(calls, 1, 'The refused repair launched no reviewer');
+  const row = done.event.payload.outcomes[0];
+  assert.equal(row.status, 'verdict-rejected', JSON.stringify(row));
+  assert.match(row.reason, /failureScenario/);
+  assert.deepEqual(row.results, await jobResults(f, 'codex'), 'The row keeps the launched attempt result');
+  assert.equal((await rounds(f)).slice.round, 1);
 });

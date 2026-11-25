@@ -76,7 +76,7 @@ test('one counter per scope: revisions count once, legacy rounds do not, a human
 test('a round in which every outcome was refused is not counted; earlier events replay unchanged (issue #140)', () => {
   const { events, event } = journal();
   const reviewed = (revision, statuses) => event('BOUNDARY_REVIEWED', { candidate: { hash: H(revision) }, selection: 'selection', round: H(800 + revision),
-    outcomes: statuses.map((status, index) => ({ provider: ['codex', 'claude-code'][index], status, reason: status === 'completed' ? undefined : 'x' })),
+    outcomes: statuses.map((status, index) => ({ provider: ['codex', 'claude-code'][index], status, results: [{ hash: H(700 + revision * 10 + index), bytes: 1, format: 'json' }], reason: status === 'completed' ? undefined : 'x' })),
     roundPolicy: { policy: ROUND_POLICY, scope: 'slice', revision: H(revision) } });
   reviewed(1, ['unavailable', 'unavailable']); // Recorded before refused existed: counted as before.
   assert.equal(project(events).reviewScopes.slice.round, 1);
@@ -88,6 +88,8 @@ test('a round in which every outcome was refused is not counted; earlier events 
   assert.equal(project(events).reviewScopes.slice.round, 3);
   const state = project(events);
   assert.deepEqual(state.boundaryReviewHistory[0].outcomes.map(row => row.status), ['unavailable', 'unavailable'], 'Earlier statuses are read unchanged');
+  assert.deepEqual(state.boundaryReviewHistory.map(row => row.outcomes), events.filter(item => item.type === 'BOUNDARY_REVIEWED').map(item => item.payload.outcomes),
+    'Every row, including its exact result references, is projected unchanged');
 });
 test('a light run resets rounds only when the human re-authorizes a changed brief', () => {
   const { events, event, reviewed } = journal('light');

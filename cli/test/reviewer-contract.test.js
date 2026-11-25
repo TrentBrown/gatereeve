@@ -265,7 +265,7 @@ test('verdict rejections name the field path or finding ID', () => {
     [() => validate(pass({ outcome: 'FAIL', findings: [finding('F1'), finding('F2', { criterion: 'R7' })] })),
       /Blocking finding lacks approved criterion: findings\[1\]\.criterion \(F2\) is "R7"/],
     [() => validate(pass({ outcome: 'FAIL', findings: [finding('F1', { failureScenario: '' })] })),
-      /Finding failureScenario at findings\[0\]\.failureScenario \(F1\) must be nonempty text/],
+      /Finding failureScenario must be nonempty text: findings\[0\]\.failureScenario \(F1\)/],
     [() => validate(pass({ dispositions: [disposition('O1'), disposition('C1')], historyAssessment: null })),
       /Reconsider affected closed findings and justify any carried closures: historyAssessment\.affected must list the affected IDs among C1/],
   ];

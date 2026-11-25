@@ -76,3 +76,24 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
 - **Decision:** No code change was needed. The stale PROTOCOL.md sentence
   ("Claude-only retry") was the source of the "anthropic only" report, and it
   is now corrected.
+
+## S7. Boundary review round 1 fixes
+
+- **Answered by:** agent
+- **Decision:** Fixed every round-1 finding:
+  - Codex R1: explicit earlier passing proof can no longer reach behind a
+    later failing verification.
+  - Codex R3: the round count and the launch flag now run immediately before
+    `adapter.runStage`, after source-view and adapter checks.
+  - Codex R4: every provider-failed result records `providerFailure.category`,
+    with `timeout` and `unclassified` when the adapter gives none.
+  - Codex R2 and R4 test gaps: rows are compared to the job's journaled
+    results, legacy rows keep their result references, and a repair refused
+    before launch is tested.
+  - Claude L3: `Finding <key> must be nonempty text` keeps its prefix.
+  - The measurement is copied into `decisions.md` (DEC-8), because the review
+    packet omits `interview.md`.
+- **Friction:** the local full CLI suite stalls on this machine in
+  `local-agent-idle-inhibitor.test.js` (also on unmodified `main`), and the
+  user's global git `pre-commit` hook breaks fixture commits to `main` unless
+  `GIT_CONFIG_GLOBAL` is isolated, as CI does.

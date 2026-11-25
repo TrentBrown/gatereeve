@@ -288,7 +288,7 @@ async function reviewerView(core, candidate, references, packet, runId, jobId, {
     return view;
   } catch (error) { await view.close(); throw error; }
 }
-async function independent(core, state, candidate, prepared, configuration, packet, jobId, history = [], priorities = new Map(), ledgers = {}) {
+async function independent(core, state, candidate, prepared, configuration, packet, jobId, history = [], priorities = new Map(), ledgers = {}, onLaunch = async () => {}) {
   const provider = configuration.provider;
   requireThat(['codex', 'claude-code'].includes(provider), 'Select codex or claude-code for independent execution');
   text(configuration.model, 'Evaluator model');
@@ -326,6 +326,8 @@ async function independent(core, state, candidate, prepared, configuration, pack
       policy: { repositoryAccess: 'read-only', networkAccess: 'deny', scratch: 'isolated' },
       repositoryPath: root, snapshotDigest: contentIdentity(candidate), instructions,
       input: packet, outputSchema, timeoutSeconds: configuration.timeoutSeconds ?? 900 };
+    // The provider is launched next: everything before this is preparation.
+    await onLaunch();
     const result = await observe({category:'review',label:'provider-execution',project:core.context.workspaceRoot,feature:core.context.featureId,worker:true}, () => adapter.runStage(request));
     retained = [await core.store.putJson(result.receipt), await core.store.putJson(result.output)];
     try { requireThat(result.output && Array.isArray(result.output.verdicts) && Object.keys(result.output).length === 1, 'Invalid verdict envelope'); }
@@ -468,7 +470,8 @@ function checkVerdict(verdict, ids, candidate, changes, history, claims, reconsi
   // Rejections name the field path and finding ID to fix (issue #140).
   const named = (index, finding, field = '') => `findings[${index}]${field}${typeof finding?.id === 'string' && finding.id ? ` (${finding.id})` : ''}`;
   const findings = verdict.findings.map((finding, index) => {
-    ['id', 'classId', 'classStatement', 'failureScenario', 'criterion', 'path', 'evidence'].forEach(key => text(finding[key], `Finding ${key} at ${named(index, finding, `.${key}`)}`));
+    for (const key of ['id', 'classId', 'classStatement', 'failureScenario', 'criterion', 'path', 'evidence']) requireThat(typeof finding[key] === 'string' && finding[key].trim().length > 0,
+      `Finding ${key} must be nonempty text: ${named(index, finding, `.${key}`)}`);
     requireThat(SEVERITIES.includes(finding.severity), `Finding severity must be high, medium or low: ${named(index, finding, '.severity')}`);
     const path = resolveFindingPath(finding.path);
     requireThat(path, `Finding must name source in scope: ${named(index, finding, '.path')} names ${JSON.stringify(finding.path)}, which is not a source path in this candidate`);
@@ -584,6 +587,17 @@ export class VerificationRequiredError extends ProtocolError {
 // Resolve the typed consumed proof for an execution and check the assessment
 // preconditions on it. Shared by each reviewer's execution and by
 // review.execute, which checks it once before the round starts.
+// A provider failure records its category (AC4). The local adapters give one
+// for exit failures; a timeout or an unclassified failure after the reviewer
+// launched is named here so every provider-failed result carries a category.
+function providerFailureCategory(error, launched) {
+  if (error?.providerFailure?.category) return { providerFailure: { category: error.providerFailure.category } };
+  const reason = unavailableReason(error);
+  if (reason === 'timeout') return { providerFailure: { category: 'timeout' } };
+  if (reason === 'provider-error') return { providerFailure: { category: 'configuration-or-execution' } };
+  if (reason === 'other' && launched) return { providerFailure: { category: 'unclassified' } };
+  return {};
+}
 export async function consumedProof(core, state, candidate, input, memo = new Map()) {
   requireThat(input.consumed === undefined || Array.isArray(input.consumed), 'Consumed proof must be an array');
   const consumed = [...(input.consumed ?? [])];
@@ -605,6 +619,17 @@ export async function consumedProof(core, state, candidate, input, memo = new Ma
     if (assessed && proof.gate === 'verification') throw new VerificationRequiredError(
       `This assessment requires actual applicable verification evidence: the current verification result is ${proof.outcome}, not passing. Fix it, then run ${VERIFICATION_ORDER}`);
     requireThat(false, 'Consumed proof is not passing/current');
+  }
+  if (assessed && input.consumed !== undefined) {
+    // Explicit proof cannot reach behind the latest current verification.
+    for (const ref of [...state.results].reverse()) {
+      let report; try { report = await core.store.json(ref); } catch { continue; }
+      if (report.gate !== 'verification') continue;
+      let latest; try { latest = await core.currentResult(ref, candidate, state, new Set(), memo); } catch { continue; }
+      if (latest.outcome !== 'PASS') throw new VerificationRequiredError(
+        `This assessment requires actual applicable verification evidence: the latest current verification result is ${latest.outcome}, not passing, so earlier passing proof cannot be consumed. Fix it, then run ${VERIFICATION_ORDER}`);
+      break;
+    }
   }
   if (assessed) {
     const proof = await Promise.all(consumed.map(ref => core.store.json(ref)));
@@ -922,11 +947,13 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
       const ledgers = Object.fromEntries(input.gates.map(id => [id, findingLedger(id, history, input.claims ?? [], value.reconsiderClosures)]));
       packet.dispositionsRequired = input.gates.flatMap(id => ledgers[id].dispositionsRequired);
       if (roundPolicy) packet.roundPolicy = roundPolicy;
-      // A round counts once a reviewer is launched on a new revision (AC6), so a
-      // precondition that stops packet assembly never charges one (issue #140).
-      if (roundPolicy) await countReviewRound(core, roundPolicy.scope, contentIdentity(candidate), state.candidate);
-      launched = progress.launched = true;
-      const reviewed = await independent(core, state, candidate, prepared, configuration, packet, jobId, history, priorities, ledgers);
+      // A round counts once a reviewer's provider is launched on a new revision
+      // (AC6), so a precondition that stops packet assembly, source-view
+      // creation or adapter checks never charges one (issue #140).
+      const reviewed = await independent(core, state, candidate, prepared, configuration, packet, jobId, history, priorities, ledgers, async () => {
+        if (roundPolicy) await countReviewRound(core, roundPolicy.scope, contentIdentity(candidate), state.candidate);
+        launched = progress.launched = true;
+      });
       evaluator = reviewed.evaluator; metrics = reviewed.metrics; artifacts.push(...reviewed.artifacts);
       const returned = reviewed.output.verdicts;
       if (!returned.every(item => input.gates.includes(item?.gate))) {
@@ -1037,7 +1064,7 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
     verdicts = input.gates.map(id => ({ gate: id, outcome: error.outcome ?? 'UNAVAILABLE', ...((error.outcome ?? 'UNAVAILABLE') === 'UNAVAILABLE' ? { unavailableReason: unavailableReason(error) } : {}),
       summary: error.message, findings: [], dispositions: [],
       ...(error.invalidVerdictContract || error.providerFailure?.category === 'malformed-output' ? { invalidVerdictContract: true } : {}),
-      ...(error.providerFailure?.category ? { providerFailure: { category: error.providerFailure.category } } : {}),
+      ...providerFailureCategory(error, launched),
       ...(error.provenance ? { provenance: error.provenance } : {}) }));
   }
   for (const verdict of verdicts) {
