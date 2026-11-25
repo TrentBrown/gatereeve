@@ -314,8 +314,9 @@ export async function reviewPlanning(core, input, operation) {
 // scope-changing amendment. Whitespace is compared as Markdown renders it
 // (GitHub issue #145): in prose, trailing whitespace, runs of inner whitespace
 // and blank lines are ignored, but leading indentation is kept because it carries
-// list and block structure; fenced code lines and inline code spans are compared
-// verbatim, because whitespace there is content.
+// list and block structure; fenced code lines, lines indented four or more
+// columns (indented code) and inline code spans are compared verbatim, because
+// whitespace there is content.
 const FENCE = /^ {0,3}(`{3,}|~{3,})/u;
 export function briefLines(bytes) {
   const lines = []; let fence = null;
@@ -355,7 +356,10 @@ export function briefScope(bytes) {
   let end = lines.length;
   if (start !== -1) for (let index = start + 1; index < lines.length; index++) if (lines[index].level && lines[index].level <= level) { end = index; break; }
   const kept = lines.filter((_, index) => start === -1 || index < start || index >= end).map(({ line, code }) => {
-    if (code) return `\u0000${line}`; // Verbatim, blank code lines included.
+    // Verbatim: fenced code (blank lines included), and any line indented four
+    // or more columns, which may be an indented code block or a fence nested in
+    // a list item (fails closed: such prose only becomes stricter).
+    if (code || /^(?: {4}|\t)/u.test(line)) return `\u0000${line}`;
     if (!line.trim()) return '';
     const indent = /^\s*/u.exec(line)[0];
     return indent + proseWithSpans(line.trim());

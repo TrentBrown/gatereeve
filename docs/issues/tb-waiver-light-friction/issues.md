@@ -9,7 +9,7 @@ Operational task breakdown derived from the plan.
 
 ## I-1 - Waiver gets past coverage, recorded honestly
 
-- **Status:** open
+- **Status:** in-review
 - **Estimate:** small
 - **Plan steps:** P1
 - **Rubric criteria:** R1, R2, R3
@@ -18,7 +18,7 @@ Operational task breakdown derived from the plan.
 
 ## I-2 - Findings log grows without re-authorization
 
-- **Status:** open
+- **Status:** in-review
 - **Estimate:** small
 - **Plan steps:** P2
 - **Rubric criteria:** R4
@@ -27,7 +27,7 @@ Operational task breakdown derived from the plan.
 
 ## I-3 - run.start writes featureBaseSha
 
-- **Status:** open
+- **Status:** in-review
 - **Estimate:** small
 - **Plan steps:** P3
 - **Rubric criteria:** R5
@@ -36,7 +36,7 @@ Operational task breakdown derived from the plan.
 
 ## I-4 - Docs, desktop copy, suite
 
-- **Status:** open
+- **Status:** in-review
 - **Estimate:** small
 - **Plan steps:** P4
 - **Rubric criteria:** R6

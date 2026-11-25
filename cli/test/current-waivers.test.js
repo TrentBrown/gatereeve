@@ -111,6 +111,8 @@ test('brief comparison follows Markdown whitespace: indentation and code count, 
   assert.notEqual(briefScope(Buffer.from(brief.replace('\n\n```\n\n##', '\n```\n\n##'))), same, 'blank lines inside fenced code are content');
   assert.notEqual(briefScope(Buffer.from(brief.replace('`a  b`', '`a b`'))), same, 'whitespace inside an inline code span is content');
   assert.equal(briefScope(Buffer.from(brief.replace('- none', '- none\n- Found: more'))), same, 'findings log growth');
+  const indented = '# Brief\n\n## Goal\nExport 42.\n\n## Scope\n- app.js\n\n      ```\n      x  =  1\n      ```\n\n    y  =  2\n\n## Findings log\n- none\n';
+  for (const [from, to] of [['x  =  1', 'x = 1'], ['y  =  2', 'y = 2']]) assert.notEqual(briefScope(Buffer.from(indented.replace(from, to))), briefScope(Buffer.from(indented)), `indented code: ${from}`);
   assert.equal(briefScope(Buffer.from(brief.replace('Export 42.', 'Export   42.  '))), same, 'inner and trailing whitespace');
   assert.equal(briefScope(Buffer.from(brief.replace('## Scope\n', '## Scope\n\n'))), same, 'blank lines');
 });
