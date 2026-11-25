@@ -14,6 +14,7 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
 The coordinator relayed "standard rigor" for #145. GateReeve rigor is
 `full | light`; standard is the non-light choice, so the run started at full
 (the default) under supervision.
+**Promoted:** D1
 **Answered by:** agent
 **Options:** light (contradicts "standard"); full.
 **Reversibility:** rigor can only rise within a run.
@@ -59,3 +60,5 @@ are verbatim.
 **Options:** exact bytes (breaks the pinned prose-whitespace rule for delegated
 hand-back); Markdown-semantic comparison.
 **Reversibility:** high.
+
+Triage 2026-11-25: S1 -> D1; S2, S3 -> D2 and D3; S4 -> D3.
