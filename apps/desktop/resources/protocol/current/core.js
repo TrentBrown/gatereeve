@@ -11,7 +11,7 @@ import { executionEnvironment, assertEnvironmentCurrent } from './environment.js
 import { patternInputs } from './pattern-inputs.js';
 import { randomUUID } from 'node:crypto';
 import { processIdentity } from '../../storage/scratch.js';
-import { ID, CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, DIALS, LOWERING_REFUSED, DELEGATED_AUTHORITY, AUTONOMOUS_AUTHORITY, startDial, dialChange, automaticDial, requireThat, identity,
+import { ID, CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, DIALS, LOWERING_REFUSED, DELEGATED_AUTHORITY, AUTONOMOUS_AUTHORITY, startDial, dialChange, automaticDial, requireThat, identity, digest,
   identifier, text, decision, gate, authority, decisionHas, waiverFor, waiverPolicyAllows, latestImplementation, currentAuthorityDecisions, currentDesignApproval, unattendedValue, normalizedDial, autonomyAlias, decisionQuestion } from './contracts.js';
 import { CurrentStore } from './store.js';
 import { requirements, sourceCandidate, assertSourceIsolation, checkCandidate, checkSource, contentIdentity, briefBased } from './evidence.js';
@@ -26,7 +26,7 @@ import { countRound, resetRounds, closeScope, recordRoundDecision, planningScope
 import { adjudicateReview, currentAdjudication, allowedRunOutcome } from './autonomous.js';
 import { parkGoal, readyRecord, goalStatus, captureInterview, interviewDrift, agentDecisions, AGENT_DECISION_RULE } from './goal.js';
 import { evaluateTripwires, describeHits, hitKey } from './tripwires.js';
-import { isDelegated, isAutonomous, isGoal, hasRunAuthority, requireProtection, guardDelegatedAction, reviewPlanning, delegatedPlanningAuthority, assertBriefScopeUnchanged, briefScopeChanged, applyDelegation, delegationStatus, briefLines } from './delegation.js';
+import { isDelegated, isAutonomous, isGoal, hasRunAuthority, requireProtection, guardDelegatedAction, reviewPlanning, delegatedPlanningAuthority, assertBriefScopeUnchanged, briefScopeChanged, briefScope, applyDelegation, delegationStatus, briefLines } from './delegation.js';
 
 import { sourcePreparation, ensurePins, releasePins } from './source-retention.js';
 import { cleanupViews, viewStatus } from './source-views.js';
@@ -360,10 +360,27 @@ export class CurrentCore {
     const run = state ?? (await this.store.active() ? (await this.state()).state : null);
     if (run && lightRun(run)) {
       const docs = await requirements(this.store, ['brief.md'], { capture });
-      return { docs, subject: identity({ contract: CONTRACT, featureId: this.context.featureId, rigor: 'light', brief: docs['brief.md'] }) };
+      const subject = identity({ contract: CONTRACT, featureId: this.context.featureId, rigor: 'light', brief: docs['brief.md'] });
+      return { docs, subject: await this.authorizedBriefSubject(run, docs['brief.md'], subject) };
     }
     const docs = await requirements(this.store, ['design.md', 'spec.md', 'plan.md', 'issues.md'], { capture });
     return { docs, subject: identity({ contract: CONTRACT, featureId: this.context.featureId, design: docs['design.md'], spec: docs['spec.md'] }) };
+  }
+  // GitHub issue #145: the findings log of a light brief is meant to grow during
+  // the run. While the brief differs from the last authorized brief only inside
+  // its findings log, the commitment subject stays the authorized one, so routine
+  // logging needs no new authorization. Any other change (goal, scope, preamble,
+  // other sections) yields the fresh subject, which needs authorize-implementation.
+  // Candidates still pin the exact brief bytes the reviewers assessed.
+  async authorizedBriefSubject(state, ref, subject) {
+    const authorized = latestImplementation(state);
+    const previous = authorized && decisionHas(authorized, 'authorize-implementation') ? authorized.documents?.['brief.md'] : null;
+    if (!previous || authorized.subject === subject || previous.hash === ref.hash) return subject;
+    try {
+      const current = await this.store.localBytes(ref.path);
+      if (digest(current) !== ref.hash) return subject; // Changed while reading: fail closed.
+      return briefScope(await this.store.get(previous)) === briefScope(current) ? authorized.subject : subject;
+    } catch { return subject; } // An unreadable authorized brief never carries authority forward.
   }
   async pendingDecision(value, operation, expectedState = null) {
     const state = expectedState ?? (await this.state()).state;
@@ -527,7 +544,18 @@ export class CurrentCore {
       const proposed = { ...state, decisions: [...state.decisions, value] };
       if (decisionHas(value, 'accept')) {
         admission = await this.check('acceptance', proposed);
-        requireThat(admission.allowed, 'Required review proof is missing');
+        requireThat(admission.allowed, `Required review proof is missing: ${admission.missing.join('; ')}`, { missing: admission.missing });
+      }
+      // GitHub issue #145: a waiver records what it waived as observed when the
+      // human decided (outcome, reason and any waived coverage residual), so the
+      // retained decision stays honest about the facts it accepted.
+      if (decisionHas(value, 'waive')) {
+        const observed = (admission ?? await this.check(value.gates.some(id => gate(id).at === 'completion') ? 'completion' : 'acceptance', proposed)).outcomes ?? [];
+        value.observed = Object.fromEntries(value.gates.map(id => {
+          const outcome = observed.find(item => item.id === id);
+          return [id, outcome ? { outcome: outcome.outcome, reason: outcome.reason ?? null, waived: Boolean(outcome.exception),
+            ...(outcome.waivedCoverage ? { waivedCoverage: outcome.waivedCoverage } : {}) } : { outcome: null, reason: 'not assessed by this milestone check', waived: false }];
+        }));
       }
       if (decisionHas(value, 'authorize-merge')) {
         requireThat(findDecision(proposed, 'accept', value.subject), 'Human acceptance is required before merge authorization');
@@ -1101,8 +1129,17 @@ export class CurrentCore {
       if (!satisfied && !definition.supplemental) missing.push(`${definition.id}: ${accepted?.outcome ?? error ?? 'missing evidence'}`);
       outcomes.push({ id: definition.id, required: !definition.supplemental, result: acceptedRef, ...(pair ? { reviews: pair.members.map(member => member.ref), reviewPair: pair.identity } : {}), ...(adjudication ? { adjudication } : {}), reason: accepted?.summary ?? error, outcome: accepted?.outcome ?? 'UNAVAILABLE', exception: waiver ?? null, satisfied: Boolean(satisfied), ...(definition.role === 'core' ? { administrative: accepted } : {}), ...(accepted?.provenance ? { provenance: accepted.provenance } : {}) });
     }
-    if (candidate && outcomes.some(item => item.id === 'verification' && item.outcome === 'PASS')) {
-      try { await this.verificationCoverage(candidate, state, memo); } catch (error) { missing.push(error.message); }
+    // GitHub issue #145: the coverage and CI-scope checks below are verification
+    // obligations. A current human waiver of verification covers them; each
+    // waived residual stays on the verification outcome (and so in the
+    // MILESTONE record) instead of disappearing. Without a waiver they block.
+    const verificationOutcome = outcomes.find(item => item.id === 'verification');
+    const verificationMissing = message => {
+      if (verificationOutcome?.exception) (verificationOutcome.waivedCoverage ??= []).push(message);
+      else missing.push(message);
+    };
+    if (candidate && verificationOutcome?.outcome === 'PASS') {
+      try { await this.verificationCoverage(candidate, state, memo); } catch (error) { verificationMissing(error.message); }
     }
     // Spec AC9: the accepted Verification is the one the converged reviews
     // assessed, or a ci Verification qualified by the runner-role CI check
@@ -1129,9 +1166,9 @@ export class CurrentCore {
         }))).every(Boolean);
         if (!assessed && await isCiVerification(this, verified.result)) {
           verified.ciQualification = await qualifyCi(this, state, candidate, verified.result, consumed, memo);
-          if (verified.ciQualification.outcome !== 'PASS') missing.push(`verification: ${verified.ciQualification.reason}`);
-        } else if (!assessed) missing.push('verification: the latest Verification is local evidence the converged reviews did not assess; record a ci Verification for the exact candidate head or review the new evidence');
-      } catch (error) { missing.push(`verification: ${error.message}`); }
+          if (verified.ciQualification.outcome !== 'PASS') verificationMissing(`verification: ${verified.ciQualification.reason}`);
+        } else if (!assessed) verificationMissing('verification: the latest Verification is local evidence the converged reviews did not assess; record a ci Verification for the exact candidate head or review the new evidence');
+      } catch (error) { verificationMissing(`verification: ${error.message}`); }
     }
     // Spec AC9 with interview D35: acceptance of a candidate reviewed under this
     // contract, in a repository with hosted CI, needs a passing ci Verification
@@ -1139,12 +1176,12 @@ export class CurrentCore {
     const hostedCi = candidate?.repositories.some(repo => (repo.files ?? []).some(file => file.path.startsWith('.github/workflows/')));
     // Interview D35: hosted-CI repositories only; others keep the assessed alternative.
     if (candidate && verified && currentContract && hostedCi) {
-      if (!await isCiVerification(this, verified.result)) missing.push('verification: this repository has hosted CI (.github/workflows); acceptance needs a passing ci Verification on the exact candidate head; local evidence alone never satisfies acceptance (interview D35)');
+      if (!await isCiVerification(this, verified.result)) verificationMissing('verification: this repository has hosted CI (.github/workflows); acceptance needs a passing ci Verification on the exact candidate head; local evidence alone never satisfies acceptance (interview D35)');
       else {
         const runs = (await this.store.json((await this.store.json(verified.result)).runner)).validation.runs;
         for (const run of runs) {
           const head = candidate.repositories.find(repo => repo.alias === run.alias)?.head;
-          if (run.head !== head) missing.push(`verification: CI ran on ${run.head}, not the exact candidate head ${head}`);
+          if (run.head !== head) verificationMissing(`verification: CI ran on ${run.head}, not the exact candidate head ${head}`);
         }
       }
     }
