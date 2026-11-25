@@ -81,10 +81,11 @@ subject is the implementation authority; no `approve-design` or `spec.validate`
 precedes it. It is accepted in any phase before integration. The findings log
 may grow during the run: while the brief matches the authorized brief outside its
 findings log section (with its nested sub-headings), `commitments`
-keeps the authorized subject and no new decision is needed (trailing whitespace,
-runs of inner whitespace and blank lines are ignored; leading indentation counts,
-as it carries list structure, and the same comparison decides a delegated
-hand-back). Any other change
+keeps the authorized subject and no new decision is needed. Whitespace compares
+as Markdown renders it: in prose, trailing whitespace, inner whitespace runs and
+blank lines are ignored while leading indentation counts (it carries list
+structure); fenced code and inline code spans compare verbatim. The same
+comparison decides a delegated hand-back. Any other change
 (goal, scope, preamble or another section) no longer matches the authorized
 subject, so implementation, candidates and gates stop until the changed brief is
 authorized again; that decision supersedes earlier authority, acceptance and

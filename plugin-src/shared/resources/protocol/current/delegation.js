@@ -311,21 +311,41 @@ export async function reviewPlanning(core, input, operation) {
 // Preamble, goal, scope, other sections and any differently-levelled or nested
 // "findings..." heading all count, and `#` lines inside fenced code are never
 // headings. The findings log may grow during a run; any other change is a
-// scope-changing amendment. Trailing whitespace, runs of inner whitespace and
-// blank lines are ignored; leading indentation is kept, because it carries list
-// and block structure (GitHub issue #145: promoting a nested scope bullet is a
-// scope change).
+// scope-changing amendment. Whitespace is compared as Markdown renders it
+// (GitHub issue #145): in prose, trailing whitespace, runs of inner whitespace
+// and blank lines are ignored, but leading indentation is kept because it carries
+// list and block structure; fenced code lines and inline code spans are compared
+// verbatim, because whitespace there is content.
 const FENCE = /^ {0,3}(`{3,}|~{3,})/u;
 export function briefLines(bytes) {
   const lines = []; let fence = null;
   for (const line of bytes.toString('utf8').split(/\r?\n/u)) {
     const marker = FENCE.exec(line)?.[1];
-    if (fence) { if (marker && marker[0] === fence[0] && marker.length >= fence.length && !line.slice(line.indexOf(marker) + marker.length).trim()) fence = null; lines.push({ line }); continue; }
-    if (marker) { fence = marker; lines.push({ line }); continue; }
+    if (fence) { if (marker && marker[0] === fence[0] && marker.length >= fence.length && !line.slice(line.indexOf(marker) + marker.length).trim()) fence = null; lines.push({ line, code: true }); continue; }
+    if (marker) { fence = marker; lines.push({ line, code: true }); continue; }
     const heading = /^(#{1,6})\s+(.+)$/u.exec(line);
     lines.push({ line, ...(heading ? { level: heading[1].length, title: heading[2].trim().toLowerCase() } : {}) });
   }
   return lines;
+}
+// Collapse whitespace runs in prose, keeping inline code spans (a run of N
+// backticks up to the next run of exactly N) verbatim. An unclosed run is prose.
+function proseWithSpans(text) {
+  let out = '', prose = '', index = 0;
+  const flush = () => { out += prose.replace(/\s+/gu, ' '); prose = ''; };
+  while (index < text.length) {
+    if (text[index] !== '`') { prose += text[index++]; continue; }
+    let run = index; while (text[run] === '`') run++;
+    const ticks = text.slice(index, run);
+    let close = -1;
+    for (let at = text.indexOf(ticks, run); at !== -1; at = text.indexOf(ticks, at + 1)) {
+      if (text[at - 1] !== '`' && text[at + ticks.length] !== '`') { close = at; break; }
+    }
+    if (close === -1) { prose += ticks; index = run; continue; }
+    flush(); out += text.slice(index, close + ticks.length); index = close + ticks.length;
+  }
+  flush();
+  return out;
 }
 export function briefScope(bytes) {
   const lines = briefLines(bytes);
@@ -334,9 +354,11 @@ export function briefScope(bytes) {
   const start = level === null ? -1 : lines.findIndex(item => item.level === level && item.title.startsWith('findings'));
   let end = lines.length;
   if (start !== -1) for (let index = start + 1; index < lines.length; index++) if (lines[index].level && lines[index].level <= level) { end = index; break; }
-  const kept = lines.filter((_, index) => start === -1 || index < start || index >= end).map(({ line }) => {
+  const kept = lines.filter((_, index) => start === -1 || index < start || index >= end).map(({ line, code }) => {
+    if (code) return `\u0000${line}`; // Verbatim, blank code lines included.
+    if (!line.trim()) return '';
     const indent = /^\s*/u.exec(line)[0];
-    return line.trim() ? indent + line.trim().replace(/\s+/gu, ' ') : '';
+    return indent + proseWithSpans(line.trim());
   });
   return identity(kept.filter(Boolean).join('\n'));
 }

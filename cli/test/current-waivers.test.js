@@ -103,10 +103,14 @@ test('standing application refuses a verification PASS whose coverage a human wa
   assert.ok(!(await f.core.state()).state.decisions.some(item => item.kind === 'accept'));
 });
 
-test('brief comparison keeps leading indentation and ignores other whitespace', () => {
-  const brief = '# Brief\n\n## Goal\nExport 42.\n\n## Scope\n- app.js\n  - keep the name\n\n## Findings log\n- none\n';
+test('brief comparison follows Markdown whitespace: indentation and code count, prose whitespace does not', () => {
+  const brief = '# Brief\n\n## Goal\nExport 42.\n\n## Scope\n- app.js\n  - keep the name\nUse `a  b` exactly.\n\n```js\nconst v = "a  b";\n\n```\n\n## Findings log\n- none\n';
   const same = briefScope(Buffer.from(brief));
   assert.notEqual(briefScope(Buffer.from(brief.replace('  - keep the name', '- keep the name'))), same, 'promoting a nested bullet is a scope change');
+  assert.notEqual(briefScope(Buffer.from(brief.replace('"a  b"', '"a b"'))), same, 'whitespace inside fenced code is content');
+  assert.notEqual(briefScope(Buffer.from(brief.replace('\n\n```\n\n##', '\n```\n\n##'))), same, 'blank lines inside fenced code are content');
+  assert.notEqual(briefScope(Buffer.from(brief.replace('`a  b`', '`a b`'))), same, 'whitespace inside an inline code span is content');
+  assert.equal(briefScope(Buffer.from(brief.replace('- none', '- none\n- Found: more'))), same, 'findings log growth');
   assert.equal(briefScope(Buffer.from(brief.replace('Export 42.', 'Export   42.  '))), same, 'inner and trailing whitespace');
   assert.equal(briefScope(Buffer.from(brief.replace('## Scope\n', '## Scope\n\n'))), same, 'blank lines');
 });

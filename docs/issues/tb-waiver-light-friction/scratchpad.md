@@ -46,3 +46,16 @@ standing application, unattended merge, adjudication and `allowedRunOutcome`.
 **Options:** exact bytes for both paths (would break the earlier whitespace
 rule its tests pin); per-site patches (leaves the class open).
 **Reversibility:** high.
+
+## S4 - Round 3 review fix
+
+Round 3: claude-code PASS; codex confirmed every earlier finding resolved and
+raised whitespace inside fenced code or inline code spans being collapsed (high).
+Fixed by comparing whitespace the way Markdown renders it: prose collapses
+(preserving the earlier deliberate whitespace rule its tests pin), leading
+indentation counts, fenced code lines (blank ones included) and inline code spans
+are verbatim.
+**Answered by:** agent
+**Options:** exact bytes (breaks the pinned prose-whitespace rule for delegated
+hand-back); Markdown-semantic comparison.
+**Reversibility:** high.
