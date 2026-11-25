@@ -76,6 +76,13 @@ Every shared resource change is restaged into the desktop copies
 (`node apps/desktop/scripts/stage-protocol.mjs`) and checked with
 `npm start --prefix cli -- plugin validate | lint | validate-native | build`.
 
+**Cut (D36, 2026-11-24).** PR B1 and PR C1 merged. P3's sweep records, P4's
+remaining items (normalization of misplaced fields, `not-assessed`,
+`validate-verdict`, retention, per-finding metrics, per-rule counts), P6, P7
+and P10's metrics and surfaces move to the follow-up feature
+(`follow-up-feature.md`). The feature closes with one feature-final paired
+review round and a ready, unmerged final PR into main.
+
 ## Steps
 
 ### P1 - Reviewer idle-inhibitor lock (slice 1, AC1)
@@ -280,11 +287,11 @@ Every shared resource change is restaged into the desktop copies
 |---|---|
 | P1 | R1 |
 | P2 | R2 |
-| P3 | R3, R4 |
+| P3 | R3 (sweep records moved by D36) |
 | P4 | R5, R11, R12 |
 | P5 | R6 |
-| P6 | R7 |
-| P7 | R8 |
+| P6 | moved by D36 (former row 7) |
+| P7 | moved by D36 (former row 8) |
 | P8 | R9 |
 | P9 | R10 |
 | P10 | R11 |

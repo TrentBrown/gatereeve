@@ -352,3 +352,13 @@ coupling. It previews by default.
 - **Opus 5.5 may change the reviewer failure profile.** The D13 fixes should
   help regardless, but the UNAVAILABLE target may be met or missed for
   reasons other than this work.
+
+## Amendment D36 (2026-11-24)
+
+Sweep records (AC4), follow-ups and the Completion decision (AC7), the failure
+model in specs (AC8), the remaining reviewer-contract items (part of AC5), the
+finding-level metrics and surfaces (part of AC11) and reviewer input retention
+(part of AC12) move to a follow-up feature (`follow-up-feature.md`). This
+feature ships the reviewer idle lock, metrics repair and scratch fixes,
+workflow robustness, the worktree sweep, the severity contract with
+substance/bookkeeping separation, the round policy and CI after convergence.
