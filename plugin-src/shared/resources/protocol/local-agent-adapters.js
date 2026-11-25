@@ -105,7 +105,10 @@ export async function runAgentProcess(executable, args, { cwd, input, env = proc
   // outcome is reported only after it settles. Behind an idle-inhibitor
   // wrapper the wrapper's own spawn proves nothing: the reviewer runs through
   // a shell shim that checks the executable, writes a one-off marker line to
-  // stderr and then execs the reviewer. The marker is reported and stripped.
+  // stderr and then execs the reviewer. The marker is stripped. Because exec can
+  // still fail (the shell then exits 126 or 127 without starting the reviewer),
+  // the launch is reported only once the marker is followed by reviewer output
+  // or by an exit that is not an exec failure.
   const marker = onSpawn && launch.idleInhibitor ? `gatereeve-reviewer-started:${randomUUID()}` : null;
   if (marker) {
     const wrapperArgs = launch.args.length - args.length - 1;
@@ -123,7 +126,7 @@ export async function runAgentProcess(executable, args, { cwd, input, env = proc
       env,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
-    let reported = false;
+    let reported = false, marked = false;
     const report = () => { if (reported) return; reported = true; spawned = Promise.resolve().then(onSpawn); spawned.catch(() => { /* surfaced when the run settles */ }); };
     if (onSpawn && !marker) child.once('spawn', report);
     // Ending the run: SIGTERM, then SIGKILL two seconds later. Behind
@@ -167,15 +170,17 @@ export async function runAgentProcess(executable, args, { cwd, input, env = proc
       size += chunk.length;
       if (size > MAX_OUTPUT_BYTES) terminate();
       else stdout.push(chunk);
+      if (marked) report();
     });
     child.stderr.on('data', (chunk) => {
       size += chunk.length;
       if (size > MAX_OUTPUT_BYTES) terminate();
       else stderr.push(chunk);
-      if (marker && !reported && Buffer.concat(stderr).toString('utf8').includes(marker)) report();
+      if (marker && !marked && Buffer.concat(stderr).toString('utf8').includes(marker)) marked = true;
     });
     child.on('error', reject);
     child.on('close', (code, exitSignal) => {
+      if (marked && code !== 126 && code !== 127) report();
       clearTimeout(timer);
       if (killTimer !== null && recorded.length === 0) clearTimeout(killTimer);
       const completedAt = new Date();

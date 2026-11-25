@@ -150,3 +150,15 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
   stderr. stdio survives the wrapper closing other descriptors.
 - **Alternatives:** an extra file-descriptor pipe (rejected: the wrapper may
   close inherited descriptors); polling (rejected: races).
+
+## S11. Boundary review round 5: exec failure after the marker
+
+- **Answered by:** agent (fix); human (round-6 decision pending)
+- **Decision:** Codex's round-5 finding was valid: `command -v` does not prove
+  that `exec` succeeds. Its mandate assessment FAILed on that finding, so
+  autonomous adjudication could only rebut it as unsupported. That would be
+  untrue, so it was not recorded. The fix: the marker only marks the shim. The
+  launch is reported once reviewer stdout arrives or the process exits with a
+  code other than 126/127 (the Linux shells' exec-failure codes; the wrapper
+  path is Linux-only). A Linux-only test covers a reviewer with a missing
+  interpreter.

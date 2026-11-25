@@ -746,7 +746,8 @@ transient retry, repair turn): it is `refused` only when no attempt launched a
 reviewer, and otherwise follows the latest attempt that did. The local adapters
 report the reviewer process spawn, so a failure before spawn is a refusal; behind
 an idle-inhibitor wrapper the reviewer reports its own start through a stderr
-marker, so the wrapper's spawn alone is never a launch. For another adapter,
+marker, confirmed by reviewer output or by an exit that is not an exec failure
+(126 or 127), so neither the wrapper's spawn nor a failed exec is a launch. For another adapter,
 invoking its stage is the launch. A round whose
 outcomes are all `refused` is not counted. A provider-failure result records
 `providerFailure: {category}`; a `transient-service-failure` is retried once

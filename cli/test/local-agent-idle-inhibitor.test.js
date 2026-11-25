@@ -279,3 +279,15 @@ test('a failing spawn report surfaces as the run error and is never an unhandled
     assert.deepEqual(unhandled, []);
   } finally { process.off('unhandledRejection', listener); }
 });
+test('behind the wrapper, a reviewer found on PATH that cannot execute is not a launch (Linux shells exit 126 or 127)', { skip: process.platform !== 'linux' && 'the wrapper path and its shell exit codes are Linux-only' }, async t => {
+  const base = await scripts(t);
+  const forwarding = join(base.dir, 'forwarding-inhibit');
+  await writeFile(forwarding, '#!/bin/sh\nwhile [ "${1#--}" != "$1" ]; do shift; done\n"$@"\n'); await chmod(forwarding, 0o755);
+  const broken = join(base.dir, 'broken-reviewer');
+  await writeFile(broken, '#!/nonexistent/interpreter\necho never\n'); await chmod(broken, 0o755);
+  let launched = 0;
+  await assert.rejects(runAgentProcess(broken, [], { input: '', timeoutSeconds: 10, idleLock: { why },
+    inhibitor: { platform: () => 'linux', resolve: () => forwarding, probe: async () => true }, onSpawn: async () => { launched++; } }),
+  error => [126, 127].includes(error.providerFailure?.exitCode));
+  assert.equal(launched, 0, 'An exec failure after the marker is not a launch');
+});
