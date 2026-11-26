@@ -55,7 +55,7 @@ run after a human-led interview, use the `goal` skill
 - Never ask the human. Record `Answered by: agent` entries instead.
 - Use the test methods needed to prove the change, and list them in the PR.
   Production, data deletion and harness approvals are excluded.
-- At a real blocker, keep a draft PR listing every blocker, record
+- At a real blocker, keep an open PR listing every blocker, record
   `goal.park`, then ask through the question tool. A human `run.continue`
   resumes the run.
 - End at a ready, unmerged final PR.

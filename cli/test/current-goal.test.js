@@ -154,12 +154,11 @@ test('a goal run parks behind an open PR with blockers and only a human continue
   f.gh.pr.state = 'MERGED';
   await assert.rejects(f.request('goal.park', park, 'park-merged'), /must be open/);
   f.gh.pr.state = 'OPEN';
+  // Draft status is no precondition: a PR ready for review carries the park.
   f.gh.pr.isDraft = false;
-  await assert.rejects(f.request('goal.park', park, 'park-ready'), /must be a draft/);
-  f.gh.pr.isDraft = true;
   await assert.rejects(f.request('goal.park', { ...park, blockers: [...park.blockers, 'Unlisted blocker.'] }, 'park-unlisted'), /must list every blocker; missing: Unlisted blocker/);
   const parked = await f.request('goal.park', park, 'park');
-  assert.equal(parked.state.park.pr.isDraft, true, 'a draft PR may carry a park');
+  assert.equal(parked.state.park.pr.isDraft, false, 'a PR ready for review may carry a park');
   let status = await snapshot(f);
   assert.equal(status.goal.terminal, 'parked');
   assert.match(status.goal.reason, /second review provider/);

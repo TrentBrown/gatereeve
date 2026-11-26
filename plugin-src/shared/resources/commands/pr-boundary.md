@@ -57,7 +57,8 @@ the agent then runs `merge.execute`. Standing grants never cover the release
 branch. If GitHub refuses an authorized merge under a hosting rule, report the
 `EXTERNAL_BLOCKER` to the human as an external blocker, not a gate failure, and
 retry `merge.execute` after it is resolved. Deployment remains separately authorized. Open
-drafts are default; closed drafts require explicit repository configuration. The round
+PRs are default, draft or ready for review (draft status is never a
+precondition); closed PRs require explicit repository configuration. The round
 policy is the only remediation-round limit; no evidence-commit requirement applies.
 
 Autonomous authority may qualify eligible residual risk separately from original review outcomes. It is mandate-bound, never substitutes for a missing reviewer or mandatory verification, and never authorizes the final release merge.
