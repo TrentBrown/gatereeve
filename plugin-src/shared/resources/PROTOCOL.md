@@ -78,10 +78,23 @@ spec validation are not required. The commitment subject is derived from the
 brief (contract, feature, `rigor: light`, brief hash) and appears in `status`
 `commitments`. Under supervision, a human `authorize-implementation` naming that
 subject is the implementation authority; no `approve-design` or `spec.validate`
-precedes it. It is accepted in any phase before integration. A changed brief no
-longer matches the authorized subject, so implementation, candidates and gates
-stop until the changed brief is authorized again; that decision supersedes earlier
-authority, acceptance and exceptions. `amend` is refused while light.
+precedes it. It is accepted in any phase before integration. The findings log
+may grow during the run: while the brief matches the authorized brief outside its
+findings log section (with its nested sub-headings), `commitments`
+keeps the authorized subject and no new decision is needed. Whitespace compares
+as Markdown renders it: in prose, trailing whitespace and inner whitespace runs
+are ignored, a blank line counts as a block separator (runs of blank lines count
+as one; blank lines at the ends are ignored), and leading indentation counts (it carries list
+structure); fenced code, lines indented four or more columns (tabs advance to the
+next multiple of four; indented code, including blank lines between such lines)
+and inline code spans compare verbatim. The same
+comparison decides a delegated hand-back. Any other change
+(goal, scope, preamble or another section) no longer matches the authorized
+subject, so implementation, candidates and gates stop until the changed brief is
+authorized again; that decision supersedes earlier authority, acceptance and
+exceptions. A candidate still pins the exact brief bytes, so a findings-log edit
+after `candidate.prepare` needs a fresh candidate (no human decision). `amend` is
+refused while light.
 
 Raising rigor to full voids the brief-bound authority: the subject becomes the
 full design/spec subject and the phase returns to `DESIGNING`. Backfill interview,
@@ -163,6 +176,17 @@ unless the PR description already carries the current review summary from
 `review.publish` for the prepared head (see Delivery targets).
 
 Waivers name `gates` and preserve FAIL/UNAVAILABLE. They default to this candidate.
+A current `verification` waiver also covers the verification obligations checked
+after a PASS outcome (prior-behavior coverage, the assessed-evidence or CI
+qualification and the hosted-CI exact-head check): each waived residual is kept
+on the verification outcome as `waivedCoverage` (and so in the acceptance
+`MILESTONE` record) instead of blocking. A `waive` decision records `observed`:
+each waived gate's outcome, reason and any `waivedCoverage` from the milestone
+check when the human decided. A waive-and-accept that is still blocked is refused
+naming what is missing. A PASS with `waivedCoverage` is not a passing gate for
+standing, delegated or autonomous acceptance, adjudication and merge (they still
+need every required gate to PASS), and the PR explainer shows each waived
+residual.
 Optional `findings` narrows an exception to named current blocking findings; it
 cannot satisfy another finding. The core binds command/configuration, evaluator
 rules, blocking findings and live runtime assumptions, including consumed proof
@@ -887,11 +911,14 @@ WORKSPACE-CONTEXT.md); there is no configuration-free delivery path.
   repos/{owner}/{repo}`, non-admin) and writes, atomically and never over an
   existing file, `{schemaVersion: 1, featureId: <current branch>, repositories:
   {repository: {path: ".", remote, integrationBranch: <default>, releaseBranch:
-  <default>, keepPullRequestsClosed: false}}}`, then adds `/.agentic-workflow.json`
-  to the repository's local `info/exclude`. The feature home does not move.
-  `STARTED.workspace` records `{status: "created", observed, configuration, file,
-  exclude}` and retains the bytes. Integration equal to release means only per-PR
-  human merges.
+  <default>, keepPullRequestsClosed: false, featureBaseSha}}}`, then adds
+  `/.agentic-workflow.json` to the repository's local `info/exclude`. The feature
+  home does not move. `featureBaseSha` is the merge base of `HEAD` with
+  `refs/remotes/<remote>/<default>`, else `refs/heads/<default>` (no fetch), so
+  FEATURE scope works straight after `run.start`; when neither resolves it is
+  omitted and `observed.featureBase` carries the reason. `STARTED.workspace`
+  records `{status: "created", observed, configuration, file, exclude}` and
+  retains the bytes. Integration equal to release means only per-PR human merges.
 - **Not written** (no GitHub remote, an unobservable or unusable default branch,
   a run started on the default branch, or a delegated start): the run starts and
   `STARTED.workspace` records `{status: "unconfigured", reason}`.

@@ -83,8 +83,8 @@ async function excludes(f) {
   const common = (await git(f.root, ['rev-parse', '--git-common-dir'])).trim();
   return (await readFile(join(f.root, common, 'info/exclude'), 'utf8')).split('\n').filter(line => line === `/${CONFIG}`);
 }
-const minimal = (featureId, branch = 'main') => ({ schemaVersion: 1, featureId,
-  repositories: { repository: { path: '.', remote: 'origin', integrationBranch: branch, releaseBranch: branch, keepPullRequestsClosed: false } } });
+const minimal = (featureId, base = null, branch = 'main') => ({ schemaVersion: 1, featureId,
+  repositories: { repository: { path: '.', remote: 'origin', integrationBranch: branch, releaseBranch: branch, keepPullRequestsClosed: false, ...(base ? { featureBaseSha: base } : {}) } } });
 
 test('absent: run start writes the minimal configuration, excludes it locally, records and reports it', async t => {
   const f = await repository(t);
@@ -93,7 +93,7 @@ test('absent: run start writes the minimal configuration, excludes it locally, r
   await start(f);
   // The file: the current branch as the feature, the observed default branch as integration and release.
   const bytes = await readFile(join(f.root, CONFIG));
-  assert.deepEqual(JSON.parse(bytes), minimal('feature-x'));
+  assert.deepEqual(JSON.parse(bytes), minimal('feature-x', f.base));
   assert.deepEqual(f.host.api, ['api --method GET repos/fixture/project']);
   // Local excludes, never committed: the file is not even untracked noise.
   assert.deepEqual(await excludes(f), [`/${CONFIG}`]);
@@ -106,8 +106,9 @@ test('absent: run start writes the minimal configuration, excludes it locally, r
   const [started] = await f.events();
   const record = started.payload.workspace;
   assert.equal(record.status, 'created'); assert.equal(record.operation, 'run.start'); assert.equal(record.featureId, 'feature-x');
-  assert.deepEqual({ ...record.observed, observedAt: undefined }, { remote: 'origin', ownerRepo: 'fixture/project', defaultBranch: 'main', source: 'GET repos/fixture/project', observedAt: undefined });
-  assert.deepEqual(record.configuration, minimal('feature-x'));
+  assert.deepEqual({ ...record.observed, observedAt: undefined }, { remote: 'origin', ownerRepo: 'fixture/project', defaultBranch: 'main', source: 'GET repos/fixture/project', observedAt: undefined,
+    featureBase: { sha: f.base, ref: 'refs/remotes/origin/main' } });
+  assert.deepEqual(record.configuration, minimal('feature-x', f.base));
   assert.deepEqual(record.file, { hash: digest(bytes), bytes: bytes.length });
   assert.equal(record.exclude.added, true); assert.match(record.exclude.path, /info\/exclude$/u);
   const core = await f.core();
@@ -206,7 +207,7 @@ test('different feature: run start stops, writes nothing, and replaces only on a
   const authority = instruction('Replace the stale configuration for new-feature.');
   await start(f, { workspace: { replace: true, authority } }, 'start-replace');
   const replaced = await readFile(join(f.root, CONFIG));
-  assert.deepEqual(JSON.parse(replaced), minimal('new-feature'));
+  assert.deepEqual(JSON.parse(replaced), minimal('new-feature', f.base));
   const context = await resolveWorkflowContext({ cwd: f.root });
   assert.equal(context.featureHome, f.home);
   const [started] = await f.events();
@@ -287,7 +288,7 @@ test('run.resume-current: an unconfigured fresh resume writes the configuration 
   await writeFile(join(f.home, 'interview.md'), '# Interview\nEarlier work.\n');
   const resumed = await resume(f);
   assert.equal(resumed.ok, true, JSON.stringify(resumed.error));
-  assert.deepEqual(JSON.parse(await readFile(join(f.root, CONFIG))), minimal('feature-x'));
+  assert.deepEqual(JSON.parse(await readFile(join(f.root, CONFIG))), minimal('feature-x', f.base));
   assert.deepEqual(await excludes(f), [`/${CONFIG}`]);
   const [started] = await f.events();
   assert.equal(started.payload.workspace.status, 'created'); assert.equal(started.payload.workspace.operation, 'run.resume-current');
@@ -381,7 +382,7 @@ test('workspace.configure writes the configuration for an existing unconfigured 
   const configured = await f.request('workspace.configure', {}, 'configure');
   assert.equal(configured.written, true); assert.equal(configured.workspace.status, 'created'); assert.equal(configured.workspace.operation, 'workspace.configure');
   assert.equal(configured.event.type, 'WORKSPACE_CONFIGURED');
-  assert.deepEqual(JSON.parse(await readFile(join(f.root, CONFIG))), minimal('feature-x'));
+  assert.deepEqual(JSON.parse(await readFile(join(f.root, CONFIG))), minimal('feature-x', f.base));
   assert.deepEqual(await excludes(f), [`/${CONFIG}`]);
   const status = await f.request('status');
   assert.equal(status.workspace.configured, true); assert.equal(status.workspace.recorded.operation, 'workspace.configure');
@@ -391,6 +392,54 @@ test('workspace.configure writes the configuration for an existing unconfigured 
   const again = await f.request('workspace.configure', {}, 'configure-again');
   assert.equal(again.written, false); assert.equal(again.workspace.status, 'configured');
   assert.equal((await f.events()).filter(event => event.type === 'WORKSPACE_CONFIGURED').length, 1);
+});
+
+// GitHub issue #145 item 3: run.start records the feature's original base, so
+// FEATURE scope works straight after it with no hand edit.
+for (const rigor of ['full', 'light']) test(`run start writes featureBaseSha and FEATURE scope prepares straight after it (${rigor})`, async t => {
+  const f = await repository(t);
+  // The default branch moves on after the feature branched: the base is the
+  // merge base, not the default-branch tip.
+  await git(f.root, ['checkout', '-q', 'main']);
+  await writeFile(join(f.root, 'later.js'), 'export const later = true;\n');
+  await git(f.root, ['add', 'later.js']); await git(f.root, ['commit', '-q', '--no-verify', '-m', 'later on main']);
+  await git(f.root, ['push', '-q', 'origin', 'HEAD:refs/heads/main']);
+  await git(f.root, ['checkout', '-q', 'feature-x']);
+  await mkdir(f.home, { recursive: true });
+  if (rigor === 'light') { await writeFile(join(f.home, 'brief.md'), BRIEF); await lightStart(f); }
+  else { await writeFullDocuments(f.home); await start(f); }
+  const configuration = JSON.parse(await readFile(join(f.root, CONFIG)));
+  assert.equal(configuration.repositories.repository.featureBaseSha, f.base);
+  const [started] = await f.events();
+  assert.deepEqual(started.payload.workspace.observed.featureBase, { sha: f.base, ref: 'refs/remotes/origin/main' });
+  const commitments = async () => (await (await f.core()).commitments()).subject;
+  if (rigor === 'light') await f.request('human.decide', { kind: 'authorize-implementation', subject: await commitments(), authority: instruction('The brief looks right.'), reason: 'Confirmed brief', consequences: 'May implement' }, 'authorize');
+  else {
+    const design = await (await f.core()).store.capture('design.md');
+    await f.request('human.decide', { kind: 'approve-design', subject: design.hash, authority: instruction('Design approved.'), reason: 'Approved', consequences: 'Spec' }, 'design');
+    await f.request('spec.validate', {}, 'spec');
+    await f.request('human.decide', { kind: 'authorize-implementation', subject: await commitments(), authority: instruction('Implement it.'), reason: 'Approved scope', consequences: 'May implement' }, 'authorize');
+  }
+  await writeFile(join(f.root, 'app.js'), 'export const answer = 42;\n');
+  await git(f.root, ['add', 'app.js']); await git(f.root, ['commit', '-m', 'answer 42']);
+  const head = (await git(f.root, ['rev-parse', 'HEAD'])).trim();
+  const target = (await git(f.root, ['ls-remote', 'origin', 'refs/heads/main'])).split(/\s/u)[0];
+  const prepared = await f.request('candidate.prepare', { repositories: [{ alias: 'repository', base: f.base, head, target }], scope: 'FEATURE', criteria: rigor === 'light' ? ['brief'] : ['R1'] }, 'feature-candidate');
+  assert.ok(prepared.event);
+});
+
+test('run start writes no featureBaseSha when no merge base resolves, and says why', async t => {
+  const f = await repository(t);
+  // An orphan feature branch shares no history with the default branch.
+  await git(f.root, ['checkout', '-q', '--orphan', 'orphan-x']);
+  await git(f.root, ['commit', '-q', '--no-verify', '-m', 'orphan root']);
+  f.branch = 'orphan-x'; f.home = join(f.root, 'docs/issues/orphan-x');
+  await start(f);
+  const configuration = JSON.parse(await readFile(join(f.root, CONFIG)));
+  assert.equal(configuration.repositories.repository.featureBaseSha, undefined);
+  const [started] = await f.events();
+  assert.equal(started.payload.workspace.observed.featureBase.sha, null);
+  assert.match(started.payload.workspace.observed.featureBase.reason, /no merge base of HEAD/);
 });
 
 // The end-to-end path R8 requires: a repository that had no configuration

@@ -1,0 +1,19 @@
+✔ schema constrains criterion IDs and contract repair cannot erase findings (1.377708ms)
+✔ invalid reviewer criterion remains visible and independent targeted repair preserves the defect (1762.577542ms)
+✔ replacement coverage is qualified in the existing review and cannot be self-declared (2617.733458ms)
+✔ two fresh complete assessments consolidate planning/code/spec and administrative gates need no launches (3202.002375ms)
+✔ failed command diagnostics bound retained excerpts and redact private inherited values (0.619666ms)
+✔ generated outputs require preparation provenance and preserve build/check identity (1768.147791ms)
+✔ derived coverage cannot assert proof, and resume returns pending work without launching it (723.395708ms)
+﹣ native evaluator repairs a retained synthetic malformed response without erasing its finding (0.048917ms) # SKIP
+✔ criterion repair preserves assessments while fixing only invalid identifiers (0.278834ms)
+✔ independent spec correction can repair an invalid row ID without redoing its assessment (2376.952041ms)
+✔ generated output identity includes directory permissions (445.760375ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 12958.767625

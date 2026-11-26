@@ -1,5 +1,6 @@
 import { realpath } from 'node:fs/promises';
 import { identity, requireThat, object, text, decisionHas, latestImplementation, currentAuthorityDecisions, autonomousValue, unattendedValue } from './contracts.js';
+import { passingGate } from './autonomous.js';
 import { git, checkCandidate } from './evidence.js';
 
 // Even a later amendment without implementation continuation invalidates a
@@ -173,7 +174,7 @@ export async function applyStanding(core, input, operation) {
   const validity = await standingValidity(core, state, grant, candidate, input.action);
   requireThat(validity.allowed, validity.reason);
   const check = await core.check('acceptance', state);
-  requireThat(check.allowed && check.outcomes.every(item => item.required === false || item.outcome === 'PASS'), 'Standing application requires current PASS evidence for every required gate', check);
+  requireThat(check.allowed && check.outcomes.every(item => item.required === false || passingGate(item)), 'Standing application requires current PASS evidence for every required gate', check);
   if (input.action) {
     const { prepareMerge } = await import('./actions.js');
     requireThat(identity(await prepareMerge(core, input.action)) === identity(input.action), 'Standing application must bind the exact prepared merge action');

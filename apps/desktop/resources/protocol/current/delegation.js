@@ -311,18 +311,42 @@ export async function reviewPlanning(core, input, operation) {
 // Preamble, goal, scope, other sections and any differently-levelled or nested
 // "findings..." heading all count, and `#` lines inside fenced code are never
 // headings. The findings log may grow during a run; any other change is a
-// scope-changing amendment. Whitespace-only differences are ignored.
+// scope-changing amendment. Whitespace is compared as Markdown renders it
+// (GitHub issue #145): in prose, trailing whitespace, runs of inner whitespace
+// and blank lines are ignored, but leading indentation is kept because it carries
+// list and block structure; fenced code lines, lines indented four or more
+// columns (indented code) and inline code spans are compared verbatim, because
+// whitespace there is content.
 const FENCE = /^ {0,3}(`{3,}|~{3,})/u;
 export function briefLines(bytes) {
   const lines = []; let fence = null;
   for (const line of bytes.toString('utf8').split(/\r?\n/u)) {
     const marker = FENCE.exec(line)?.[1];
-    if (fence) { if (marker && marker[0] === fence[0] && marker.length >= fence.length && !line.slice(line.indexOf(marker) + marker.length).trim()) fence = null; lines.push({ line }); continue; }
-    if (marker) { fence = marker; lines.push({ line }); continue; }
+    if (fence) { if (marker && marker[0] === fence[0] && marker.length >= fence.length && !line.slice(line.indexOf(marker) + marker.length).trim()) fence = null; lines.push({ line, code: true }); continue; }
+    if (marker) { fence = marker; lines.push({ line, code: true }); continue; }
     const heading = /^(#{1,6})\s+(.+)$/u.exec(line);
     lines.push({ line, ...(heading ? { level: heading[1].length, title: heading[2].trim().toLowerCase() } : {}) });
   }
   return lines;
+}
+// Collapse whitespace runs in prose, keeping inline code spans (a run of N
+// backticks up to the next run of exactly N) verbatim. An unclosed run is prose.
+function proseWithSpans(text) {
+  let out = '', prose = '', index = 0;
+  const flush = () => { out += prose.replace(/\s+/gu, ' '); prose = ''; };
+  while (index < text.length) {
+    if (text[index] !== '`') { prose += text[index++]; continue; }
+    let run = index; while (text[run] === '`') run++;
+    const ticks = text.slice(index, run);
+    let close = -1;
+    for (let at = text.indexOf(ticks, run); at !== -1; at = text.indexOf(ticks, at + 1)) {
+      if (text[at - 1] !== '`' && text[at + ticks.length] !== '`') { close = at; break; }
+    }
+    if (close === -1) { prose += ticks; index = run; continue; }
+    flush(); out += text.slice(index, close + ticks.length); index = close + ticks.length;
+  }
+  flush();
+  return out;
 }
 export function briefScope(bytes) {
   const lines = briefLines(bytes);
@@ -331,8 +355,41 @@ export function briefScope(bytes) {
   const start = level === null ? -1 : lines.findIndex(item => item.level === level && item.title.startsWith('findings'));
   let end = lines.length;
   if (start !== -1) for (let index = start + 1; index < lines.length; index++) if (lines[index].level && lines[index].level <= level) { end = index; break; }
-  const kept = lines.filter((_, index) => start === -1 || index < start || index >= end).map(item => item.line.trim().replace(/\s+/gu, ' '));
-  return identity(kept.filter(Boolean).join('\n'));
+  const outside = lines.filter((_, index) => start === -1 || index < start || index >= end);
+  // Each kept line is a typed entry, so no sentinel text can collide with a
+  // line's content. Verbatim ("code"): fenced code (blank lines included), any
+  // line indented four or more columns (tabs expand to the next multiple of
+  // four), which may be an indented code block or a fence nested in a list item,
+  // and a blank line between two such lines. This fails closed: such prose only
+  // becomes stricter. Elsewhere a blank line's presence counts, because it
+  // separates blocks (removing the one before an indented code block turns the
+  // code into paragraph text); runs of blank lines count as one, and blank lines
+  // at either end are ignored.
+  const verbatim = outside.map(({ line, code }) => Boolean(code) || indentColumns(line) >= 4 && Boolean(line.trim()));
+  const kept = [];
+  outside.forEach(({ line }, index) => {
+    if (verbatim[index]) { kept.push(['code', line]); return; }
+    if (!line.trim()) {
+      const before = verbatim.slice(0, index).findLastIndex((_, at) => outside[at].line.trim() || verbatim[at]);
+      const after = outside.findIndex((item, at) => at > index && (item.line.trim() || verbatim[at]));
+      if (before !== -1 && after !== -1 && verbatim[before] && verbatim[after]) kept.push(['code', line]);
+      else if (kept.length && kept.at(-1)[0] !== 'blank') kept.push(['blank']);
+      return;
+    }
+    kept.push(['text', /^\s*/u.exec(line)[0] + proseWithSpans(line.trim())]);
+  });
+  while (kept.at(-1)?.[0] === 'blank') kept.pop();
+  return identity(kept);
+}
+// Leading indentation in columns, with tabs advancing to the next multiple of four.
+function indentColumns(line) {
+  let columns = 0;
+  for (const character of line) {
+    if (character === ' ') columns++;
+    else if (character === '\t') columns += 4 - columns % 4;
+    else break;
+  }
+  return columns;
 }
 
 // Qualify a delegated planning decision; returns the recorded citation.

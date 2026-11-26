@@ -49,8 +49,9 @@ No interview, design, spec, plan, issues or spec validation is required.
 
 **Supervised.** Show the brief to the human and wait. Record their explicit
 confirmation as `human.decide` kind `authorize-implementation` against the
-brief-derived subject from `status` `commitments`. Changing the brief afterwards
-invalidates that authority: show the changed brief and record a new authorization
+brief-derived subject from `status` `commitments`. Appending to the findings log
+keeps that authority (the subject stays the authorized one). Any other change to
+the brief invalidates it: show the changed brief and record a new authorization
 before continuing. `amend` is not used in a light run. If the run was delegated, a
 human re-authorization of a brief changed outside its findings log also returns
 the run to supervised.
@@ -60,8 +61,7 @@ the run to supervised.
 PASS, record `authorize-implementation` with authority
 `{kind: "delegated-evaluator", delegation: <status delegation.event>, evaluation: <the PLANNING_REVIEWED event>}`.
 A FAIL means fix the brief and review again, or hand back. Updating the findings
-log needs a new brief review and delegated re-authorization; any other change to
-the brief (preamble, goal, scope, sub-headings or other sections) is a scope
+log keeps the authorization; any other change to the brief (preamble, goal, scope, sub-headings or other sections) is a scope
 change that hands control back to the human. After any hand-back, stop: a human
 `authorize-implementation` is needed before more implementation, candidates or
 gates.
