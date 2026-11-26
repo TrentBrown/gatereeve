@@ -58,3 +58,17 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
 - **Alternatives:** an `amend` decision (applies to delivery requirements after
   implementation authority; the run is still in PLANNING).
 - **Reversibility:** reversible by a later design revision.
+
+## S5. Local verification leaves two host-dependent test files to CI
+
+- **Answered by:** agent
+- **Decision:** The local broad receipt runs the CLI suite without
+  `local-agent-idle-inhibitor.test.js` (hangs on macOS) and
+  `scratch-cleanup.test.js`. Its "leftover tombstone alone is reclaimed" test
+  fails on this host with "Installer root ownership changed" from the host's
+  own installer directory, identically on unmodified `main` (`b92ad40`); this
+  change does not touch the storage code. Hosted Ubuntu acceptance runs both
+  files.
+- **Alternatives:** keep the file and accept a failing local receipt
+  (rejected: it would fail verification for an unrelated host condition).
+- **Reversibility:** verification configuration only.

@@ -1348,7 +1348,10 @@ for (const changed of [false, true]) test(`reopened blocking findings remain req
     fakeEvaluator(f, { dispositions: status ? [{ id: 'finding-1', status, evidence: 'Unsupported attempt to pass an open finding' }] : [] });
     const reviewed = await f.request('gate.execute', input, `missing-closure-${status}`);
     const result = await f.core.store.json(reviewed.event.payload.results[0]);
-    assert.equal(result.outcome, 'UNAVAILABLE');
+    // A PASS marking the open blocking finding present is a FAIL by its own
+    // content (issue #141); the other attempts are contract errors.
+    assert.equal(result.outcome, status === 'present' ? 'FAIL' : 'UNAVAILABLE');
+    if (status === 'present') assert.equal(result.normalized[0].rule, 'pass-with-blocking-finding');
     const packet = await f.core.store.json(result.input);
     assert.ok(packet.history.some(ref => ref.hash === reopened.event.payload.results[0].hash));
   }
@@ -1389,7 +1392,7 @@ for (const changed of [false, true]) test(`delta prior cannot reorder an older c
     fakeEvaluator(f, { dispositions: status ? [{ id: 'finding-1', status, evidence: 'No supported new closure' }] : [] });
     const reviewed = await f.request('gate.execute', delta, `delta-unsupported-${status}`);
     const result = await f.core.store.json(reviewed.event.payload.results[0]);
-    assert.equal(result.outcome, 'UNAVAILABLE');
+    assert.equal(result.outcome, status === 'present' ? 'FAIL' : 'UNAVAILABLE');
     assert.equal((await f.request('milestone.check', { name: 'acceptance' })).outcomes.find(item => item.id === 'code').satisfied, false);
   }
   fakeEvaluator(f, { dispositions: [{ id: 'finding-1', status: 'resolved', evidence: 'Current delta and interactions independently verified corrected' }] });
