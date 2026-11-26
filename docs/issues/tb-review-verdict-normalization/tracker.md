@@ -28,3 +28,8 @@ Append pull-request review boundary entries here.
   an earlier blocking finding present recorded phantom `pass-with-blocking-finding`
   and `low-only-fail` rows). Fixed: the low-only re-check is accepted only when
   it yields PASS; test in `reviewer-contract.test.js`.
+- 2026-11-26 boundary round 2 (head c15babb): claude-code PASS (R-141-1
+  resolved); codex FAIL with one high finding `codex/review/R-141-2` (a stale
+  claim on an otherwise reusable review reused the old result without
+  recording `claim-not-retained`). Fixed: dropped claims are part of the reuse
+  comparison, so the reviewer runs; test in `current-boundary-review.test.js`.

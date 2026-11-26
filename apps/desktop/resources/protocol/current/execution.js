@@ -1015,6 +1015,9 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
       examined.add(result.gate);
       if (identity(previous.configuration) !== identity(configuration) || identity(previous.coverageClaims ?? []) !== identity(replacements)
         || previous.reviewContract !== value.reviewContract || identity(previous.claims) !== identity(value.claims)
+        // A dropped stale claim is a correction to record, so the request is
+        // executed rather than answered from an earlier result (issue #141).
+        || identity(previous.droppedClaims ?? []) !== identity(value.droppedClaims ?? [])
         || identity(previous.agentDecisions ?? null) !== identity(value.agentDecisions ?? null)
         || identity(previous.requestedHistory ?? []) !== identity(value.requestedHistory) || identity(previous.historyGaps ?? []) !== identity(missingHistory)) { await record({category:'reuse',startedAt:Date.now(),durationMs:0,outcome:'REJECTED',reason:'inputs-changed'}); continue; }
       try {

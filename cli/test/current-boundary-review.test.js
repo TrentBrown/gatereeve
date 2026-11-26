@@ -848,3 +848,20 @@ test('an individual review with a stale claim runs without it and records the dr
   assert.equal(result.outcome, 'PASS', result.summary);
   assert.deepEqual(result.normalized, [{ rule: 'claim-not-retained', field: 'claims[0]', id: 'codex/stale-id' }]);
 });
+test('a stale claim on an otherwise reusable review runs the reviewer and records the drop', async t => {
+  const f = await prepared(t, 'full');
+  pairedAdapters(f);
+  const selected = (await f.core.state()).state.reviewerSelection;
+  const configuration = { provider: 'codex', model: 'fixture', reviewerSelection: selected.event };
+  let launches = 0;
+  const adapter = f.core.runtime.evaluators.codex, run = adapter.runStage.bind(adapter);
+  adapter.runStage = async (request, hooks) => { launches++; return run(request, hooks); };
+  await f.request('gate.execute', { gates: ['review'], configuration }, 'reusable-pass');
+  assert.equal(launches, 1);
+  const same = await f.request('gate.execute', { gates: ['review'], configuration }, 'reused-pass');
+  assert.equal(launches, 1, 'Unchanged inputs reuse the PASS');
+  assert.equal(same.reused, true);
+  const done = await f.request('gate.execute', { gates: ['review'], claims: [{ findingId: 'codex/stale-id', claim: 'Fixed.' }], configuration }, 'stale-claim-after-pass');
+  assert.equal(launches, 2, 'The stale claim is a recorded correction, so the reviewer runs (review round 2, Codex)');
+  assert.deepEqual((await f.core.store.json(done.event.payload.results[0])).normalized, [{ rule: 'claim-not-retained', field: 'claims[0]', id: 'codex/stale-id' }]);
+});
