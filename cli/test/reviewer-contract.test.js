@@ -206,6 +206,9 @@ test('a FAIL resting only on low findings is PASS only when nothing else fails',
   const prior = [{ reviewerResult: { gate: 'review', findings: [legacy('O1')], dispositions: [] } }];
   const kept = check([finding('L1', { severity: 'low' })], { dispositions: [disposition('O1', 'present')] }, prior);
   assert.equal(kept.outcome, 'FAIL');
+  // The outcome was not rewritten, so no outcome correction is recorded (issue
+  // #141 review round 1, Claude); only the real low-never-blocks correction is.
+  assert.deepEqual((kept.normalized ?? []).map(row => row.rule), ['low-never-blocks']);
   // A FAIL with no low and no blocking finding stays the reviewer's FAIL.
   assert.equal(check([finding('A1', { severity: 'medium', blocking: false })]).outcome, 'FAIL');
 });

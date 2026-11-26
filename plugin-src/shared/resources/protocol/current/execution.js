@@ -552,7 +552,9 @@ export function validateVerdict(verdict, ...rest) {
   if (lowOnlyFail(verdict)) {
     try {
       const passed = checkVerdict({ ...verdict, outcome: 'PASS' }, ...rest);
-      return { ...passed, normalized: [...(passed.normalized ?? []), { rule: 'low-only-fail', field: 'outcome', id: null, original: { outcome: 'FAIL' } }] };
+      // The re-check can itself become a FAIL (a `present` earlier blocking
+      // finding, issue #141): then nothing was rewritten and nothing is recorded.
+      if (passed.outcome === 'PASS') return { ...passed, normalized: [...(passed.normalized ?? []), { rule: 'low-only-fail', field: 'outcome', id: null, original: { outcome: 'FAIL' } }] };
     } catch { /* another PASS check fails: the reviewer's FAIL stands */ }
   }
   return checked;

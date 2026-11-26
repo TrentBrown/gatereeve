@@ -23,3 +23,8 @@
 ## Review Log
 
 Append pull-request review boundary entries here.
+- 2026-11-26 boundary round 1 (FEATURE, head 9853bbd): codex PASS; claude-code
+  FAIL with one medium finding `claude-code/R-141-1` (a low-only FAIL that marks
+  an earlier blocking finding present recorded phantom `pass-with-blocking-finding`
+  and `low-only-fail` rows). Fixed: the low-only re-check is accepted only when
+  it yields PASS; test in `reviewer-contract.test.js`.
