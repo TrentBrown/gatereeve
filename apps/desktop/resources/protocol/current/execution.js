@@ -392,7 +392,10 @@ async function independent(core, state, candidate, prepared, configuration, pack
   await record({ ...metric, label: 'review-prompt', count: fitted.characters, outcome: fitted.fits ? 'PASS' : 'REJECTED' });
   // SKIPPED: some selected history was carried by reference or index only.
   await record({ ...metric, label: 'review-history', count: history.length, outcome: fitted.summary.inline === history.length ? 'PASS' : 'SKIPPED' });
+  // Corrections the adapter made while parsing (issue #141: prose unwrap),
+  // kept on a later rejection so the correction is still recorded.
   let retained = [];
+  const normalized = [];
   try {
     const root = view.root;
     const descriptor = await adapter.describe();
@@ -411,8 +414,6 @@ async function independent(core, state, candidate, prepared, configuration, pack
     let launchReported = false;
     const launch = async () => { if (!launchReported) { launchReported = true; await onLaunch(); } };
     if (adapter.reportsSpawn !== true) await launch();
-    // Corrections the adapter made while parsing (issue #141: prose unwrap).
-    const normalized = [];
     const onNormalized = rows => { normalized.push(...rows); };
     const result = await observe({category:'review',label:'provider-execution',project:core.context.workspaceRoot,feature:core.context.featureId,worker:true},
       () => adapter.runStage(request, adapter.reportsSpawn === true ? { onSpawn: launch, onNormalized } : { onNormalized }));
@@ -438,7 +439,11 @@ async function independent(core, state, candidate, prepared, configuration, pack
       contextId: receipt.provider.contextId, freshContext: true, inheritedTurns: 0,
       provider: descriptor.provider, model: descriptor.model, reasoningEffort, capabilityProfile: receipt.capabilityProfile,
     } };
-  } catch (error) { error.artifacts = [...new Set([...(error.artifacts ?? []), ...retained])]; throw error; }
+  } catch (error) {
+    error.artifacts = [...new Set([...(error.artifacts ?? []), ...retained])];
+    if (normalized.length && error && typeof error === 'object') error.normalized = [...normalized];
+    throw error;
+  }
   finally { await view.close(); }
 }
 export async function runCheckProcess(check, configuration, cwd, environment) {
@@ -1208,6 +1213,8 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
     }
   } catch (error) {
     runner = error.runner ?? runner;
+    // A correction made before the rejection is still recorded (issue #141).
+    if (Array.isArray(error?.normalized)) executionNormalized.push(...error.normalized);
     artifacts.push(...(error.artifacts ?? []));
     if (error.providerFailure) artifacts.push(await core.store.putJson(error.providerFailure));
     verdicts = input.gates.map(id => ({ gate: id, outcome: error.outcome ?? 'UNAVAILABLE', ...((error.outcome ?? 'UNAVAILABLE') === 'UNAVAILABLE' ? { unavailableReason: unavailableReason(error) } : {}),

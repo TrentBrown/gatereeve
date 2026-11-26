@@ -865,3 +865,22 @@ test('a stale claim on an otherwise reusable review runs the reviewer and record
   assert.equal(launches, 2, 'The stale claim is a recorded correction, so the reviewer runs (review round 2, Codex)');
   assert.deepEqual((await f.core.store.json(done.event.payload.results[0])).normalized, [{ rule: 'claim-not-retained', field: 'claims[0]', id: 'codex/stale-id' }]);
 });
+test('a prose unwrap is still recorded when the unwrapped object fails the envelope check', async t => {
+  const f = await prepared(t, 'full');
+  evaluator(f);
+  const run = f.core.runtime.evaluator.runStage.bind(f.core.runtime.evaluator);
+  f.core.runtime.evaluator.runStage = async (request, hooks) => {
+    const result = await run(request);
+    hooks.onNormalized([{ rule: 'prose-unwrapped', field: 'output', id: null }]);
+    result.output = result.output.verdicts[0]; // a bare verdict, no `verdicts` envelope
+    result.receipt.digests.output = sha256Digest(result.output);
+    return result;
+  };
+  const done = await f.request('gate.execute', { gates: ['code', 'spec'], configuration: { provider: 'codex', model: 'fixture' } }, 'unwrap-then-envelope');
+  for (const ref of done.event.payload.results) {
+    const result = await f.core.store.json(ref);
+    assert.equal(result.outcome, 'UNAVAILABLE');
+    assert.equal(result.rejectionRule, 'envelope');
+    assert.deepEqual(result.normalized, [{ rule: 'prose-unwrapped', field: 'output', id: null }], 'Review round 4, Codex R-141-4');
+  }
+});

@@ -33,3 +33,12 @@ Append pull-request review boundary entries here.
   claim on an otherwise reusable review reused the old result without
   recording `claim-not-retained`). Fixed: dropped claims are part of the reuse
   comparison, so the reviewer runs; test in `current-boundary-review.test.js`.
+- 2026-11-26 boundary round 3 (head 23e6ead): both PASS; claude-code low
+  `R-141-3` (an unwrap followed by an envelope rejection lost its
+  `prose-unwrapped` row). Hosted CI on 23e6ead: all jobs passed.
+- 2026-11-26 boundary round 4 (head 23e6ead, verification with the
+  scratch-cleanup check replacement, accepted by both): claude-code PASS (low
+  `R-141-4`: two suites run only in CI); codex FAIL high `codex/review/R-141-4`
+  (same path as R-141-3). Fixed: `independent()` keeps adapter rows on a
+  rejection and the execution records them; test in
+  `current-boundary-review.test.js`.
