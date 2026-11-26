@@ -467,7 +467,7 @@ test('pattern rules are retained and policy changes invalidate earlier assessmen
 const fallbackScenarios = {
   'fallback-pass': 'integrates after watching all reported CI when no required checks exist',
   'fallback-fail-closed': 'recloses a PR after fallback CI fails',
-  'fallback-fail-draft': 'restores an open draft after fallback CI fails',
+  'fallback-fail-draft': 'leaves a promoted draft ready after fallback CI fails',
   'fallback-drift': 'rejects target identity drift after fallback CI passes',
   'fallback-empty': 'integrates only after unfiltered confirmation of no CI',
   'fallback-empty-drift': 'rejects target identity drift after confirmation of no CI',
@@ -548,8 +548,9 @@ for (const drift of [false, true, 'target-after-checks', 'advanced-target', 'can
   if (drift === 'fallback-fail-closed' || drift === 'fallback-fail-draft') {
     await assert.rejects(f.request('merge.execute', { repository: 'app', number: 12 }, 'merge'), error => error === ciFailure);
     assert.equal(state, keepClosed ? 'CLOSED' : 'OPEN');
-    if (!keepClosed) assert.equal(isDraft, true);
-    assert.deepEqual(writes, keepClosed ? ['reopen', 'ready', 'checks', 'checks', 'close'] : ['ready', 'checks', 'checks', 'ready']);
+    // Draft status is never restored: the open PR stays ready for a retry.
+    if (!keepClosed) assert.equal(isDraft, false);
+    assert.deepEqual(writes, keepClosed ? ['reopen', 'ready', 'checks', 'checks', 'close'] : ['ready', 'checks', 'checks']);
     assert.deepEqual((await f.request('status')).integrations, {});
   } else if (['candidate-before-write', 'candidate-after-write'].includes(drift)) {
     await assert.rejects(f.request('merge.execute', { repository: 'app', number: 12 }, 'merge'), /state or authority changed/);
@@ -2478,7 +2479,8 @@ for (const mode of ['slice', 'final', 'acceptance-only', 'revoke-during-checks',
   if (mode.includes('during-')) {
     await assert.rejects(f.request('merge.execute', { repository: 'app', number: 12 }), /state or authority changed|Gate proof changed|expired/);
     assert.equal(writes.includes('merge'), false);
-    assert.equal(isDraft, true);
+    // A PR this attempt marked ready stays ready, and preparation accepts it.
+    assert.equal(isDraft, !writes.includes('ready'));
     assert.equal((await f.request('merge.prepare', { repository: 'app', number: 12 })).keepClosed, false);
     return;
   }

@@ -92,6 +92,13 @@ export function processDescendants(root) {
   }
   return found;
 }
+// Node sets the tracked child's exit fields in the same event-loop turn that
+// reaps it, so while both are null its PID has not been released. A recorded
+// descendant is a root only while its start time still matches.
+export function escalationRoots(child, recorded, stat = processStat) {
+  const live = child.exitCode === null && child.signalCode === null ? [child.pid] : [];
+  return [...live, ...recorded.filter(item => stat(item.pid)?.started === item.started).map(item => item.pid)];
+}
 function killIfSame({ pid, started }) {
   if (processStat(pid)?.started !== started) return;
   try { process.kill(pid, 'SIGKILL'); } catch { /* already gone */ }
@@ -145,7 +152,9 @@ export async function runAgentProcess(executable, args, { cwd, input, env = proc
       killTimer = setTimeout(() => {
         const seen = new Set(recorded.map(item => item.pid));
         const targets = [...recorded];
-        for (const root of [child.pid, ...recorded.map(item => item.pid)]) {
+        // Walk only roots that are still the recorded process: an exited
+        // wrapper's or reviewer's PID may already belong to another process.
+        for (const root of escalationRoots(child, recorded)) {
           for (const item of processDescendants(root)) if (!seen.has(item.pid)) { seen.add(item.pid); targets.push(item); }
         }
         child.kill('SIGKILL');

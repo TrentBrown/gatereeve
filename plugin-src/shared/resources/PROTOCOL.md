@@ -38,7 +38,7 @@ identity and exact input after an uncertain response. Conflicting reuse fails.
 | `job.abandon` | `jobId`, `reason`: records `JOB_ABANDONED` for a pending verification or acceptance-assessment job whose owning process is verifiably gone (its recorded process identity no longer matches). An abandoned job no longer invalidates proof recorded before it. Refused for a live process, a job with a retained outcome (reconcile it), a job without an owner record, and delivery (completion) jobs |
 | `milestone.check` | `name: implementation|acceptance|merge|completion`; reports missing proof/authority without writing |
 | `milestone.pass` | Record an allowed milestone; merge must use its protected action |
-| `merge.prepare` | `repository`, PR `number`, `method`; derive the exact source/target action, including `deliveryTarget: integration|release`, to present for authorization. Rejects a PR whose candidate scope does not match its target (see Delivery targets). Without a workspace configuration it fails naming `workspace.configure` |
+| `merge.prepare` | `repository`, PR `number`, `method`; derive the exact source/target action, including `deliveryTarget: integration|release`, to present for authorization. In default open delivery the PR must be open; a draft and a PR ready for review are both accepted, and draft status is not part of the action. Rejects a PR whose candidate scope does not match its target (see Delivery targets). Without a workspace configuration it fails naming `workspace.configure` |
 | `review.select` | `observations`, exactly two `reviewers`, `reason`, optional developer `instruction` and replacement `previous` selection event. Record runtime discovery and daily-driver/high-effort choices after applying configured reviewer preferences |
 | `review.execute` | Run the selected pair in parallel; optional `consumed`, bounded `history`/`claims`, `coverageClaims`, per-provider `prior` and shared non-identity `configuration`. Requires a current passing verification: order `candidate.prepare` → `gate.execute ["verification"]` → `review.execute`; without one it refuses with `VERIFICATION_REQUIRED` and records nothing (see Paired review outcomes). Individual `gate.execute review` results alone do not satisfy acceptance |
 | `review.adjudicate` | Autonomous authority (`mandated` or `goal`) only: exact `candidate` hash and `pair` identity, complete material-finding `dispositions`, `reason`, retained `evidence`, optional `stopReason`; preserves original reviewer outcomes |
@@ -46,7 +46,7 @@ identity and exact input after an uncertain response. Conflicting reuse fails.
 | `merge.execute` | Same action selector; requires current proof, human acceptance, authorization bound to the prepared action and the current review summary on the PR. A hosting-rule refusal fails with `EXTERNAL_BLOCKER`, not a gate failure |
 | `integration.observe` | `repository`, optional configured `branch`; fetch and verify actual reviewed-content integration, independent of acceptance |
 | `run.pause`, `run.continue` | Actual `authority` instruction; continuation never follows merely from elapsed time. A human `run.continue` also clears a goal park |
-| `goal.park` | Goal autonomy only: `pr: {repository, number}`, non-empty `blockers` and `evidence`. The PR must be an open draft whose description lists every blocker. Records `PARKED`; `status` `goal.terminal` becomes `parked` (see Goal autonomy) |
+| `goal.park` | Goal autonomy only: `pr: {repository, number}`, non-empty `blockers` and `evidence`. The PR must be open (draft or ready for review) and its description must list every blocker. Records `PARKED`; `status` `goal.terminal` becomes `parked` (see Goal autonomy) |
 
 Unsupported old operations are rejected. Start a current run; do not replay,
 convert, overwrite or delete old locks/journals. A resume with missing approvals
@@ -964,7 +964,8 @@ protected merge reports an external blocker. The result fails with error code
 `MERGE_BLOCKED` event shown as `status.externalBlocker` (history in
 `externalBlockers`) and a snapshot blocker; `delivery.resume` returns status
 `external-blocker` with next action `human`. Gate proof, acceptance and
-authorization are unchanged and the PR's prior presentation is restored. After the
+authorization are unchanged. An open PR stays open and ready (draft status is
+never restored); closed delivery closes the PR again. After the
 rule is satisfied on the host, run `merge.execute` again; a new candidate or
 integration clears the current blocker. Any other merge error keeps its original
 failure.
@@ -1026,12 +1027,13 @@ Expiry, revocation, changed approval/requirements, repository/remote drift and
 out-of-scope delivery block further use, including already prepared merges.
 Pause blocks use; continuing preserves only still-valid authority. Repeat the
 same operation ID and input after interruption; the journal retains the original
-application. Status exposes grants, scope and inactive reasons. Open drafts
-remain the default; `keepPullRequestsClosed: true` is a per-repository opt-in.
+application. Status exposes grants, scope and inactive reasons. Open PRs
+are the default (a draft or ready for review; draft status is no precondition);
+`keepPullRequestsClosed: true` is a per-repository opt-in.
 
-If a default-open merge aborts after this invocation made its draft ready, the
-adapter restores draft status for the unchanged, unmerged PR and verifies it,
-allowing a later authorized retry. Host-discovered Git is honored by grant and
+A default-open merge marks a draft PR ready, because GitHub cannot merge a
+draft. If the merge then aborts, the PR stays open and ready; draft status is
+never restored, and a later authorized retry accepts the ready PR. Host-discovered Git is honored by grant and
 protected action reads. Acceptance scope includes the assessed target branch;
 verified integration on that same branch preserves prior acceptance for completion.
 
@@ -1200,8 +1202,8 @@ that authority, `goal` adds attendance rules for a human who is not watching.
   following:
   - the acceptance milestone qualifies for the current FEATURE candidate;
   - `review.publish` recorded the current summary on an open, unmerged PR
-    whose head is the candidate head (`GOAL_READY`). A draft is fine, because
-    PRs stay open drafts until merge authorization.
+    whose head is the candidate head (`GOAL_READY`), draft or ready for
+    review.
 - **No-ask.** The PreToolUse hook denies the harness question tools
   (`AskUserQuestion`, `request_user_input`) in a goal run without an active
   park. The agent answers the question itself and records an
@@ -1225,7 +1227,7 @@ that authority, `goal` adds attendance rules for a human who is not watching.
   `goal.terminal` is `null`, and admits the stop after 3 consecutive blocks with
   no new protocol event (the stall valve). It fails open.
 - **Park.** At a real blocker the agent advances as far as it can and keeps an
-  open draft PR whose description lists every blocker. It then records
+  open PR (draft or ready for review) whose description lists every blocker. It then records
   `goal.park`, pauses the native goal, and asks through the harness question
   tool. A human `run.continue` clears the park, and the run stays `goal`.
   Leaving goal autonomy also clears it.

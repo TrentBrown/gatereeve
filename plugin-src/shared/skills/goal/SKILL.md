@@ -89,7 +89,7 @@ last approval, an amendment must pin it before milestones pass.
   credentials or production access, a needed mandate change, lost
   protection, or a usage limit you can still act on. When one stops you:
   1. advance as far as you can;
-  2. open (or keep) the draft PR, and list every blocker in its description;
+  2. open (or keep) the PR (draft or ready), and list every blocker in its description;
   3. record `goal.park` `{pr: {repository, number}, blockers, evidence}`;
   4. pause the native goal (`pause_goal` / `update_goal` blocked);
   5. ask through the harness question tool with the PR link, the blocker and

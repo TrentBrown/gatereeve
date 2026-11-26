@@ -101,7 +101,7 @@ function textList(value, label) {
 }
 
 // Operation goal.park: the agent records that it advanced as far as it can and
-// a PR (draft allowed) lists the blockers. Only a human run.continue clears it.
+// an open PR (draft or ready for review) lists the blockers. Only a human run.continue clears it.
 export async function parkGoal(core, input, operation, readPullRequest) {
   requireThat(input && Object.keys(input).every(key => ['pr', 'blockers', 'evidence'].includes(key)), 'Unsupported goal park field');
   const pr = prReference(input.pr);
@@ -112,15 +112,14 @@ export async function parkGoal(core, input, operation, readPullRequest) {
   requireThat(!state.park, 'The run is already parked; a human run.continue resumes it');
   const observed = await readPullRequest(core, pr);
   requireThat(observed.state === 'OPEN', `PR #${pr.number} must be open to carry a park (it is ${observed.state})`);
-  requireThat(observed.isDraft === true, `PR #${pr.number} must be a draft to carry a park`);
   const missing = blockers.filter(blocker => !String(observed.body ?? '').includes(blocker));
   requireThat(!missing.length, `PR #${pr.number} description must list every blocker; missing: ${missing.join('; ')}`);
   return core.append(state, 'PARKED', { pr: { ...pr, head: observed.headRefOid, isDraft: Boolean(observed.isDraft) }, blockers, evidence }, operation);
 }
 
 // Recorded by review.publish when a goal run's final FEATURE candidate summary
-// is published on an open, unmerged PR (an open draft is GateReeve's default
-// delivery state, spec A2) whose head is the candidate head.
+// is published on an open, unmerged PR (draft or ready for review) whose head
+// is the candidate head.
 export const decisionsIdentity = decisions => identity(decisions.map(({ file, heading, body }) => ({ file, heading, body })));
 export function readyRecord(state, candidate, publication, pr, decisions = []) {
   if (!isGoal(state) || candidate.scope !== 'FEATURE') return null;

@@ -18,13 +18,19 @@ const store = join(rootPath(), 'metrics.sqlite');
 
 function snapshot() {
   const count = dir => existsSync(dir) ? readdirSync(dir).length : 0;
-  const result = { runs: count(join(hostScratch, 'runs')), reports: count(join(hostScratch, 'reports')), workflows: new Map(), observations: 0 };
+  const result = { runs: count(join(hostScratch, 'runs')), reports: count(join(hostScratch, 'reports')), workflows: new Map(), observations: 0, records: 0, recordProjects: new Set() };
   if (existsSync(store)) {
     const db = new DatabaseSync(store, { readOnly: true });
     try {
       const has = name => db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name);
       if (has('reporting_workflows')) for (const row of db.prepare('SELECT id, home FROM reporting_workflows').all()) result.workflows.set(row.id, row.home);
       if (has('reporting_observations')) result.observations = db.prepare('SELECT COUNT(*) AS n FROM reporting_observations').get().n;
+      // Execution records (the `records` table) are what `metrics run` and
+      // captured verification write; a leaking test would add them too.
+      if (has('records')) {
+        result.records = db.prepare('SELECT COUNT(*) AS n FROM records').get().n;
+        for (const row of db.prepare('SELECT DISTINCT project_id FROM records').all()) result.recordProjects.add(row.project_id);
+      }
     } finally { db.close(); }
   }
   return result;
@@ -43,17 +49,20 @@ const code = await new Promise((resolveRun, reject) => {
 });
 const after = snapshot();
 const added = [...after.workflows].filter(([id]) => !before.workflows.has(id));
+const addedProjects = [...after.recordProjects].filter(id => !before.recordProjects.has(id));
 const summary = { store, hostScratch, suiteExit: code,
-  before: { runs: before.runs, reports: before.reports, workflows: before.workflows.size, observations: before.observations },
-  after: { runs: after.runs, reports: after.reports, workflows: after.workflows.size, observations: after.observations },
-  addedWorkflows: added.map(([id, home]) => ({ id, home })) };
+  before: { runs: before.runs, reports: before.reports, workflows: before.workflows.size, observations: before.observations, records: before.records },
+  after: { runs: after.runs, reports: after.reports, workflows: after.workflows.size, observations: after.observations, records: after.records },
+  addedWorkflows: added.map(([id, home]) => ({ id, home })), addedRecordProjects: addedProjects };
 console.log(`Isolation evidence: ${JSON.stringify(summary)}`);
 const problems = [];
 if (code !== 0) problems.push(`the CLI test suite exited ${code}`);
 if (added.length) problems.push(`${added.length} workflow(s) were added to the shared metrics store`);
+if (addedProjects.length) problems.push(`execution records for ${addedProjects.length} new project(s) were added to the shared metrics store`);
 if (after.runs !== before.runs) problems.push(`host scratch runs changed ${before.runs} -> ${after.runs}`);
 if (after.reports !== before.reports) problems.push(`host scratch reports changed ${before.reports} -> ${after.reports}`);
-// Observations of already-known workflows may be captured by the invoking
-// workflow itself while the suite runs; test rows would need a new workflow.
+// Observations and execution records of already-known workflows and projects
+// may be captured by the invoking workflow itself while the suite runs; test
+// rows would need a new workflow or project.
 if (problems.length) { console.error(`Isolation evidence failed: ${problems.join('; ')}`); process.exitCode = 1; }
 else console.log('Isolation evidence passed: the full CLI suite left the shared metrics store and host scratch root unchanged.');

@@ -97,7 +97,7 @@ def _goal_guidance(data: dict[str, Any]) -> str:
         "Testing permission: use the test methods needed to prove the change even where project files say to ask first, "
         "and list each method in the PR description; production, data deletion and harness approval prompts are excluded. "
         "While CI or reviews are pending, wait with a PR watcher instead of ending the turn. "
-        "At a real blocker, open or keep the draft PR with every blocker in its description, record goal.park, pause "
+        "At a real blocker, open or keep the PR (draft or ready) with every blocker in its description, record goal.park, pause "
         "the native goal, then ask through the question tool; a human run.continue resumes. "
         "The endpoint is a ready, unmerged final PR; never merge it."
     )

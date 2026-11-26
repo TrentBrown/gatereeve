@@ -37,8 +37,9 @@ export async function protectedMerge(core, input, operation) {
       // cannot write while this owner is observing or restoring presentation.
       const current = (await core.state()).state;
       requireThat(!current.paused && current.eventCount === claimed.state.eventCount, 'Feature state or authority changed during recovery');
+      // Closed delivery closes the PR again; an open PR stays as it is (draft
+      // status is no precondition, so none is restored).
       if (action.keepClosed && observed.state === 'OPEN') await run(repository.path, ['pr', 'close', String(action.number), '--repo', action.ownerRepo]);
-      else if (!action.keepClosed && observed.state === 'OPEN' && !observed.isDraft) await run(repository.path, ['pr', 'ready', String(action.number), '--repo', action.ownerRepo, '--undo']);
       requireThat(identity(action) === identity(await prepareMerge(core, input)), 'Recovered source/target changed; reassess the action');
     }
     return await merge(core, input, operation);

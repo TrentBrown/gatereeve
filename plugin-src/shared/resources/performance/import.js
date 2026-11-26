@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { MetricsStore } from './store.js';
+import { paginatedItems } from '../protocol/current/validation-scope.js';
 const exec=promisify(execFile);
 const time = v => typeof v==='number' && Number.isFinite(v) ? v : typeof v==='string' && Number.isFinite(Date.parse(v)) ? Date.parse(v) : null;
 const outcome = v => ['passed','pass','success','ok'].includes(v) ? 'PASS' : ['failed','fail','failure','timed_out'].includes(v) ? 'FAIL' : ['skipped','pending','todo'].includes(v) ? 'SKIPPED' : ['cancelled','interrupted'].includes(v) ? 'CANCELLED' : 'UNAVAILABLE';
@@ -85,6 +86,5 @@ export async function importMetrics(format, data, options = {}, store=new Metric
 }
 export async function fetchGitHubJobs(repository, run, attempt) {
   if(!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)||!/^\d+$/.test(String(run))||!/^\d+$/.test(String(attempt)))throw new Error('Expected repository, run ID and attempt');
-  const {stdout}=await exec('gh',['api',`repos/${repository}/actions/runs/${run}/attempts/${attempt}/jobs?per_page=100`,'--paginate','--slurp'],{maxBuffer:4*1024*1024,timeout:30000});
-  const pages=JSON.parse(stdout); return {jobs:pages.flatMap(p=>p.jobs??[])};
+  return {jobs:await paginatedItems(exec,`repos/${repository}/actions/runs/${run}/attempts/${attempt}/jobs?per_page=100`,'jobs')};
 }

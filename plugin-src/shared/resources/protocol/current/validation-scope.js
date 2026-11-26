@@ -7,9 +7,16 @@ const exec = promisify(execFile);
 export async function fetchValidationRun(repository, run, attempt) {
   requireThat(/^[\w.-]+\/[\w.-]+$/.test(repository) && /^\d+$/.test(String(run)) && /^\d+$/.test(String(attempt)), 'CI scope needs repository, run and attempt');
   const base = `repos/${repository}/actions/runs/${run}/attempts/${attempt}`;
-  const get = async (path, pages = false) => JSON.parse((await exec('gh', ['api', path, ...(pages ? ['--paginate', '--slurp'] : [])], { timeout: 30000, maxBuffer: 4 * 1024 * 1024 })).stdout);
-  const [details, pages] = await Promise.all([get(base), get(`${base}/jobs?per_page=100`, true)]);
-  return { ...details, jobs: pages.flatMap(page => page.jobs ?? []) };
+  const get = async path => JSON.parse((await exec('gh', ['api', path], { timeout: 30000, maxBuffer: 4 * 1024 * 1024 })).stdout);
+  const [details, jobs] = await Promise.all([get(base), paginatedItems(exec, `${base}/jobs?per_page=100`, 'jobs')]);
+  return { ...details, jobs };
+}
+// Every item under `key` across all pages. `--paginate --jq` prints one JSON
+// value per line and works on older gh releases (Ubuntu's 2.46) that lack
+// `--slurp`.
+export async function paginatedItems(run, path, key) {
+  const { stdout } = await run('gh', ['api', path, '--paginate', '--jq', `.${key}[]`], { timeout: 30000, maxBuffer: 4 * 1024 * 1024 });
+  return stdout.split('\n').filter(line => line.trim()).map(line => JSON.parse(line));
 }
 // `treeOf(alias, sha)` resolves a commit's tree locally (null when unknown).
 export async function validationScope(configuration, candidate, fetchRun = fetchValidationRun, treeOf = async () => null) {

@@ -283,7 +283,8 @@ test('a hosting-rule merge refusal is an external blocker, not a gate failure', 
   assert.match(blocked.message, /external blocker, not a gate failure/);
   assert.equal(blocked.details.blocker, 'required-review'); assert.equal(blocked.details.gateFailure, false); assert.equal(blocked.details.recorded, true);
   assert.equal(failureResult('merge.execute', blocked).error.code, 'EXTERNAL_BLOCKER');
-  assert.equal(f.gh.pr.isDraft, true); // the draft this invocation promoted is restored
+  assert.equal(f.gh.pr.isDraft, false); // draft status is never restored; a retry accepts the ready PR
+  assert.equal(f.gh.calls.filter(call => call === 'ready').length, 1, 'one ready call and no ready --undo');
   let status = await f.request('status');
   assert.equal(status.externalBlocker.blocker, 'required-review'); assert.equal(status.externalBlocker.baseBranch, f.release);
   assert.equal(status.externalBlockers.length, 1);
@@ -298,8 +299,46 @@ test('a hosting-rule merge refusal is an external blocker, not a gate failure', 
   // Once the host rule is satisfied, the same authorization merges and clears the blocker.
   f.gh.merge = null; Object.assign(f.gh.pr, { mergeStateStatus: 'CLEAN', reviewDecision: 'APPROVED' });
   await f.request('merge.execute', { repository: 'app', number: 12 }, 'after-approval');
+  // Neither the first attempt, delivery recovery nor the retry restored draft status.
+  assert.equal(f.gh.calls.filter(call => call === 'ready').length, 1, JSON.stringify(f.gh.calls));
   status = await f.request('status');
   assert.equal(status.externalBlocker, null); assert.equal(status.integrations.app.branch, f.release);
+});
+
+test('merge.prepare accepts a PR ready for review; a draft flip after authorization still merges', async t => {
+  const f = await fixture(t, { rigor: 'light' });
+  const { subject } = await finalPr(f);
+  f.gh.pr.isDraft = false;
+  const action = await f.request('merge.prepare', { repository: 'app', number: 12 });
+  // Draft status is not part of the action: the same PR prepared as a draft yields the same action.
+  f.gh.pr.isDraft = true;
+  assert.deepEqual(await f.request('merge.prepare', { repository: 'app', number: 12 }), action);
+  assert.ok(!('draft' in action) && !('isDraft' in action));
+  f.gh.pr.isDraft = false;
+  await f.request('review.publish', { repository: 'app', number: 12 }, 'publish');
+  await authorizeMerge(f, subject, action);
+  // A failed merge of a ready PR leaves it ready and calls no ready (or ready --undo).
+  f.gh.merge = async () => {
+    Object.assign(f.gh.pr, { mergeStateStatus: 'BLOCKED', reviewDecision: 'REVIEW_REQUIRED' });
+    throw Object.assign(new Error('Command failed: gh pr merge'), { code: 1, stdout: '', stderr: 'X the base branch policy prohibits the merge.\n' });
+  };
+  await assert.rejects(f.request('merge.execute', { repository: 'app', number: 12 }, 'blocked'), /external blocker/);
+  assert.equal(f.gh.pr.isDraft, false);
+  assert.ok(!f.gh.calls.includes('ready'), JSON.stringify(f.gh.calls));
+  // Someone turns it into a draft after authorization: the same authority still merges it.
+  f.gh.merge = null; Object.assign(f.gh.pr, { mergeStateStatus: 'CLEAN', reviewDecision: 'APPROVED', isDraft: true });
+  await f.request('merge.execute', { repository: 'app', number: 12 }, 'after-flip');
+  assert.equal(f.gh.pr.state, 'MERGED');
+  assert.equal(f.gh.calls.filter(call => call === 'ready').length, 1, 'the draft is marked ready once, to merge');
+});
+
+test('merge.prepare refuses a PR that is not open in default open delivery', async t => {
+  const f = await fixture(t, { rigor: 'light' });
+  await finalPr(f);
+  for (const state of ['CLOSED', 'MERGED']) {
+    f.gh.pr.state = state;
+    await assert.rejects(f.request('merge.prepare', { repository: 'app', number: 12 }), /PR must be open during preparation|already merged/);
+  }
 });
 
 test('only an unmerged, hosting-rule refusal is classified as an external blocker', async () => {
