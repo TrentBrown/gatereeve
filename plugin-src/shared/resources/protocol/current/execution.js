@@ -49,6 +49,48 @@ export function unavailableReason(error) {
   return 'other';
 }
 
+// Stable rule identifiers for verdict rejections (issue #141), so the metrics
+// store counts rejections per rule. Each matches the rejection's leading
+// sentence, which every rejection keeps; schema errors start with the field path.
+const REJECTION_RULES = [
+  [/^Invalid verdict envelope/u, 'envelope'],
+  [/^(Unrequested independent verdict|Reviewer returned an unrequested gate)/u, 'unrequested-gate'],
+  [/^Missing or duplicate independent verdict/u, 'missing-verdict'],
+  [/^Review summary/u, 'summary'],
+  [/^Review must state coverage/u, 'coverage-shape'],
+  [/^Review must include findings/u, 'findings-shape'],
+  [/^Finding must name source in scope: \S+\.blocking/u, 'finding-blocking'],
+  [/^Finding must name source in scope/u, 'finding-path'],
+  [/^Finding (\w+ must be nonempty text|severity)/u, 'finding-field'],
+  [/^Blocking finding lacks approved criterion/u, 'finding-criterion'],
+  [/^Duplicate (namespaced )?finding identity/u, 'duplicate-finding'],
+  [/^Duplicate (namespaced )?disposition identity/u, 'duplicate-disposition'],
+  [/^(Finding identity|Disposition evidence|Unsupported disposition)/u, 'disposition-field'],
+  [/^A review disposition must name a finding disclosed/u, 'disposition-not-disclosed'],
+  [/^Affected finding/u, 'affected-not-disclosed'],
+  [/^(Reconsider affected closed findings|Unaffected closure applicability)/u, 'reconsider-closures'],
+  [/^PASS contradicts a present blocking finding/u, 'pass-with-blocking-finding'],
+  [/^Missing supported disposition/u, 'missing-disposition'],
+  [/^Open finding \S+ cannot be carried as unaffected/u, 'open-carried-unaffected'],
+  [/^Consolidated review requires all five/u, 'dimensions-missing'],
+  [/^Consolidated review cannot pass/u, 'pass-unresolved-dimension'],
+  [/^Assessment must score every selected criterion/u, 'criteria-incomplete'],
+  [/^Assessment PASS contradicts criterion outcomes/u, 'pass-failed-criterion'],
+  [/^PASS contradicts findings or coverage limits/u, 'pass-coverage-limits'],
+  [/^Delta (does not cover|must describe)/u, 'delta-coverage'],
+  [/^(Coverage decisions|Unknown coverage decision|Assess every proposed coverage|Invalid coverage decision|Passing verdict contradicts rejected replacement|Only acceptance assessments assess coverage)/u, 'coverage-decisions'],
+  [/^(Autonomous boundary review must assess|Mandate assessment evidence|Boundary PASS contradicts mandate)/u, 'mandate'],
+  [/^(Verdict changes require substantive|Format repair must|Valid (finding )?criterion cannot be reassigned|Substantive assessment changes)/u, 'repair-substance'],
+  // Schema errors name the field path from the gate, for example review.findings[0].blocking.
+  [/^[a-z-]+[.[]\S* is required$/u, 'schema-required'],
+  [/^[a-z-]+[.[]\S* is not allowed$/u, 'schema-not-allowed'],
+  [/^[a-z-]+([.[]\S*)? (must|does not match|uses)/u, 'schema-invalid'],
+];
+export function rejectionRule(message, reason = 'contract') {
+  if (reason === 'malformed-json') return 'malformed-json';
+  return REJECTION_RULES.find(([pattern]) => pattern.test(String(message ?? '')))?.[1] ?? 'other-contract';
+}
+
 // The finding bookkeeping GateReeve derives from supplied history (spec AC5,
 // D32, D33): which IDs are disclosed anywhere (including inside earlier
 // UNAVAILABLE results), which prior findings are still open for this gate, and
@@ -106,6 +148,28 @@ const schema = {
       } } },
   },
 };
+// Remove properties the verdict schema does not define, at every object level,
+// and record each with its field path (issue #141). Only `additionalProperties:
+// false` objects are stripped; missing, mistyped or out-of-enum values are left
+// for schema validation, so they reach the repair turn with their path.
+export function stripUnknown(definition, value, path, normalized) {
+  if (value === null || typeof value !== 'object') return value;
+  if (Array.isArray(value)) return definition?.type === 'array' && definition.items
+    ? value.map((item, index) => stripUnknown(definition.items, item, `${path}[${index}]`, normalized)) : value;
+  const branch = definition?.anyOf ? definition.anyOf.find(item => item.type === 'object') : definition;
+  if (branch?.type !== 'object' || !branch.properties) return value;
+  const kept = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (!Object.hasOwn(branch.properties, key)) {
+      if (branch.additionalProperties === false) { normalized.push({ rule: 'unknown-property', field: `${path}.${key}`, id: null }); continue; }
+      kept[key] = item; continue;
+    }
+    kept[key] = stripUnknown(branch.properties[key], item, `${path}.${key}`, normalized);
+  }
+  return kept;
+}
+export const VERDICT_SCHEMA = schema.properties.verdicts.items;
+
 // Built per request: lists that name earlier findings enumerate the IDs this
 // request disclosed for that gate (spec AC5). New findings carry new IDs.
 export function reviewSchema(gates, criteria, ledgers = {}) {
@@ -133,10 +197,19 @@ export function reviewSchema(gates, criteria, ledgers = {}) {
 // responsibility outcomes. Text that depends on a repaired field (summaries,
 // criterion or disposition evidence, coverage path lists, carry-forward
 // reasons) may change.
-export function validateFormatRepair(original, corrected, selectedCriteria = [], eligibleAffected = null, resolvePath = path => path) {
+export function validateFormatRepair(original, corrected, selectedCriteria = [], eligibleAffected = null, resolvePath = path => path, prior = new Map()) {
   const permitted = new Set([...selectedCriteria, `gate:${original.gate}`]);
   const substance = 'Substantive assessment changes are not format repair';
-  requireThat(corrected.gate === original.gate && corrected.outcome === original.outcome,
+  // A PASS that reported a blocking finding is a FAIL by its own content
+  // (issue #141), so a repair may say FAIL where the original said PASS.
+  // So may a repair whose supplied disposition (for an ID the original
+  // omitted) marks an earlier blocking finding present.
+  const statedIds = new Set((original.dispositions ?? []).map(row => row?.id));
+  const supplied = { dispositions: (corrected.dispositions ?? []).filter(row => !statedIds.has(row?.id)) };
+  const repairedOutcome = corrected.outcome === original.outcome
+    || (original.outcome === 'PASS' && corrected.outcome === 'FAIL'
+      && (passBlockers(original, prior).length > 0 || passBlockers(supplied, prior).length > 0));
+  requireThat(corrected.gate === original.gate && repairedOutcome,
     `Verdict changes require substantive reassessment, not format repair: gate/outcome changed from ${original.gate}/${original.outcome} to ${corrected.gate}/${corrected.outcome}`);
   requireThat(identity(original.mandateAssessment ?? null) === identity(corrected.mandateAssessment ?? null),
     'Format repair must preserve mandate assessment: mandateAssessment changed');
@@ -175,8 +248,15 @@ export function validateFormatRepair(original, corrected, selectedCriteria = [],
     const a = read(before), b = read(after);
     return [...new Set([...a.keys(), ...b.keys()])].filter(id => a.get(id) !== b.get(id)).join(', ');
   };
-  if (original.dispositions !== undefined) requireThat(rows(original.dispositions, ['id', 'status']) === rows(corrected.dispositions, ['id', 'status']),
-    `${substance}: dispositions changed for ${changedRows(original.dispositions, corrected.dispositions, ['id', 'status']) || 'duplicate rows'}`);
+  // A disposition the original omitted may be supplied, like any omitted field
+  // (issue #141: the repair turn answers a missing-disposition error); a
+  // stated disposition keeps its status.
+  if (original.dispositions !== undefined) {
+    const stated = new Set((original.dispositions ?? []).map(row => row?.id));
+    const kept = (corrected.dispositions ?? []).filter(row => stated.has(row?.id));
+    requireThat(Array.isArray(corrected.dispositions) && rows(original.dispositions, ['id', 'status']) === rows(kept, ['id', 'status']),
+      `${substance}: dispositions changed for ${changedRows(original.dispositions, kept, ['id', 'status']) || 'duplicate rows'}`);
+  }
   if (original.coverageDecisions !== undefined) requireThat(rows(original.coverageDecisions, ['id', 'outcome']) === rows(corrected.coverageDecisions, ['id', 'outcome']),
     `${substance}: coverageDecisions changed for ${changedRows(original.coverageDecisions, corrected.coverageDecisions, ['id', 'outcome']) || 'duplicate rows'}`);
   if (original.dimensions !== undefined) requireThat(rows(original.dimensions, ['name', 'outcome']) === rows(corrected.dimensions, ['name', 'outcome']),
@@ -331,10 +411,13 @@ async function independent(core, state, candidate, prepared, configuration, pack
     let launchReported = false;
     const launch = async () => { if (!launchReported) { launchReported = true; await onLaunch(); } };
     if (adapter.reportsSpawn !== true) await launch();
+    // Corrections the adapter made while parsing (issue #141: prose unwrap).
+    const normalized = [];
+    const onNormalized = rows => { normalized.push(...rows); };
     const result = await observe({category:'review',label:'provider-execution',project:core.context.workspaceRoot,feature:core.context.featureId,worker:true},
-      () => adapter.reportsSpawn === true ? adapter.runStage(request, { onSpawn: launch }) : adapter.runStage(request));
+      () => adapter.runStage(request, adapter.reportsSpawn === true ? { onSpawn: launch, onNormalized } : { onNormalized }));
     retained = [await core.store.putJson(result.receipt), await core.store.putJson(result.output)];
-    try { requireThat(result.output && Array.isArray(result.output.verdicts) && Object.keys(result.output).length === 1, 'Invalid verdict envelope'); }
+    try { requireThat(result.output && Array.isArray(result.output.verdicts), 'Invalid verdict envelope: verdicts must be an array'); }
     catch (error) { error.artifacts = retained; error.invalidVerdictContract = true; throw error; }
     validateAgentWorkflowStageResult(result);
     const receipt = result.receipt;
@@ -348,7 +431,10 @@ async function independent(core, state, candidate, prepared, configuration, pack
       && receipt.policy?.repositoryAccess === 'read-only' && receipt.policy.networkAccess === 'deny', 'Independent execution receipt does not match the requested proof');
     requireThat(typeof receipt.provider.contextId === 'string' && receipt.provider.contextId
       && !state.implementers.includes(receipt.provider.contextId), 'Evaluator inherited an implementing context');
-    return { output: result.output, artifacts: retained, metrics: receipt.metrics ?? { tokens: null, cost: null }, evaluator: {
+    // Extra envelope keys are stripped and recorded, never rejected (issue #141).
+    const output = { verdicts: result.output.verdicts };
+    for (const key of Object.keys(result.output)) if (key !== 'verdicts') normalized.push({ rule: 'unknown-property', field: key, id: null });
+    return { output, normalized, artifacts: retained, metrics: receipt.metrics ?? { tokens: null, cost: null }, evaluator: {
       contextId: receipt.provider.contextId, freshContext: true, inheritedTurns: 0,
       provider: descriptor.provider, model: descriptor.model, reasoningEffort, capabilityProfile: receipt.capabilityProfile,
     } };
@@ -440,6 +526,16 @@ function findingPathResolver(candidate, gateId) {
   };
 }
 
+// The finding IDs that make a PASS a FAIL by the verdict's own content (issue
+// #141): blocking findings that are not low, and `present` dispositions of
+// earlier findings that block. `prior` maps earlier finding IDs to findings.
+export function passBlockers(verdict, prior) {
+  return [...new Set([
+    ...(verdict.findings ?? []).filter(item => item?.blocking === true && item.severity !== 'low').map(item => item.id),
+    ...(verdict.dispositions ?? []).filter(item => item?.status === 'present' && prior.has(item.id) && findingBlocks(prior.get(item.id))).map(item => item.id),
+  ])];
+}
+
 // A FAIL that rests only on low findings (AC3: low never blocks) is recorded
 // as PASS, but only when nothing else fails: every criterion, responsibility
 // and coverage decision already passes, coverage is complete, the mandate
@@ -497,7 +593,8 @@ function checkVerdict(verdict, ids, candidate, changes, history, claims, reconsi
     requireThat(DISPOSITIONS.includes(disposition.status), 'Unsupported disposition');
     const same = dispositions.find(item => item.id === disposition.id);
     if (same) {
-      requireThat(same.status === disposition.status, 'Duplicate disposition identity');
+      requireThat(same.status === disposition.status,
+        `Duplicate disposition identity: dispositions[${verdict.dispositions.indexOf(disposition)}] (${disposition.id}) repeats dispositions[${verdict.dispositions.indexOf(same)}] with status ${same.status}`);
       normalized.push({ rule: 'duplicate-disposition', field: 'dispositions', id: disposition.id }); continue;
     }
     dispositions.push(disposition);
@@ -505,11 +602,22 @@ function checkVerdict(verdict, ids, candidate, changes, history, claims, reconsi
   const ledger = findingLedger(verdict.gate, history, claims, reconsiderClosures);
   const { prior, required } = ledger;
   const disclosed = new Set([...ledger.disclosed, ...verdict.findings.map(row => row.id)]);
-  // As before, the consolidated review names only disclosed findings; other
-  // gates may dispose of findings whose retained record was lost.
-  if (verdict.gate === 'review') {
-    const undisclosed = dispositions.filter(row => !disclosed.has(row.id)).map(row => `dispositions[${verdict.dispositions.indexOf(row)}] (${row.id})`);
-    requireThat(!undisclosed.length, `A review disposition must name a finding disclosed in supplied history, claims or current findings: ${undisclosed.join(', ')}`);
+  // The consolidated review names only disclosed findings; other gates may
+  // dispose of findings whose retained record was lost. A review disposition
+  // naming an ID disclosed nowhere disposes of nothing GateReeve knows, so it
+  // is dropped and recorded, never rejected (issue #141).
+  if (verdict.gate === 'review') for (const row of dispositions.filter(item => !disclosed.has(item.id))) {
+    dispositions.splice(dispositions.indexOf(row), 1);
+    normalized.push({ rule: 'disposition-not-disclosed', field: `dispositions[${verdict.dispositions.indexOf(row)}]`, id: row.id });
+  }
+  // A PASS that itself reports a blocking finding, or marks an earlier blocking
+  // finding present, is a FAIL by its own content (issue #141). The remaining
+  // checks run on the FAIL.
+  let outcome = verdict.outcome;
+  const blockers = outcome === 'PASS' ? passBlockers({ findings, dispositions }, prior) : [];
+  if (blockers.length) {
+    outcome = 'FAIL';
+    normalized.push({ rule: 'pass-with-blocking-finding', field: 'outcome', id: blockers.join(', '), original: { outcome: 'PASS' } });
   }
   let historyAssessment = verdict.historyAssessment;
   if (historyAssessment && Array.isArray(historyAssessment.affected)) {
@@ -520,17 +628,13 @@ function checkVerdict(verdict, ids, candidate, changes, history, claims, reconsi
       if (ledger.eligibleAffected.includes(id)) { kept.push(id); continue; }
       // An ID disclosed nowhere is a contract error only where the list is
       // assessed (a PASS reconsidering closures), as before; elsewhere it is dropped.
-      if (!disclosed.has(id)) requireThat(!(verdict.outcome === 'PASS' && ledger.reconsider.length),
+      if (!disclosed.has(id)) requireThat(!(outcome === 'PASS' && ledger.reconsider.length),
         `Affected finding ${id} is not disclosed in supplied history`, { eligibleAffected: ledger.eligibleAffected });
       normalized.push({ rule: disclosed.has(id) ? 'affected-not-required' : 'affected-not-disclosed', field: 'historyAssessment.affected', id });
     }
     if (kept.length !== historyAssessment.affected.length) historyAssessment = { ...historyAssessment, affected: kept };
   }
-  if (verdict.outcome === 'PASS') {
-    const presentBlocking = dispositions.filter(item => item.status === 'present' && prior.has(item.id) && findingBlocks(prior.get(item.id)));
-    const claimedPresent = presentBlocking.filter(item => claims.some(claim => claim.findingId === item.id))
-      .map(item => `your claim about ${item.id} needs a resolved, unsupported, unaffected or present-low disposition`);
-    requireThat(!presentBlocking.length, `PASS contradicts a present blocking finding: ${presentBlocking.map(item => `dispositions[${verdict.dispositions.indexOf(item)}] (${item.id})`).join(', ')} marks a blocking finding present${claimedPresent.length ? `; ${claimedPresent.join('; ')}` : ''}`);
+  if (outcome === 'PASS') {
     if (ledger.reconsider.length) {
       requireThat(historyAssessment && Array.isArray(historyAssessment.affected),
         `Reconsider affected closed findings and justify any carried closures: historyAssessment.affected must list the affected IDs among ${ledger.reconsider.join(', ')}`, { eligibleAffected: ledger.eligibleAffected });
@@ -540,31 +644,42 @@ function checkVerdict(verdict, ids, candidate, changes, history, claims, reconsi
     const claimedIds = new Set(claims.map(claim => claim.findingId));
     for (const id of required) {
       const disposition = dispositions.find(item => item.id === id);
-      const found = disposition ? `dispositions[${verdict.dispositions.indexOf(disposition)}] has status ${disposition.status}` : 'dispositions has no entry for it';
+      const at = disposition ? `dispositions[${verdict.dispositions.indexOf(disposition)}]` : null;
+      // `present` for an earlier finding that does not block is an honest
+      // disposition a PASS can carry (issue #141), for example an advisory
+      // finding the implementer claimed and intentionally left unchanged.
+      if (disposition?.status === 'present' && prior.has(id) && !findingBlocks(prior.get(id))) {
+        normalized.push({ rule: 'present-non-blocking', field: at, id });
+        continue;
+      }
+      const found = disposition ? `${at} has status ${disposition.status}` : 'dispositions has no entry for it';
       requireThat(disposition && ['resolved', 'unsupported', 'unaffected', 'present-low'].includes(disposition.status), claimedIds.has(id)
         ? `Missing supported disposition for ${id}: your claim about ${id} needs a resolved, unsupported, unaffected or present-low disposition (${found})`
         : `Missing supported disposition for ${id}: a PASS needs a resolved, unsupported, unaffected or present-low disposition (${found})`);
-      requireThat(!prior.get(id)?.open || disposition.status !== 'unaffected', `Open finding ${id} cannot be carried as unaffected`);
+      requireThat(!prior.get(id)?.open || disposition.status !== 'unaffected',
+        `Open finding ${id} cannot be carried as unaffected: ${at} must say resolved, unsupported or present-low, or the verdict must FAIL`);
     }
   }
   if (verdict.gate === 'review') {
     const dimensions = verdict.dimensions ?? [];
     requireThat(dimensions.length === 5 && new Set(dimensions.map(row => row.name)).size === 5, 'Consolidated review requires all five responsibility conclusions');
-    requireThat(verdict.outcome !== 'PASS' || dimensions.every(row => row.outcome === 'PASS'), 'Consolidated review cannot pass an unresolved responsibility');
+    requireThat(outcome !== 'PASS' || dimensions.every(row => row.outcome === 'PASS'),
+      `Consolidated review cannot pass an unresolved responsibility: ${dimensions.filter(row => row.outcome !== 'PASS').map(row => `dimensions[${dimensions.indexOf(row)}] (${row.name}) is ${row.outcome}`).join(', ')}`);
   }
   if (['review', 'spec', 'judge'].includes(verdict.gate)) {
     requireThat(verdict.criteria.length === candidate.criteria.length && new Set(verdict.criteria.map(item => item.id)).size === candidate.criteria.length && verdict.criteria.every(item => candidate.criteria.includes(item.id) && item.evidence.trim()), 'Assessment must score every selected criterion exactly once with evidence');
-    requireThat(verdict.outcome !== 'PASS' || verdict.criteria.every(item => item.outcome === 'PASS'), 'Assessment PASS contradicts criterion outcomes');
+    requireThat(outcome !== 'PASS' || verdict.criteria.every(item => item.outcome === 'PASS'),
+      `Assessment PASS contradicts criterion outcomes: ${verdict.criteria.filter(item => item.outcome !== 'PASS').map(item => `criteria[${verdict.criteria.indexOf(item)}] (${item.id}) is ${item.outcome}`).join(', ')}`);
   }
-  if (verdict.outcome === 'PASS') {
-    requireThat(verdict.coverage.complete && !verdict.coverage.limitations.length
-      && !findings.some(item => item.blocking), 'PASS contradicts findings or coverage limits');
+  if (outcome === 'PASS') {
+    requireThat(verdict.coverage.complete && !verdict.coverage.limitations.length,
+      `PASS contradicts findings or coverage limits: coverage.complete is ${verdict.coverage.complete} with ${verdict.coverage.limitations.length} limitations`);
     if (changes) {
       requireThat(changes.every(path => verdict.coverage.paths.includes(path)), 'Delta does not cover all changed paths');
       requireThat(verdict.coverage.interactions.length > 0 && verdict.coverage.interactions.every(item => item.trim()), 'Delta must describe the interactions examined');
     }
   }
-  return { ...verdict, findings, dispositions, ...(historyAssessment !== verdict.historyAssessment ? { historyAssessment } : {}),
+  return { ...verdict, outcome, findings, dispositions, ...(historyAssessment !== verdict.historyAssessment ? { historyAssessment } : {}),
     ...(normalized.length ? { normalized } : {}) };
 }
 
@@ -803,8 +918,15 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
       history.push({ reference: await core.store.putJson(context), reviewerResult: context });
     } else history.push({ reference: ref, reviewerResult: report });
   }
-  for (const [index, claim] of (input.claims ?? []).entries()) requireThat(history.some(item => item.reviewerResult.findings?.some(finding => finding.id === claim.findingId)),
-    `Disposition claim lacks a retained finding: claims[${index}] names ${claim.findingId}, which no retained review in this run reports; claim only findings GateReeve still holds`);
+  // A claim naming a finding no retained review reports cannot be checked. It
+  // is dropped and recorded on every result of this execution, and the
+  // reviewer runs without it (issue #141); it never refuses the reviewer.
+  const claimDrops = [];
+  const claims = (input.claims ?? []).filter((claim, index) => {
+    if (history.some(item => item.reviewerResult.findings?.some(finding => finding.id === claim.findingId))) return true;
+    claimDrops.push({ rule: 'claim-not-retained', field: `claims[${index}]`, id: claim.findingId });
+    return false;
+  });
   let changes = null, priorCandidate = null;
   if (input.prior) {
     requireThat(role === 'independent' && input.gates.length === 1, 'Delta requires one qualified independent gate');
@@ -867,7 +989,7 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
     environment: await executionEnvironment(core.context, candidate, configuration, role === 'runner', runnerEnvironment, { retainDiagnostics: true }),
     pattern: input.gates.includes('pattern') ? await patternInputs(core.store, core.context, candidate, core.runtime.pythonGuardOptions) : null,
     integrations: definitions[0].at === 'completion' ? state.integrations : null,
-    reviewContract: reviewContract(input.gates, candidate), coverageClaims: replacements, repair, claims: input.claims ?? [], requestedHistory: [...(input.history ?? [])].sort((a, b) => a.hash.localeCompare(b.hash)),
+    reviewContract: reviewContract(input.gates, candidate), coverageClaims: replacements, repair, claims, ...(claimDrops.length ? { droppedClaims: claimDrops } : {}), requestedHistory: [...(input.history ?? [])].sort((a, b) => a.hash.localeCompare(b.hash)),
     history: history.map(item => item.reference), historyGaps: missingHistory, reconsiderClosures: reconsiderClosures.filter(item => history.some(entry => entry.reviewerResult.findings?.some(finding => finding.id === item.id && entry.reviewerResult.gate === item.gate))), prior: input.prior ?? null,
     validUntil: configuration.validUntil ?? null };
   if (value.validUntil) requireThat(Number.isFinite(Date.parse(value.validUntil)) && Date.parse(value.validUntil) > Date.now(), 'Invalid external validity window');
@@ -945,11 +1067,13 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
   const startedAt = new Date().toISOString();
   const artifacts = [];
   let evaluator = null, runner = null, verdicts = [], metrics = { tokens: null, cost: null }, launched = false;
+  // Corrections that apply to every verdict of this execution (issue #141).
+  const executionNormalized = [...claimDrops];
   try {
     if (role === 'independent' || role === 'assessment') {
       const packet = { contract: CONTRACT, rules: input.gates.map(id => ({ id, rule: gate(id).rule })), pattern: value.pattern, gates: input.gates, criteria: candidate.criteria, scope: candidate.scope,
         source: candidate.repositories.map(repo => ({ alias: repo.alias, base: repo.base, head: repo.head, target: repo.target, metadata: `metadata/${repo.alias}.json`, entries: [...repo.baseFiles, ...repo.files, ...repo.targetFiles].filter(file => file.entryKind).map(({ path, mode, entryKind }) => ({ path, mode, entryKind })) })),
-        history: [], historyIndex: null, mandate, ...(mandate ? { mandateAuthority: state.dials.autonomy.authority } : {}), ...(value.agentDecisions ? { agentDecisions: value.agentDecisions } : {}), coverageClaims: replacements, repair: value.repair, historyGaps: missingHistory, reconsiderClosures: value.reconsiderClosures, claims: input.claims ?? [], changedPaths: changes, consumedReferences: consumed, consumed: await Promise.all(consumed.map(ref => core.store.json(ref))) };
+        history: [], historyIndex: null, mandate, ...(mandate ? { mandateAuthority: state.dials.autonomy.authority } : {}), ...(value.agentDecisions ? { agentDecisions: value.agentDecisions } : {}), coverageClaims: replacements, repair: value.repair, historyGaps: missingHistory, reconsiderClosures: value.reconsiderClosures, claims, changedPaths: changes, consumedReferences: consumed, consumed: await Promise.all(consumed.map(ref => core.store.json(ref))) };
       packet.consumedReferences = [...new Map([...packet.consumedReferences, ...replacements.flatMap(claim => claim.kind === 'check-replacement' ? [claim.verification] : [...claim.supersedes, ...claim.replacements])].map(ref => [ref.hash, ref])).values()];
       if (brief && input.gates.includes('review')) packet.planning = { basis: 'brief', brief: 'requirements/brief.md', authority: state.decisions };
       else if (input.gates.some(id => ['review', 'reconcile', 'triage'].includes(id))) {
@@ -958,7 +1082,7 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
         packet.planning = { facts, references: planningReferences(documents, facts), documents, authority: state.decisions };
       }
       // The required-disposition set is computed here and given to the reviewer (AC5).
-      const ledgers = Object.fromEntries(input.gates.map(id => [id, findingLedger(id, history, input.claims ?? [], value.reconsiderClosures)]));
+      const ledgers = Object.fromEntries(input.gates.map(id => [id, findingLedger(id, history, claims, value.reconsiderClosures)]));
       packet.dispositionsRequired = input.gates.flatMap(id => ledgers[id].dispositionsRequired);
       if (roundPolicy) packet.roundPolicy = roundPolicy;
       // A round counts once a reviewer's provider is launched on a new revision
@@ -970,25 +1094,29 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
         if (roundPolicy) await countReviewRound(core, roundPolicy.scope, contentIdentity(candidate), state.candidate);
       });
       evaluator = reviewed.evaluator; metrics = reviewed.metrics; artifacts.push(...reviewed.artifacts);
+      executionNormalized.push(...reviewed.normalized);
       const returned = reviewed.output.verdicts;
       if (!returned.every(item => input.gates.includes(item?.gate))) {
         throw Object.assign(new ContractError('Unrequested independent verdict'), { invalidVerdictContract: true });
       }
       verdicts = input.gates.map(id => {
+        // Unknown properties are stripped before schema validation (issue #141).
+        const shape = [];
         try {
           const selected = returned.filter(item => item.gate === id);
           requireThat(selected.length === 1, 'Missing or duplicate independent verdict');
-          const [original] = selected;
-          validateJsonSchema(schema.properties.verdicts.items, original, { label: id });
-          const canonicalVerdict = validateVerdict(original, input.gates, candidate, changes, history, input.claims ?? [], value.reconsiderClosures);
+          const original = stripUnknown(VERDICT_SCHEMA, selected[0], id, shape);
+          validateJsonSchema(VERDICT_SCHEMA, original, { label: id });
+          const validated = validateVerdict(original, input.gates, candidate, changes, history, claims, value.reconsiderClosures);
+          const canonicalVerdict = shape.length ? { ...validated, normalized: [...shape, ...(validated.normalized ?? [])] } : validated;
           validateCoverageDecisions(canonicalVerdict, replacements);
           if (id === 'review' && mandate) {
             requireThat(OUTCOMES.includes(canonicalVerdict.mandateAssessment?.outcome), 'Autonomous boundary review must assess the fixed human mandate');
             text(canonicalVerdict.mandateAssessment.evidence, 'Mandate assessment evidence');
             requireThat(canonicalVerdict.outcome !== 'PASS' || canonicalVerdict.mandateAssessment.outcome === 'PASS', 'Boundary PASS contradicts mandate compliance');
           }
-          if (value.repair) validateFormatRepair(value.repair.original, original, candidate.criteria,
-            value.repair.eligibleAffected, findingPathResolver(candidate, id));
+          if (value.repair) validateFormatRepair(stripUnknown(VERDICT_SCHEMA, value.repair.original, id, []), original, candidate.criteria,
+            value.repair.eligibleAffected, findingPathResolver(candidate, id), ledgers[id].prior);
           if (id === 'review' && configuration.reviewerSelection) {
             const verdict = structuredClone(canonicalVerdict);
             const known = new Set(history.flatMap(item => (item.reviewerResult.findings ?? []).map(finding => finding.id)));
@@ -1008,6 +1136,7 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
         } catch (error) {
           const original = returned.find(item => item?.gate === id);
           return { gate: id, outcome: 'UNAVAILABLE', unavailableReason: 'contract', summary: error.message, findings: [], dispositions: [], invalidVerdictContract: true,
+            ...(shape.length ? { normalized: shape } : {}),
             ...(error.details?.eligibleAffected ? { eligibleAffected: error.details.eligibleAffected } : {}),
             ...(original ? { unvalidatedVerdict: original, unvalidatedFindings: original.findings ?? [] } : {}) };
         }
@@ -1087,7 +1216,14 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
     if (verdict.outcome === 'UNAVAILABLE' && !verdict.unavailableReason) verdict.unavailableReason = 'missing-evidence';
     // Whether an evaluator was launched, so a paired review can tell a
     // packet-assembly refusal from a reviewer that ran (issue #140).
-    if (role === 'independent' || role === 'assessment') verdict.reviewerLaunched = launched;
+    if (role === 'independent' || role === 'assessment') {
+      verdict.reviewerLaunched = launched;
+      if (executionNormalized.length) verdict.normalized = [...executionNormalized, ...(verdict.normalized ?? [])];
+      // A verdict the contract, JSON or schema rejected names its rule, so
+      // rejections are counted per rule (issue #141).
+      if (launched && verdict.outcome === 'UNAVAILABLE' && ['contract', 'malformed-json'].includes(verdict.unavailableReason))
+        verdict.rejectionRule = rejectionRule(verdict.summary, verdict.unavailableReason);
+    }
   }
   const receipt = await core.store.putJson({ contract: CONTRACT, kind: 'execution', runId: state.runId,
     input: prepared.hash, jobId, gates: input.gates, role, evaluator, startedAt, completedAt: new Date().toISOString(), metrics });

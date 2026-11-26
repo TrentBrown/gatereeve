@@ -73,12 +73,18 @@ test('a disclosed but not required affected ID is normalized, never rejected', (
   const review = pass({ gate: 'review', criteria: [{ id: 'R1', outcome: 'PASS', evidence: 'Checked.' }],
     dimensions: ['code', 'requirements', 'evidence', 'scope', 'findings'].map(name => ({ name, outcome: 'PASS', evidence: 'Checked.' })),
     dispositions: [disposition('Z9')] });
-  assert.throws(() => validateVerdict(review, ['review'], candidate, null, history, [], []), /must name a finding disclosed/);
+  // A review disposition naming an ID disclosed nowhere is dropped and recorded (issue #141).
+  const dropped = validateVerdict(review, ['review'], candidate, null, history, [], []);
+  assert.equal(dropped.outcome, 'PASS');
+  assert.deepEqual(dropped.dispositions, []);
+  assert.deepEqual(dropped.normalized, [{ rule: 'disposition-not-disclosed', field: 'dispositions[0]', id: 'Z9' }]);
 });
 
-test('substantive contradictions remain contract errors', () => {
+test('a PASS marking a blocking finding present is a FAIL; a missing disposition stays a contract error', () => {
   const carried = { affected: [], carryForwardReason: 'C1 untouched.' };
-  assert.throws(() => validate(pass({ dispositions: [disposition('O1', 'present')], historyAssessment: carried })), /PASS contradicts a present blocking finding/);
+  const failed = validate(pass({ dispositions: [disposition('O1', 'present')], historyAssessment: carried }));
+  assert.equal(failed.outcome, 'FAIL');
+  assert.deepEqual(failed.normalized, [{ rule: 'pass-with-blocking-finding', field: 'outcome', id: 'O1', original: { outcome: 'PASS' } }]);
   assert.throws(() => validate(pass({ dispositions: [], historyAssessment: carried })), /Missing supported disposition for O1/);
 });
 
@@ -254,8 +260,6 @@ test('planning reviews require the same finding fields; low never blocks', () =>
 test('verdict rejections name the field path or finding ID', () => {
   const carried = { affected: [], carryForwardReason: 'C1 untouched.' };
   const cases = [
-    [() => validate(pass({ dispositions: [disposition('C1'), disposition('O1', 'present')], historyAssessment: carried })),
-      /PASS contradicts a present blocking finding: dispositions\[1\] \(O1\)/],
     [() => validate(pass({ dispositions: [disposition('C1')], historyAssessment: carried })),
       /Missing supported disposition for O1: a PASS needs a resolved, unsupported, unaffected or present-low disposition \(dispositions has no entry for it\)/],
     [() => validate(pass({ findings: [finding('F1', { path: 'app/missing.js', blocking: false })], dispositions: [disposition('O1'), disposition('C1')], historyAssessment: carried })),
@@ -270,16 +274,16 @@ test('verdict rejections name the field path or finding ID', () => {
       /Reconsider affected closed findings and justify any carried closures: historyAssessment\.affected must list the affected IDs among C1/],
   ];
   for (const [run, message] of cases) assert.throws(run, message);
-  const review = pass({ gate: 'review', criteria: [{ id: 'R1', outcome: 'PASS', evidence: 'Checked.' }], dimensions: dimensionRows('PASS'),
-    dispositions: [disposition('Z9')] });
-  assert.throws(() => validateVerdict(review, ['review'], candidate, null, history, [], []),
-    /A review disposition must name a finding disclosed in supplied history, claims or current findings: dispositions\[0\] \(Z9\)/);
 });
 test('a claimed finding without a supported disposition says what the claim needs', () => {
   const claims = [{ findingId: 'A1', claim: 'Left unchanged on purpose: a product decision.' }];
-  const verdict = pass({ dispositions: [disposition('O1'), disposition('C1'), disposition('A1', 'present')], historyAssessment: { affected: [], carryForwardReason: 'C1 untouched.' } });
+  const verdict = pass({ dispositions: [disposition('O1'), disposition('C1')], historyAssessment: { affected: [], carryForwardReason: 'C1 untouched.' } });
   assert.throws(() => validateVerdict(verdict, ['code'], candidate, null, history, claims, reconsider),
-    /Missing supported disposition for A1: your claim about A1 needs a resolved, unsupported, unaffected or present-low disposition \(dispositions\[2\] has status present\)/);
+    /Missing supported disposition for A1: your claim about A1 needs a resolved, unsupported, unaffected or present-low disposition \(dispositions has no entry for it\)/);
+  // `present` for the non-blocking advisory finding is accepted and recorded (issue #141).
+  const present = validateVerdict(pass({ ...verdict, dispositions: [...verdict.dispositions, disposition('A1', 'present')] }), ['code'], candidate, null, history, claims, reconsider);
+  assert.equal(present.outcome, 'PASS');
+  assert.deepEqual(present.normalized, [{ rule: 'present-non-blocking', field: 'dispositions[2]', id: 'A1' }]);
 });
 test('format repair rejections name the changed field or ID', () => {
   const original = pass({ outcome: 'FAIL', summary: 'One defect.', findings: [finding('F1')],
@@ -308,9 +312,10 @@ test('format repair rejections name the changed field or ID', () => {
   assert.throws(() => validateFormatRepair(affected, { ...structuredClone(affected), historyAssessment: { affected: [], carryForwardReason: '' } }, ['R1'], ['O1']),
     /Substantive assessment changes are not format repair: historyAssessment\.affected changed/);
 });
-test('a claimed blocking finding marked present on PASS uses the claim wording', () => {
+test('a claimed blocking finding marked present on PASS is recorded as FAIL', () => {
   const claims = [{ findingId: 'O1', claim: 'Fixed in this revision.' }];
   const verdict = pass({ dispositions: [disposition('O1', 'present'), disposition('C1')], historyAssessment: { affected: [], carryForwardReason: 'C1 untouched.' } });
-  assert.throws(() => validateVerdict(verdict, ['code'], candidate, null, history, claims, reconsider),
-    /PASS contradicts a present blocking finding: dispositions\[0\] \(O1\) marks a blocking finding present; your claim about O1 needs a resolved, unsupported, unaffected or present-low disposition/);
+  const result = validateVerdict(verdict, ['code'], candidate, null, history, claims, reconsider);
+  assert.equal(result.outcome, 'FAIL');
+  assert.equal(result.normalized[0].rule, 'pass-with-blocking-finding');
 });

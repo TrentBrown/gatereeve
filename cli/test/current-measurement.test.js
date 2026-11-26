@@ -422,3 +422,31 @@ test('retained reporting rows and snapshots recorded as autonomous read and impo
   assert.ok(exported.records.every(row => row.autonomy !== 'autonomous' && row.dialPrevious !== 'autonomous'));
   assert.equal((await importSnapshot(snapshot, store)).dataset, dataset);
 });
+
+test('verdict normalization and rejection rules are counted per rule in the metrics store (issue #141)', async t => {
+  const store = await metricsStore(t);
+  let n = 0;
+  const event = (type, payload) => { n++; return { sequence: n, hash: `event-${n}`, recordedAt: new Date(Date.parse('2026-11-26T00:00:00Z') + n * 1000).toISOString(), type, payload }; };
+  const events = [
+    event('STARTED', { featureId: 'feature', implementers: ['implementer'], optionalGates: [] }),
+    event('JOB_FINISHED', { jobId: 'job', results: [{ hash: H(7) }, { hash: H(10) }] }),
+  ];
+  const objects = new Map([
+    [H(7), { gate: 'review', outcome: 'FAIL', mode: 'full', input: { hash: H(8) }, receipt: { hash: H(9) }, findings: [], dispositions: [], normalized: [
+      { rule: 'unknown-property', field: 'review.note', id: null }, { rule: 'unknown-property', field: 'review.findings[0].x', id: null },
+      { rule: 'pass-with-blocking-finding', field: 'outcome', id: 'F1', original: { outcome: 'PASS' } }] }],
+    [H(10), { gate: 'review', outcome: 'UNAVAILABLE', unavailableReason: 'contract', rejectionRule: 'schema-required', summary: 'review.findings[0].blocking is required',
+      mode: 'full', input: { hash: H(8) }, receipt: { hash: H(9) }, findings: [], dispositions: [] }],
+    [H(8), {}], [H(9), { evaluator: { model: 'gate-model', provider: 'codex' } }],
+  ]);
+  const core = { context: { workspaceRoot: '/project/gatereeve', featureId: 'feature', repositories: [] }, store: { home: '/runs/feature', json: async ref => objects.get(ref.hash) },
+    state: async () => ({ state: { runId: 'run' }, events }) };
+  await projectWorkflow(core, store);
+  assert.equal(await store.captureIncomplete(), false);
+  const rows = (await report(store)).observations;
+  const counted = check => rows.filter(row => row.check === check).map(row => [row.reference, row.rule, row.count]).sort();
+  assert.deepEqual(counted('verdict-normalization'), [[H(7), 'pass-with-blocking-finding', 1], [H(7), 'unknown-property', 2]]);
+  assert.deepEqual(counted('verdict-rejection'), [[H(10), 'schema-required', 1]]);
+  // Only rule identifiers and counts are projected, never the field paths or messages.
+  assert.doesNotMatch(JSON.stringify(rows), /review\.note|is required/u);
+});

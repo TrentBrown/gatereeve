@@ -7,7 +7,7 @@ import { boundaryReviews, outcomeStatus } from '../../plugin-src/shared/resource
 import { sha256Digest } from '../../plugin-src/shared/resources/protocol/agent-workflow.js';
 
 import { selection, prepared, pairedAdapters } from './helpers/paired-review-fixture.js';
-import { branchWith, candidate, fixture } from './helpers/lightweight-fixture.js';
+import { branchWith, candidate, fixture, evaluator } from './helpers/lightweight-fixture.js';
 
 for (const rigor of ['light', 'full']) test(`two complete ${rigor} boundary reviews run concurrently and retain both receipts`, async t => {
   const f = await prepared(t, rigor);
@@ -139,7 +139,14 @@ test('withholding initial peer output cannot erase a known blocking finding', as
   await f.request('review.execute', {}, 'guessed-initial');
   let state = (await f.core.state()).state;
   let pair = await boundaryReviews(f.core, state, await f.core.store.json(state.candidate));
-  assert.ok(pair.members.every(member => member.result.outcome === 'UNAVAILABLE'), 'An invented closure of a hidden finding is invalid output');
+  // An invented closure of a hidden finding disposes of nothing: it is dropped
+  // and recorded (issue #141), and the withheld finding stays unreconciled.
+  for (const member of pair.members) {
+    assert.ok(!member.result.dispositions.some(row => row.id === findingId), 'The invented closure is dropped');
+    assert.ok(member.result.normalized.some(row => row.rule === 'disposition-not-disclosed' && row.id === findingId));
+    assert.ok(member.unreconciledFindings.includes(findingId));
+  }
+  assert.notEqual(pair.outcome, 'PASS', 'An invented closure cannot erase the withheld finding');
   pairedAdapters(f);
   await f.request('review.execute', {}, 'blind-initial');
   state = (await f.core.state()).state;
@@ -624,20 +631,28 @@ test('a retry refused before launch keeps the row classified from the attempt th
   assert.match(row.reason, /transient-service-failure/);
   assert.equal((await rounds(f)).slice.round, 1, 'A launched attempt counts the round');
 });
-test('a claim naming a finding GateReeve no longer holds refuses both reviewers, names the claim and counts no round', async t => {
+test('a claim naming a finding GateReeve no longer holds is dropped and recorded; both reviewers run without it', async t => {
   const f = await prepared(t, 'full'), launches = pairedAdapters(f);
   await f.request('review.execute', {}, 'initial-pair');
   const after = (await rounds(f)).slice.round;
   const head = await branchWith(f, 'claimed', { 'app.js': 'export const answer = 41; // revised\n' });
   await candidate(f, 'SLICE', head, 'claimed-candidate');
   await verify(f, 'claimed-verification');
-  const done = await f.request('review.execute', { claims: [{ findingId: 'codex/stale-id', claim: 'Fixed in this revision.' }] }, 'stale-claim');
-  assert.equal(launches(), 2, 'Only the initial pair launched');
-  for (const row of done.event.payload.outcomes) {
-    assert.equal(row.status, 'refused', JSON.stringify(row));
-    assert.match(row.reason, /^Disposition claim lacks a retained finding: claims\[0\] names codex\/stale-id/);
+  const packets = [];
+  for (const adapter of Object.values(f.core.runtime.evaluators)) {
+    const run = adapter.runStage.bind(adapter);
+    adapter.runStage = async (request, hooks) => { packets.push(request.input); return run(request, hooks); };
   }
-  assert.equal((await rounds(f)).slice.round, after, 'The refused revision is not charged a round');
+  const done = await f.request('review.execute', { claims: [{ findingId: 'codex/stale-id', claim: 'Fixed in this revision.' }] }, 'stale-claim');
+  assert.equal(launches(), 4, 'Both reviewers launched for the claimed revision (issue #141)');
+  assert.equal(packets.length, 2);
+  for (const packet of packets) assert.deepEqual(packet.claims, [], 'The stale claim is not in the packet');
+  for (const row of done.event.payload.outcomes) {
+    assert.equal(row.status, 'completed', JSON.stringify(row));
+    for (const ref of row.results) assert.deepEqual((await f.core.store.json(ref)).normalized,
+      [{ rule: 'claim-not-retained', field: 'claims[0]', id: 'codex/stale-id' }]);
+  }
+  assert.equal((await rounds(f)).slice.round, after + 1, 'The reviewed revision counts its round');
 });
 test('a repair turn whose provider fails ends provider-failed, and provider failures record their category', async t => {
   const f = await prepared(t, 'full');
@@ -764,4 +779,72 @@ test('verification from an earlier candidate supplied explicitly is refused with
   await assert.rejects(f.request('review.execute', { consumed: earlier }, 'stale-candidate-proof'), error => verificationRequired(error) && /does not apply to this candidate/.test(error.message));
   assert.equal(launches(), 0);
   assert.equal(await eventCount(f), before);
+});
+
+// Issue #141: corrections reported by the adapter, envelope extras and stale
+// claims are recorded on every result of the execution; meaning-changing gaps
+// go to the repair turn.
+test('a prose unwrap and envelope extras are recorded on every result of a two-gate execution', async t => {
+  const f = await prepared(t, 'full');
+  evaluator(f);
+  const run = f.core.runtime.evaluator.runStage.bind(f.core.runtime.evaluator);
+  let hooked = null;
+  f.core.runtime.evaluator.runStage = async (request, hooks) => {
+    hooked = hooks;
+    const result = await run(request);
+    hooks.onNormalized([{ rule: 'prose-unwrapped', field: 'output', id: null }]);
+    result.output.notes = 'Reviewer commentary outside the verdicts';
+    result.receipt.digests.output = sha256Digest(result.output);
+    return result;
+  };
+  const done = await f.request('gate.execute', { gates: ['code', 'spec'], configuration: { provider: 'codex', model: 'fixture' } }, 'unwrap-two-gates');
+  assert.equal(typeof hooked?.onNormalized, 'function', 'The execution passes the recording hook');
+  assert.equal(done.event.payload.results.length, 2);
+  for (const ref of done.event.payload.results) {
+    const result = await f.core.store.json(ref);
+    assert.equal(result.outcome, 'PASS', result.summary);
+    assert.deepEqual(result.normalized, [{ rule: 'prose-unwrapped', field: 'output', id: null }, { rule: 'unknown-property', field: 'notes', id: null }]);
+  }
+});
+test('a missing blocking value goes to the repair turn with its path, and a supplied value is accepted', async t => {
+  const f = await prepared(t, 'full');
+  pairedAdapters(f);
+  const adapter = f.core.runtime.evaluators.codex, run = adapter.runStage.bind(adapter);
+  const requests = [];
+  adapter.runStage = async request => {
+    requests.push(request);
+    const result = await run(request);
+    const verdict = result.output.verdicts[0];
+    verdict.findings = [{ id: 'advisory', classId: 'constant', classStatement: 'Constant naming', severity: 'medium', failureScenario: 'A reader misreads the constant -> wrong edit',
+      criterion: 'R1', path: 'app/app.js', evidence: 'The constant could use a comment.', ...(requests.length === 2 ? { blocking: false } : {}) }];
+    result.receipt.digests.output = sha256Digest(result.output);
+    return result;
+  };
+  const done = await f.request('review.execute', {}, 'missing-blocking');
+  assert.equal(requests.length, 2, 'Exactly one repair turn');
+  const row = done.event.payload.outcomes.find(item => item.provider === 'codex');
+  assert.equal(row.status, 'completed', JSON.stringify(row));
+  assert.ok(requests[1].input.repair, 'The repair turn receives the rejected verdict');
+  const results = await Promise.all((await f.core.state()).state.results.map(ref => f.core.store.json(ref)));
+  const rejected = results.find(item => item.gate === 'review' && item.outcome === 'UNAVAILABLE');
+  assert.equal(rejected.summary, 'review.findings[0].blocking is required');
+  assert.equal(rejected.rejectionRule, 'schema-required');
+  const repaired = await f.core.store.json(row.results[0]);
+  assert.equal(repaired.outcome, 'PASS', repaired.summary);
+  assert.equal(repaired.findings[0].blocking, false, 'The reviewer supplied the value; GateReeve guessed nothing');
+});
+test('an individual review with a stale claim runs without it and records the drop', async t => {
+  const f = await prepared(t, 'full');
+  pairedAdapters(f);
+  const selected = (await f.core.state()).state.reviewerSelection;
+  const packets = [];
+  const adapter = f.core.runtime.evaluators.codex, run = adapter.runStage.bind(adapter);
+  adapter.runStage = async (request, hooks) => { packets.push(request.input); return run(request, hooks); };
+  const done = await f.request('gate.execute', { gates: ['review'], claims: [{ findingId: 'codex/stale-id', claim: 'Fixed.' }],
+    configuration: { provider: 'codex', model: 'fixture', reviewerSelection: selected.event } }, 'individual-stale-claim');
+  assert.equal(packets.length, 1, 'The reviewer ran');
+  assert.deepEqual(packets[0].claims, []);
+  const result = await f.core.store.json(done.event.payload.results[0]);
+  assert.equal(result.outcome, 'PASS', result.summary);
+  assert.deepEqual(result.normalized, [{ rule: 'claim-not-retained', field: 'claims[0]', id: 'codex/stale-id' }]);
 });
