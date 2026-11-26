@@ -40,7 +40,7 @@ identity and exact input after an uncertain response. Conflicting reuse fails.
 | `milestone.pass` | Record an allowed milestone; merge must use its protected action |
 | `merge.prepare` | `repository`, PR `number`, `method`; derive the exact source/target action, including `deliveryTarget: integration|release`, to present for authorization. In default open delivery the PR must be open; a draft and a PR ready for review are both accepted, and draft status is not part of the action. Rejects a PR whose candidate scope does not match its target (see Delivery targets). Without a workspace configuration it fails naming `workspace.configure` |
 | `review.select` | `observations`, exactly two `reviewers`, `reason`, optional developer `instruction` and replacement `previous` selection event. Record runtime discovery and daily-driver/high-effort choices after applying configured reviewer preferences |
-| `review.execute` | Run the selected pair in parallel; optional `consumed`, bounded `history`/`claims`, `coverageClaims`, per-provider `prior` and shared non-identity `configuration`. Individual `gate.execute review` results alone do not satisfy acceptance |
+| `review.execute` | Run the selected pair in parallel; optional `consumed`, bounded `history`/`claims`, `coverageClaims`, per-provider `prior` and shared non-identity `configuration`. Requires a current passing verification: order `candidate.prepare` → `gate.execute ["verification"]` → `review.execute`; without one it refuses with `VERIFICATION_REQUIRED` and records nothing (see Paired review outcomes). Individual `gate.execute review` results alone do not satisfy acceptance |
 | `review.adjudicate` | Autonomous authority (`mandated` or `goal`) only: exact `candidate` hash and `pair` identity, complete material-finding `dispositions`, `reason`, retained `evidence`, optional `stopReason`; preserves original reviewer outcomes |
 | `review.publish` | `repository`, PR `number`; write the current independent `review` summary for the candidate head into a delimited section of the PR description. Idempotent; refuses without a current qualifying review result or when the PR head differs from the candidate head |
 | `merge.execute` | Same action selector; requires current proof, human acceptance, authorization bound to the prepared action and the current review summary on the PR. A hosting-rule refusal fails with `EXTERNAL_BLOCKER`, not a gate failure |
@@ -309,7 +309,8 @@ Each review scope has a round counter: the slice PR candidate scope (`slice`),
 the feature-final review (`feature-final`) or one planning document
 (`planning:<artifact>`). One round is one paired review of one candidate revision
 (one planning review of one document revision), including rounds where a reviewer
-was UNAVAILABLE. Only consecutive reviews of one revision share a round: returning
+ran and was UNAVAILABLE. A round in which no reviewer was launched (every outcome
+`refused`, see Paired review outcomes) is not counted. Only consecutive reviews of one revision share a round: returning
 to an earlier revision is a new round, so the counter never moves backwards, and
 retained proof of an earlier revision is qualified under the scope's next round
 (it cannot pass the round 6 hand-back). Planning regression history reads every
@@ -743,6 +744,42 @@ Repair turns share the round's baseline and are not rounds. Every UNAVAILABLE
 result carries one `unavailableReason`: `contract`, `malformed-json`,
 `provider-error`, `timeout`, `missing-evidence` or `other`.
 
+### Paired review outcomes
+
+`review.execute` checks its preconditions once before the round starts. Without a
+current passing verification of the candidate (none, or the latest current one is
+FAIL or UNAVAILABLE) it refuses with error code `VERIFICATION_REQUIRED`, naming the
+order `candidate.prepare` → `gate.execute ["verification"]` → `review.execute`.
+The refusal appends no event, starts no reviewer and counts no round, so the same
+`operationId` can be retried after verification. An individual
+`gate.execute ["review"]` refuses the same way.
+
+Each `BOUNDARY_REVIEWED` outcome row has one `status`, and every row that is not
+`completed` carries a `reason`:
+
+| Status | Meaning |
+| --- | --- |
+| `completed` | The reviewer returned a validated PASS or FAIL |
+| `refused` | This execution launched no reviewer process: a precondition stopped it before the provider started (for example planning lint, a claim naming a finding no retained review reports, or adapter preparation before spawn), an earlier execution of the job is uncertain or already claimed, or a retained result for unchanged inputs was reused (`reused: true`, with its `results`) |
+| `provider-failed` | The provider failed (`provider-error`, `timeout`, `other`), or the execution failed after the reviewer launched |
+| `verdict-rejected` | The verdict failed the contract, JSON or schema (`contract`, `malformed-json`) |
+| `could-not-assess` | The reviewer itself returned UNAVAILABLE (`missing-evidence`) |
+
+A row describes the reviewer across its attempts in the round (first attempt,
+transient retry, repair turn): it is `refused` only when no attempt launched a
+reviewer, and otherwise follows the latest attempt that did. The local adapters
+report the reviewer process spawn, so a failure before spawn is a refusal; behind
+an idle-inhibitor wrapper the reviewer reports its own start through a stderr
+marker, confirmed by reviewer output or by an exit that is not an exec failure
+(126 or 127), so neither the wrapper's spawn nor a failed exec is a launch. For another adapter,
+invoking its stage is the launch. A round whose
+outcomes are all `refused` is not counted. A provider-failure result records
+`providerFailure: {category}`; a `transient-service-failure` is retried once
+automatically under its own operation identity on the round baseline, and is not
+a new round. Rejections name the offending field path or finding/claim ID.
+Events recorded before these statuses keep their `completed`/`unavailable` values
+and count exactly as before.
+
 Missing historical evidence is recorded in `historyGaps` and shown in status and
 desktop. It never qualifies proof. Fresh full evidence can replace its current
 role without recreating lost bytes; available old finding facts are labeled as
@@ -1060,8 +1097,10 @@ repository alias in `.agentic-workflow.json`, for example:
 Discover the configured candidates and submit the first eligible observed choice
 for each provider. If the list is empty or exhausted, choose an eligible model
 from the same provider using current discovery and record the rationale. A
-malformed verdict triggers at most one Claude-only retry per round using the
-same model and effort. Reuse the pair within the run; replace it only
+contract-invalid or malformed verdict triggers at most one repair turn per
+reviewer per round, for either provider, using the same model and effort; a
+transient provider failure gets one automatic retry first (see Paired review
+outcomes). Reuse the pair within the run; replace it only
 for availability changes or developer direction, identifying the previous
 selection and reason. Autonomous mode may choose an available comparably capable
 replacement; changing user-pinned choices in other modes needs developer

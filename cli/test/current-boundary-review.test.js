@@ -1,13 +1,13 @@
 import './helpers/private-scratch.js';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { rm } from 'node:fs/promises';
+import { rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { boundaryReviews } from '../../plugin-src/shared/resources/protocol/current/boundary-review.js';
+import { boundaryReviews, outcomeStatus } from '../../plugin-src/shared/resources/protocol/current/boundary-review.js';
 import { sha256Digest } from '../../plugin-src/shared/resources/protocol/agent-workflow.js';
 
 import { selection, prepared, pairedAdapters } from './helpers/paired-review-fixture.js';
-import { branchWith, candidate } from './helpers/lightweight-fixture.js';
+import { branchWith, candidate, fixture } from './helpers/lightweight-fixture.js';
 
 for (const rigor of ['light', 'full']) test(`two complete ${rigor} boundary reviews run concurrently and retain both receipts`, async t => {
   const f = await prepared(t, rigor);
@@ -65,7 +65,8 @@ test('a dial change during preparation prevents both reviewers launching under s
   };
   const result = await f.request('review.execute', {}, 'revoked-round');
   assert.equal(launches(), 0);
-  assert.ok(result.event.payload.outcomes.every(row => row.status === 'unavailable' && /authority changed/.test(row.reason)), JSON.stringify(result.event.payload.outcomes));
+  assert.ok(result.event.payload.outcomes.every(row => row.status === 'refused' && /authority changed/.test(row.reason)), JSON.stringify(result.event.payload.outcomes));
+  assert.deepEqual((await f.core.state()).state.reviewScopes, {}, 'A refused round counts no round');
 });
 test('an unavailable peer preserves the completed reviewer and cannot count as approval', async t => {
   const f = await prepared(t);
@@ -414,4 +415,353 @@ test('a repaired verdict that rewords dependent text qualifies the pair', async 
   assert.equal(reports[0].findings[0].severity, 'low');
   const { state } = await f.core.state();
   assert.equal((await boundaryReviews(f.core, state, await f.core.store.json(state.candidate))).outcome, 'PASS');
+});
+
+// Issue #140: report reviewer unavailability honestly.
+const verify = (f, operationId, expected = 41) => f.request('gate.execute', { gates: ['verification'], configuration: {
+  validation: { kind: 'alternative', reason: 'Offline fixture', scope: 'Constant export' },
+  checks: [{ repository: 'app', command: process.execPath, args: ['--input-type=module', '-e', `import { answer } from './app.js'; if(answer !== ${expected}) process.exit(1)`], purpose: 'Verify fixture export' }],
+} }, operationId);
+async function unverified(t, rigor = 'full') {
+  const f = await fixture(t, { rigor });
+  await candidate(f, 'SLICE', f.base);
+  await f.request('review.select', selection(), 'select');
+  return f;
+}
+const eventCount = async f => (await f.core.state()).events.length;
+const rounds = async f => (await f.core.state()).state.reviewScopes;
+const verificationRequired = error => error.code === 'VERIFICATION_REQUIRED'
+  && /candidate\.prepare -> gate\.execute \["verification"\] -> review\.execute/.test(error.message);
+// The results of the latest job each provider ran, from the journal.
+async function jobResults(f, provider) {
+  const { events } = await f.core.state();
+  const started = events.filter(event => event.type === 'JOB_STARTED');
+  let latest = null;
+  for (const event of started) if ((await f.core.store.json(event.payload.input)).configuration.provider === provider) latest = event.payload.jobId;
+  return events.findLast(event => event.type === 'JOB_OUTCOME_READY' && event.payload.jobId === latest)?.payload.results;
+}
+const transientError = () => Object.assign(new Error('Evaluator unavailable: transient-service-failure; check the provider configuration before retrying.'),
+  { code: 'AGENT_PROVIDER_TRANSIENT', providerFailure: { category: 'transient-service-failure' } });
+
+test('review.execute without verification refuses before the round and the same operation succeeds after verification', async t => {
+  const f = await unverified(t), launches = pairedAdapters(f);
+  const before = await eventCount(f);
+  await assert.rejects(f.request('review.execute', {}, 'no-verification'), verificationRequired);
+  assert.equal(launches(), 0, 'No reviewer starts');
+  assert.equal(await eventCount(f), before, 'The refusal appends no event');
+  assert.deepEqual(await rounds(f), {}, 'No round is counted');
+  await verify(f, 'late-verification');
+  const done = await f.request('review.execute', {}, 'no-verification');
+  assert.deepEqual(done.event.payload.outcomes.map(row => row.status), ['completed', 'completed']);
+  assert.equal(launches(), 2);
+  assert.equal((await rounds(f)).slice.round, 1);
+});
+for (const outcome of ['FAIL', 'UNAVAILABLE']) test(`review.execute refuses when the latest verification is ${outcome}`, async t => {
+  const f = await unverified(t), launches = pairedAdapters(f);
+  if (outcome === 'FAIL') await verify(f, 'failing-verification', 42);
+  else {
+    // A runner that cannot start leaves an UNAVAILABLE verification result.
+    await f.request('gate.execute', { gates: ['verification'], configuration: { validation: { kind: 'alternative', reason: 'Offline fixture', scope: 'Constant export' },
+      checks: [{ repository: 'app', command: '/nonexistent/runner', args: [], purpose: 'Cannot start' }] } }, 'unavailable-verification');
+  }
+  const { state } = await f.core.state();
+  const latest = await f.core.store.json(state.results.at(-1));
+  assert.equal(latest.outcome === 'PASS', false, latest.summary);
+  const before = await eventCount(f);
+  await assert.rejects(f.request('review.execute', {}, 'after-bad-verification'), error => verificationRequired(error) && new RegExp(latest.outcome).test(error.message));
+  assert.equal(launches(), 0);
+  assert.equal(await eventCount(f), before);
+  assert.deepEqual(await rounds(f), {});
+});
+test('an individual review without verification refuses with the same code and counts no round', async t => {
+  const f = await unverified(t), launches = pairedAdapters(f);
+  const selected = (await f.core.state()).state.reviewerSelection;
+  const before = await eventCount(f);
+  await assert.rejects(f.request('gate.execute', { gates: ['review'], configuration: { provider: 'codex', model: 'fixture', reviewerSelection: selected.event } }, 'single-unverified'), verificationRequired);
+  assert.equal(launches(), 0);
+  assert.equal(await eventCount(f), before);
+  assert.deepEqual(await rounds(f), {});
+});
+
+test('a packet-assembly precondition refuses both reviewers without counting a round', async t => {
+  const f = await prepared(t, 'full'), launches = pairedAdapters(f);
+  // Planning lint fails while each reviewer's packet is assembled.
+  await writeFile(join(f.home, 'tracker.md'), '# Tracker\n## Rubric Status\n| R9 | Unknown | NOT YET | pending |\n## Review Log\n');
+  const done = await f.request('review.execute', {}, 'packet-refused');
+  assert.equal(launches(), 0);
+  for (const row of done.event.payload.outcomes) {
+    assert.equal(row.status, 'refused', JSON.stringify(row));
+    assert.match(row.reason, /unknown criterion R9/);
+    assert.equal(row.results.length, 1, 'The refusal result stays retained');
+    assert.equal((await f.core.store.json(row.results[0])).reviewerLaunched, false);
+  }
+  assert.deepEqual(await rounds(f), {}, 'No reviewer ran, so no round is counted');
+});
+test('each status class is reported with its reason, and a round with a reviewer that ran counts', async t => {
+  const f = await prepared(t, 'full');
+  pairedAdapters(f);
+  const adapters = f.core.runtime.evaluators;
+  const run = { codex: adapters.codex.runStage.bind(adapters.codex), 'claude-code': adapters['claude-code'].runStage.bind(adapters['claude-code']) };
+  const cases = [
+    ['provider-failed', () => { throw Object.assign(new Error('Evaluator unavailable: authentication; check the provider configuration before retrying.'), { code: 'AGENT_PROVIDER_CONFIGURATION', providerFailure: { category: 'authentication' } }); }],
+    ['could-not-assess', async request => {
+      const result = await run.codex(request);
+      for (const verdict of result.output.verdicts) { verdict.outcome = 'UNAVAILABLE'; verdict.summary = 'R1 needs post-merge evidence that is not in the packet.'; }
+      result.receipt.digests.output = sha256Digest(result.output); return result;
+    }],
+    ['verdict-rejected', () => { throw Object.assign(new Error('Codex structured output returned malformed JSON; request a fresh structured response.'), { providerFailure: { category: 'malformed-output' } }); }],
+  ];
+  for (const [status, stage] of cases) {
+    adapters.codex.runStage = stage;
+    const done = await f.request('review.execute', {}, `status-${status}`);
+    const [codex, claude] = done.event.payload.outcomes;
+    assert.equal(codex.status, status, JSON.stringify(codex));
+    assert.ok(codex.reason, 'A non-completed row carries a reason');
+    assert.equal(codex.results.length, 1);
+    assert.deepEqual(codex.results, await jobResults(f, 'codex'), 'The row keeps the exact results of its latest launched job');
+    assert.equal(claude.status, 'completed');
+    assert.equal(claude.reason, undefined);
+    assert.ok(done.event.payload.outcomes.every(row => ['completed', 'refused', 'provider-failed', 'verdict-rejected', 'could-not-assess'].includes(row.status)));
+  }
+  assert.equal((await rounds(f)).slice.round, 1, 'Rounds in which a reviewer ran and failed count; one revision is one round');
+});
+test('an execution that launched no reviewer is refused and one that failed after launch is a provider failure', () => {
+  assert.equal(outcomeStatus({ status: 'fulfilled', value: { status: 'UNAVAILABLE', reason: 'Prior execution outcome is uncertain.' } }, null), 'refused');
+  assert.equal(outcomeStatus({ status: 'rejected', reason: Object.assign(new Error('x'), { beforeAdmission: true, reviewerLaunched: false }) }), 'refused');
+  assert.equal(outcomeStatus({ status: 'rejected', reason: Object.assign(new Error('x'), { reviewerLaunched: false }) }), 'refused');
+  assert.equal(outcomeStatus({ status: 'rejected', reason: Object.assign(new Error('Active run changed'), { reviewerLaunched: true }) }), 'provider-failed');
+  assert.equal(outcomeStatus({ status: 'fulfilled', value: {} }, { outcome: 'UNAVAILABLE', unavailableReason: 'other', reviewerLaunched: true }), 'provider-failed');
+  assert.equal(outcomeStatus({ status: 'fulfilled', value: {} }, { outcome: 'UNAVAILABLE', unavailableReason: 'timeout' }), 'provider-failed');
+  assert.equal(outcomeStatus({ status: 'fulfilled', value: {} }, { outcome: 'FAIL' }), 'completed');
+});
+
+for (const provider of ['codex', 'claude-code']) test(`${provider}: a transient provider failure is retried once in the same round`, async t => {
+  const f = await prepared(t, 'full'), launches = pairedAdapters(f);
+  const adapter = f.core.runtime.evaluators[provider], run = adapter.runStage.bind(adapter);
+  const rounds_ = [];
+  let calls = 0;
+  adapter.runStage = async request => { rounds_.push(request.input.roundPolicy?.round); if (++calls === 1) throw transientError(); return run(request); };
+  const done = await f.request('review.execute', {}, `transient-${provider}`);
+  assert.equal(calls, 2, 'Exactly one automatic retry');
+  assert.equal(launches(), 2, 'The peer once and the successful retry once reach the fixture verdict');
+  const row = done.event.payload.outcomes.find(item => item.provider === provider);
+  assert.equal(row.status, 'completed', JSON.stringify(row));
+  const result = await f.core.store.json(row.results[0]);
+  assert.equal(result.outcome, 'PASS', 'The row references the successful retry result');
+  const { state, events } = await f.core.state();
+  const jobs = events.filter(event => event.type === 'JOB_STARTED');
+  const inputs = await Promise.all(jobs.map(event => f.core.store.json(event.payload.input)));
+  const mine = inputs.filter(input => input.configuration.provider === provider);
+  assert.equal(mine.length, 2);
+  assert.equal(new Set(jobs.filter((_, index) => inputs[index].configuration.provider === provider).map(event => event.payload.jobId)).size, 2, 'The retry has its own operation identity');
+  assert.ok(mine.every(input => input.reviewRound === mine[0].reviewRound), 'The retry shares the round baseline');
+  assert.equal(state.reviewScopes.slice.round, 1, 'The retry is not a new round');
+  const pair = await boundaryReviews(f.core, state, await f.core.store.json(state.candidate));
+  assert.equal(pair.outcome, 'PASS');
+});
+test('a second transient failure is a provider failure and timeouts or non-transient failures are not retried', async t => {
+  const f = await prepared(t, 'full');
+  pairedAdapters(f);
+  const adapter = f.core.runtime.evaluators.codex;
+  for (const [label, error, expectedCalls, category] of [
+    ['transient twice', transientError, 2, 'transient-service-failure'],
+    ['timeout', () => Object.assign(new Error('codex timed out'), { code: 'AGENT_PROVIDER_TIMEOUT' }), 1, 'timeout'],
+    ['authentication', () => Object.assign(new Error('Evaluator unavailable: authentication; check the provider configuration before retrying.'), { code: 'AGENT_PROVIDER_CONFIGURATION', providerFailure: { category: 'authentication' } }), 1, 'authentication'],
+    ['unclassified', () => new Error('Provider process crashed'), 1, 'unclassified'],
+  ]) {
+    let calls = 0;
+    adapter.runStage = async () => { calls++; throw error(); };
+    const done = await f.request('review.execute', {}, `no-retry-${label.replace(/ /gu, '-')}`);
+    assert.equal(calls, expectedCalls, label);
+    const row = done.event.payload.outcomes[0];
+    assert.equal(row.status, 'provider-failed', label);
+    assert.ok(row.reason);
+    assert.deepEqual((await f.core.store.json(row.results[0])).providerFailure, { category }, `${label} records its provider failure category`);
+  }
+});
+test('a retried reviewer whose verdict is then rejected gets exactly one repair turn', async t => {
+  const f = await prepared(t, 'full');
+  pairedAdapters(f);
+  const adapter = f.core.runtime.evaluators.codex, run = adapter.runStage.bind(adapter);
+  const repairs = [];
+  let calls = 0;
+  adapter.runStage = async request => {
+    if (++calls === 1) throw transientError();
+    repairs.push(request.input.repair);
+    const result = await run(request);
+    // Every answer omits the failure scenario, so the repair fails too.
+    result.output.verdicts[0].findings = [{ id: 'advisory', classId: 'constant', classStatement: 'Constant naming', severity: 'low',
+      criterion: 'R1', path: 'app/app.js', evidence: 'The constant could use a comment.', blocking: false }];
+    result.receipt.digests.output = sha256Digest(result.output);
+    return result;
+  };
+  const done = await f.request('review.execute', {}, 'retry-then-repair');
+  assert.equal(calls, 3, 'First attempt, one transient retry, one repair turn');
+  assert.equal(repairs[0], null);
+  assert.ok(repairs[1], 'The third call is the repair turn');
+  const row = done.event.payload.outcomes[0];
+  assert.equal(row.status, 'verdict-rejected');
+  assert.match(row.reason, /failureScenario/);
+  assert.equal((await rounds(f)).slice.round, 1);
+});
+test('a retry refused before launch keeps the row classified from the attempt that launched', async t => {
+  const f = await prepared(t, 'full');
+  pairedAdapters(f);
+  const adapter = f.core.runtime.evaluators.codex;
+  let calls = 0;
+  adapter.runStage = async () => { calls++; throw transientError(); };
+  const append = f.core.append.bind(f.core);
+  const codexJobs = new Set();
+  f.core.append = async (...args) => {
+    if (args[1] === 'JOB_STARTED' && (await f.core.store.json(args[2].input)).configuration.provider === 'codex'
+      && codexJobs.add(args[2].jobId).size === 2) throw new Error('Retry admission refused');
+    return append(...args);
+  };
+  const done = await f.request('review.execute', {}, 'retry-refused');
+  assert.equal(calls, 1, 'The refused retry launched no reviewer');
+  const row = done.event.payload.outcomes[0];
+  assert.equal(row.status, 'provider-failed', JSON.stringify(row));
+  assert.match(row.reason, /transient-service-failure/);
+  assert.equal((await rounds(f)).slice.round, 1, 'A launched attempt counts the round');
+});
+test('a claim naming a finding GateReeve no longer holds refuses both reviewers, names the claim and counts no round', async t => {
+  const f = await prepared(t, 'full'), launches = pairedAdapters(f);
+  await f.request('review.execute', {}, 'initial-pair');
+  const after = (await rounds(f)).slice.round;
+  const head = await branchWith(f, 'claimed', { 'app.js': 'export const answer = 41; // revised\n' });
+  await candidate(f, 'SLICE', head, 'claimed-candidate');
+  await verify(f, 'claimed-verification');
+  const done = await f.request('review.execute', { claims: [{ findingId: 'codex/stale-id', claim: 'Fixed in this revision.' }] }, 'stale-claim');
+  assert.equal(launches(), 2, 'Only the initial pair launched');
+  for (const row of done.event.payload.outcomes) {
+    assert.equal(row.status, 'refused', JSON.stringify(row));
+    assert.match(row.reason, /^Disposition claim lacks a retained finding: claims\[0\] names codex\/stale-id/);
+  }
+  assert.equal((await rounds(f)).slice.round, after, 'The refused revision is not charged a round');
+});
+test('a repair turn whose provider fails ends provider-failed, and provider failures record their category', async t => {
+  const f = await prepared(t, 'full');
+  pairedAdapters(f);
+  const adapter = f.core.runtime.evaluators.codex, run = adapter.runStage.bind(adapter);
+  let calls = 0;
+  adapter.runStage = async request => {
+    calls++;
+    if (calls === 1) throw transientError();
+    if (calls === 3) throw Object.assign(new Error('codex timed out'), { code: 'AGENT_PROVIDER_TIMEOUT' });
+    const result = await run(request);
+    result.output.verdicts[0].findings = [{ id: 'advisory', classId: 'constant', classStatement: 'Constant naming', severity: 'low',
+      criterion: 'R1', path: 'app/app.js', evidence: 'The constant could use a comment.', blocking: false }];
+    result.receipt.digests.output = sha256Digest(result.output);
+    return result;
+  };
+  const done = await f.request('review.execute', {}, 'repair-times-out');
+  assert.equal(calls, 3);
+  const row = done.event.payload.outcomes[0];
+  assert.equal(row.status, 'provider-failed', JSON.stringify(row));
+  assert.match(row.reason, /timed out/);
+  const { state } = await f.core.state();
+  const results = await Promise.all(state.results.map(ref => f.core.store.json(ref)));
+  const transient = results.find(result => result.gate === 'review' && result.providerFailure);
+  assert.deepEqual(transient.providerFailure, { category: 'transient-service-failure' });
+});
+test('explicit earlier passing proof cannot reach behind a later failing verification', async t => {
+  const f = await unverified(t), launches = pairedAdapters(f);
+  const passing = (await verify(f, 'passing-verification')).event.payload.results;
+  await verify(f, 'later-failing-verification', 42);
+  const before = await eventCount(f);
+  await assert.rejects(f.request('review.execute', { consumed: passing }, 'explicit-stale-proof'), error => verificationRequired(error) && /latest current verification result is FAIL/.test(error.message));
+  assert.equal(launches(), 0);
+  assert.equal(await eventCount(f), before);
+  assert.deepEqual(await rounds(f), {});
+});
+test('a failure before the provider launches (adapter checks) is refused and counts no round', async t => {
+  const f = await prepared(t, 'full'), launches = pairedAdapters(f);
+  for (const adapter of Object.values(f.core.runtime.evaluators)) adapter.describe = async () => { throw new Error('Adapter descriptor unavailable'); };
+  const done = await f.request('review.execute', {}, 'describe-fails');
+  assert.equal(launches(), 0);
+  for (const row of done.event.payload.outcomes) {
+    assert.equal(row.status, 'refused', JSON.stringify(row));
+    assert.match(row.reason, /descriptor unavailable/);
+    assert.equal((await f.core.store.json(row.results[0])).reviewerLaunched, false);
+  }
+  assert.deepEqual(await rounds(f), {});
+  const selected = (await f.core.state()).state.reviewerSelection;
+  await f.request('gate.execute', { gates: ['review'], configuration: { provider: 'codex', model: 'fixture', reasoningEffort: 'high', reviewerSelection: selected.event } }, 'individual-describe-fails');
+  assert.deepEqual(await rounds(f), {}, 'An individual review that never launched counts no round');
+});
+test('a repair turn refused before launch keeps the rejected verdict and its result', async t => {
+  const f = await prepared(t, 'full');
+  pairedAdapters(f);
+  const adapter = f.core.runtime.evaluators.codex, run = adapter.runStage.bind(adapter);
+  let calls = 0;
+  adapter.runStage = async request => {
+    calls++;
+    const result = await run(request);
+    result.output.verdicts[0].findings = [{ id: 'advisory', classId: 'constant', classStatement: 'Constant naming', severity: 'low',
+      criterion: 'R1', path: 'app/app.js', evidence: 'The constant could use a comment.', blocking: false }];
+    result.receipt.digests.output = sha256Digest(result.output);
+    return result;
+  };
+  const append = f.core.append.bind(f.core);
+  const codexJobs = new Set();
+  f.core.append = async (...args) => {
+    if (args[1] === 'JOB_STARTED' && (await f.core.store.json(args[2].input)).configuration.provider === 'codex'
+      && codexJobs.add(args[2].jobId).size === 2) throw new Error('Repair admission refused');
+    return append(...args);
+  };
+  const done = await f.request('review.execute', {}, 'repair-refused');
+  assert.equal(calls, 1, 'The refused repair launched no reviewer');
+  const row = done.event.payload.outcomes[0];
+  assert.equal(row.status, 'verdict-rejected', JSON.stringify(row));
+  assert.match(row.reason, /failureScenario/);
+  assert.deepEqual(row.results, await jobResults(f, 'codex'), 'The row keeps the launched attempt result');
+  assert.equal((await rounds(f)).slice.round, 1);
+});
+test('a reviewer whose adapter reports spawn counts only once its process starts', async t => {
+  const f = await prepared(t, 'full');
+  pairedAdapters(f);
+  const codex = f.core.runtime.evaluators.codex;
+  let spawn = 'never';
+  f.core.runtime.evaluators.codex = { describe: codex.describe.bind(codex), reportsSpawn: true,
+    async runStage(request, hooks) {
+      if (spawn === 'never') throw Object.assign(new Error('Scratch preparation failed before spawn'), { code: 'EACCES' });
+      await hooks.onSpawn();
+      throw Object.assign(new Error('codex timed out'), { code: 'AGENT_PROVIDER_TIMEOUT' });
+    } };
+  const claude = f.core.runtime.evaluators['claude-code'];
+  claude.runStage = async () => { throw Object.assign(new Error('Prelaunch argument check failed'), { code: 'E2BIG' }); };
+  claude.reportsSpawn = true;
+  let done = await f.request('review.execute', {}, 'prelaunch-failures');
+  assert.deepEqual(done.event.payload.outcomes.map(row => row.status), ['refused', 'refused'], JSON.stringify(done.event.payload.outcomes));
+  assert.deepEqual(await rounds(f), {}, 'No process spawned, so no round');
+  spawn = 'then-timeout';
+  done = await f.request('review.execute', {}, 'spawned-then-timeout');
+  assert.equal(done.event.payload.outcomes[0].status, 'provider-failed');
+  assert.equal((await rounds(f)).slice.round, 1, 'A spawned reviewer counts the round');
+});
+test('reused retained results launch no reviewer and are reported as refused with reused', async t => {
+  const f = await prepared(t, 'full'), launches = pairedAdapters(f);
+  const first = await f.request('review.execute', {}, 'original-pair');
+  const again = await f.request('review.execute', {}, 'reused-pair');
+  assert.equal(launches(), 2);
+  for (const [index, row] of again.event.payload.outcomes.entries()) {
+    assert.equal(row.status, 'refused', JSON.stringify(row));
+    assert.equal(row.reused, true);
+    assert.match(row.reason, /No reviewer was launched: the retained PASS result/);
+    assert.deepEqual(row.results, first.event.payload.outcomes[index].results, 'The reused row references the retained result');
+  }
+  assert.equal((await rounds(f)).slice.round, 1);
+  const { state } = await f.core.state();
+  assert.equal((await boundaryReviews(f.core, state, await f.core.store.json(state.candidate))).outcome, 'PASS', 'Reuse keeps the qualifying pair');
+});
+test('verification from an earlier candidate supplied explicitly is refused with VERIFICATION_REQUIRED', async t => {
+  const f = await prepared(t, 'full'), launches = pairedAdapters(f);
+  const { state } = await f.core.state();
+  const earlier = state.results.slice(-1);
+  const head = await branchWith(f, 'changed-unverified', { 'app.js': 'export const answer = 41; // changed\n' });
+  await candidate(f, 'SLICE', head, 'changed-unverified-candidate');
+  const before = await eventCount(f);
+  await assert.rejects(f.request('review.execute', { consumed: earlier }, 'stale-candidate-proof'), error => verificationRequired(error) && /does not apply to this candidate/.test(error.message));
+  assert.equal(launches(), 0);
+  assert.equal(await eventCount(f), before);
 });

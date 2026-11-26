@@ -1,5 +1,6 @@
 import { withScratch, scratchEnvironment } from '../storage/scratch.js';
 import { spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { accessSync, constants as fsConstants, readdirSync, readFileSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 
@@ -103,10 +104,27 @@ function killIfSame({ pid, started }) {
   try { process.kill(pid, 'SIGKILL'); } catch { /* already gone */ }
 }
 
-export async function runAgentProcess(executable, args, { cwd, input, env = process.env, timeoutSeconds, idleLock = null, inhibitor = systemIdleInhibitor }) {
+export async function runAgentProcess(executable, args, { cwd, input, env = process.env, timeoutSeconds, idleLock = null, inhibitor = systemIdleInhibitor, onSpawn = null }) {
   const launch = await idleInhibitedLaunch(executable, args, idleLock, inhibitor);
   assertArgumentSizes(launch.args);
-  return new Promise((resolve, reject) => {
+  // `onSpawn` runs once the reviewer process has actually started, so callers
+  // can tell a failure before launch from one after it (issue #140). The run's
+  // outcome is reported only after it settles. Behind an idle-inhibitor
+  // wrapper the wrapper's own spawn proves nothing: the reviewer runs through
+  // a shell shim that checks the executable, writes a one-off marker line to
+  // stderr and then execs the reviewer. The marker is stripped. Because exec can
+  // still fail (the shell then exits 126 or 127 without starting the reviewer),
+  // the launch is reported only once the marker is followed by reviewer output
+  // or by an exit that is not an exec failure.
+  const marker = onSpawn && launch.idleInhibitor ? `gatereeve-reviewer-started:${randomUUID()}` : null;
+  if (marker) {
+    const wrapperArgs = launch.args.length - args.length - 1;
+    launch.args = [...launch.args.slice(0, wrapperArgs), '/bin/sh', '-c',
+      'command -v "$1" >/dev/null 2>&1 || exit 127; printf "%s\\n" "$GATEREEVE_REVIEWER_MARKER" >&2; exec "$@"', 'gatereeve-reviewer', executable, ...args];
+    env = { ...env, GATEREEVE_REVIEWER_MARKER: marker };
+  }
+  let spawned = Promise.resolve();
+  const run = new Promise((resolve, reject) => {
     const startedAt = new Date();
     // The launch stays in the evaluator's process group, so an interrupt,
     // hangup or cancellation of the evaluator still reaches the reviewer.
@@ -115,6 +133,9 @@ export async function runAgentProcess(executable, args, { cwd, input, env = proc
       env,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
+    let reported = false, marked = false;
+    const report = () => { if (reported) return; reported = true; spawned = Promise.resolve().then(onSpawn); spawned.catch(() => { /* surfaced when the run settles */ }); };
+    if (onSpawn && !marker) child.once('spawn', report);
     // Ending the run: SIGTERM, then SIGKILL two seconds later. Behind
     // systemd-inhibit the tracked child is the wrapper, which forwards only
     // SIGTERM and may exit (or close its streams) first, so the wrapper's
@@ -158,14 +179,17 @@ export async function runAgentProcess(executable, args, { cwd, input, env = proc
       size += chunk.length;
       if (size > MAX_OUTPUT_BYTES) terminate();
       else stdout.push(chunk);
+      if (marked) report();
     });
     child.stderr.on('data', (chunk) => {
       size += chunk.length;
       if (size > MAX_OUTPUT_BYTES) terminate();
       else stderr.push(chunk);
+      if (marker && !marked && Buffer.concat(stderr).toString('utf8').includes(marker)) marked = true;
     });
     child.on('error', reject);
     child.on('close', (code, exitSignal) => {
+      if (marked && code !== 126 && code !== 127) report();
       clearTimeout(timer);
       if (killTimer !== null && recorded.length === 0) clearTimeout(killTimer);
       const completedAt = new Date();
@@ -176,7 +200,7 @@ export async function runAgentProcess(executable, args, { cwd, input, env = proc
         signal: exitSignal,
         idleInhibitor: launch.idleInhibitor,
         stdout: Buffer.concat(stdout).toString('utf8'),
-        stderr: Buffer.concat(stderr).toString('utf8'),
+        stderr: marker ? Buffer.concat(stderr).toString('utf8').replace(`${marker}\n`, '') : Buffer.concat(stderr).toString('utf8'),
         startedAt,
         completedAt,
       };
@@ -203,6 +227,7 @@ export async function runAgentProcess(executable, args, { cwd, input, env = proc
     });
     child.stdin.end(input);
   });
+  return run.then(value => spawned.then(() => value), error => spawned.then(() => { throw error; }, () => { throw error; }));
 }
 
 // The provider rejects longer prompts before any model call. Callers that
@@ -379,8 +404,10 @@ export function createCodexAgentAdapter({
     isolationMethod: 'codex-ephemeral-exec',
   });
   return Object.freeze({
+    // runStage reports the actual process spawn through hooks.onSpawn.
+    reportsSpawn: true,
     async describe() { return structuredClone(details); },
-    async runStage(request) {
+    async runStage(request, hooks = {}) {
       validateEvaluatorCapability(request.capabilityProfile, reasoningEffort);
       if (request.protocolVersion !== AGENT_WORKFLOW_PROTOCOL_VERSION || request.policy?.repositoryAccess !== 'read-only'
           || request.policy.networkAccess !== 'deny' || request.policy.scratch !== 'isolated') {
@@ -406,6 +433,7 @@ export function createCodexAgentAdapter({
           env: await scratchEnvironment(scratchRun, environment),
           timeoutSeconds: request.timeoutSeconds,
           idleLock: { why: idleInhibitorWhy({ provider: 'codex', stage: request.stage.id, feature: request.featureId ?? request.runId }) },
+          ...(hooks.onSpawn ? { onSpawn: hooks.onSpawn } : {}),
         });
         const output = parseObject(await readFile(outputPath, 'utf8'), 'Codex structured output');
         const contextId = parseCodexContextId(processResult.stdout);
@@ -433,8 +461,10 @@ export function createClaudeCodeAgentAdapter({
     isolationMethod: 'claude-custom-agent',
   });
   return Object.freeze({
+    // runStage reports the actual process spawn through hooks.onSpawn.
+    reportsSpawn: true,
     async describe() { return structuredClone(details); },
-    async runStage(request) {
+    async runStage(request, hooks = {}) {
       validateEvaluatorCapability(request.capabilityProfile, reasoningEffort);
       if (request.protocolVersion !== AGENT_WORKFLOW_PROTOCOL_VERSION || request.policy?.repositoryAccess !== 'read-only'
           || request.policy.networkAccess !== 'deny' || request.policy.scratch !== 'isolated') {
@@ -470,6 +500,7 @@ export function createClaudeCodeAgentAdapter({
         env: await scratchEnvironment(scratchRun, environment),
         timeoutSeconds: request.timeoutSeconds,
         idleLock: { why: idleInhibitorWhy({ provider: 'claude-code', stage: request.stage.id, feature: request.featureId ?? request.runId }) },
+        ...(hooks.onSpawn ? { onSpawn: hooks.onSpawn } : {}),
       });
       const parsed = parseClaudeStructuredOutput(processResult.stdout);
       if (typeof parsed.contextId !== 'string' || parsed.contextId === '') {

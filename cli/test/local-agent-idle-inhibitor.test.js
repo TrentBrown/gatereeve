@@ -228,3 +228,66 @@ test('a timeout still kills a wrapped reviewer that closes its streams on SIGTER
   await new Promise(resolve => setTimeout(resolve, 2500));
   assert.equal(alive(pid), false, 'the forced kill outlives the wrapper close');
 });
+
+// Issue #140: behind a wrapper, launch is reported only once the reviewer runs.
+test('behind an idle-inhibitor wrapper, spawn is reported for the reviewer, never for the wrapper alone', async t => {
+  const base = await scripts(t);
+  const forwarding = join(base.dir, 'forwarding-inhibit');
+  await writeFile(forwarding, '#!/bin/sh\nwhile [ "${1#--}" != "$1" ]; do shift; done\n"$@"\n'); await chmod(forwarding, 0o755);
+  const slow = join(base.dir, 'slow-reviewer');
+  await writeFile(slow, '#!/bin/sh\nread line\nsleep 0.5\necho "ran:$line"\n'); await chmod(slow, 0o755);
+  let spawned = 0;
+  const result = await runAgentProcess(slow, [], { input: 'x\n', timeoutSeconds: 10, idleLock: { why },
+    inhibitor: { platform: () => 'linux', resolve: () => forwarding, probe: async () => true }, onSpawn: async () => { spawned++; } });
+  assert.equal(result.stdout.trim(), 'ran:x');
+  assert.equal(spawned, 1, 'The reviewer behind the wrapper was reported once');
+  const refusing = join(base.dir, 'refusing-inhibit');
+  await writeFile(refusing, '#!/bin/sh\necho "Failed to inhibit: access denied" >&2\nexit 1\n'); await chmod(refusing, 0o755);
+  let wrapperOnly = 0;
+  await assert.rejects(runAgentProcess(slow, [], { input: 'x\n', timeoutSeconds: 10, idleLock: { why },
+    inhibitor: { platform: () => 'linux', resolve: () => refusing, probe: async () => true }, onSpawn: async () => { wrapperOnly++; } }));
+  assert.equal(wrapperOnly, 0, 'A wrapper that never starts the reviewer is not a launch');
+  // A reviewer that fails at once behind the wrapper still launched.
+  const instant = join(base.dir, 'instant-reviewer');
+  await writeFile(instant, '#!/bin/sh\necho "unknown flag" >&2\nexit 3\n'); await chmod(instant, 0o755);
+  let fast = 0;
+  await assert.rejects(runAgentProcess(instant, [], { input: '', timeoutSeconds: 10, idleLock: { why },
+    inhibitor: { platform: () => 'linux', resolve: () => forwarding, probe: async () => true }, onSpawn: async () => { fast++; } }),
+  error => error.providerFailure?.exitCode === 3);
+  assert.equal(fast, 1, 'An instantly failing reviewer behind the wrapper is reported as launched');
+  // A missing reviewer executable behind the wrapper never launched.
+  let missing = 0;
+  await assert.rejects(runAgentProcess(join(base.dir, 'no-such-reviewer'), [], { input: '', timeoutSeconds: 10, idleLock: { why },
+    inhibitor: { platform: () => 'linux', resolve: () => forwarding, probe: async () => true }, onSpawn: async () => { missing++; } }),
+  error => error.providerFailure?.exitCode === 127);
+  assert.equal(missing, 0);
+  // The launch marker never reaches the retained diagnostics.
+  const noisy = join(base.dir, 'noisy-reviewer');
+  await writeFile(noisy, '#!/bin/sh\nread line\necho "warning: $line" >&2\necho ok\n'); await chmod(noisy, 0o755);
+  const quiet = await runAgentProcess(noisy, [], { input: 'x\n', timeoutSeconds: 10, idleLock: { why },
+    inhibitor: { platform: () => 'linux', resolve: () => forwarding, probe: async () => true }, onSpawn: async () => {} });
+  assert.equal(quiet.stderr, 'warning: x\n');
+});
+test('a failing spawn report surfaces as the run error and is never an unhandled rejection', async () => {
+  const unhandled = [];
+  const listener = reason => unhandled.push(reason);
+  process.on('unhandledRejection', listener);
+  try {
+    await assert.rejects(runAgentProcess(process.execPath, ['-e', 'setTimeout(() => {}, 300)'], { input: '', timeoutSeconds: 10,
+      onSpawn: async () => { throw new Error('Round count append failed'); } }), /Round count append failed/);
+    await new Promise(resolve => setTimeout(resolve, 50));
+    assert.deepEqual(unhandled, []);
+  } finally { process.off('unhandledRejection', listener); }
+});
+test('behind the wrapper, a reviewer found on PATH that cannot execute is not a launch (Linux shells exit 126 or 127)', { skip: process.platform !== 'linux' && 'the wrapper path and its shell exit codes are Linux-only' }, async t => {
+  const base = await scripts(t);
+  const forwarding = join(base.dir, 'forwarding-inhibit');
+  await writeFile(forwarding, '#!/bin/sh\nwhile [ "${1#--}" != "$1" ]; do shift; done\n"$@"\n'); await chmod(forwarding, 0o755);
+  const broken = join(base.dir, 'broken-reviewer');
+  await writeFile(broken, '#!/nonexistent/interpreter\necho never\n'); await chmod(broken, 0o755);
+  let launched = 0;
+  await assert.rejects(runAgentProcess(broken, [], { input: '', timeoutSeconds: 10, idleLock: { why },
+    inhibitor: { platform: () => 'linux', resolve: () => forwarding, probe: async () => true }, onSpawn: async () => { launched++; } }),
+  error => [126, 127].includes(error.providerFailure?.exitCode));
+  assert.equal(launched, 0, 'An exec failure after the marker is not a launch');
+});

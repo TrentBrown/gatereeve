@@ -1,7 +1,7 @@
 import { identity, requireThat, autonomousValue } from './contracts.js';
 import { reviewerSelection, modelProvider } from './reviewer-selection.js';
-import { executeGates, changedPaths, findingSeverity, severityRank } from './execution.js';
-import { contentIdentity } from './evidence.js';
+import { executeGates, consumedProof, changedPaths, findingSeverity, severityRank } from './execution.js';
+import { contentIdentity, checkCandidate } from './evidence.js';
 import { findingObligations, retainedReviewScope } from './review-findings.js';
 import { boundaryScope, scheduledRound, currentRevision, assertRoundOpen, scheduledBlocking, roundHandBack, roundDecision, NARROW_FROM, ROUND_POLICY } from './round-policy.js';
 import { isGoal } from './delegation.js';
@@ -237,6 +237,52 @@ export async function boundaryReviews(core, state, candidate, memo = new Map(), 
     summary: members.map(member => `${member.reviewer.modelProvider}: ${member.result.outcome}${effective(member) !== member.result.outcome ? ` (${effective(member)} under the round ${schedule.round} schedule; demoted: ${member.demotedFindings.join(', ')})` : ''}: ${member.result.summary}${member.unreconciledFindings?.length ? ` Unreconciled prior findings: ${member.unreconciledFindings.join(', ')}.` : ''}${member.incompleteDelta ? ' Changed-path or interaction coverage is incomplete.' : ''}`).join('\n') };
 }
 
+// Provider outcome statuses of a paired round (issue #140). Events recorded
+// before these statuses keep their original `completed`/`unavailable` values.
+export const OUTCOME_STATUSES = Object.freeze(['completed', 'refused', 'provider-failed', 'verdict-rejected', 'could-not-assess']);
+// A transient service failure (rate limit, 5xx, temporary) is retried once.
+const TRANSIENT = 'transient-service-failure';
+const transientFailure = result => result.outcome === 'UNAVAILABLE' && result.providerFailure?.category === TRANSIENT;
+
+// Classify one reviewer's settled execution. This execution launched no
+// reviewer, and so is refused, when it was rejected before job admission, when
+// its result records that no reviewer was launched, or when it returned no
+// result because an earlier execution of the job is uncertain or claimed.
+export function outcomeStatus(settled, result) {
+  if (settled.status === 'rejected') return settled.reason?.beforeAdmission || settled.reason?.reviewerLaunched === false ? 'refused' : 'provider-failed';
+  if (!result) return 'refused';
+  // A reused retained result: this execution launched no reviewer.
+  if (settled.value?.reused) return 'refused';
+  if (result.outcome !== 'UNAVAILABLE') return 'completed';
+  if (result.reviewerLaunched === false) return 'refused';
+  if (['contract', 'malformed-json'].includes(result.unavailableReason)) return 'verdict-rejected';
+  if (result.unavailableReason === 'missing-evidence') return 'could-not-assess';
+  return 'provider-failed';
+}
+async function attemptRow(core, provider, settled) {
+  if (settled.status === 'rejected') {
+    const reason = settled.reason?.message ?? String(settled.reason);
+    return { provider, status: outcomeStatus(settled), reason };
+  }
+  const value = settled.value;
+  const results = value.event?.payload.results ?? value.results ?? [];
+  let result = null;
+  if (results[0]) { try { result = await core.store.json(results[0]); } catch { /* An unreadable result is classified without it. */ } }
+  // A retained but unreadable result came from an execution that ran.
+  const status = results[0] && !result ? 'provider-failed' : outcomeStatus(settled, result);
+  const reason = status === 'completed' ? null
+    : value.reused ? `No reviewer was launched: the retained ${result?.outcome ?? ''} result ${results[0]?.hash ?? ''} for these unchanged inputs was reused`.replace(/  +/gu, ' ')
+      : result?.summary ?? value.reason ?? 'No reviewer result was retained';
+  return { provider, status, results, ...(value.reused ? { reused: true } : {}), ...(reason ? { reason } : {}) };
+}
+// One row per reviewer: `refused` only when no attempt launched a reviewer;
+// otherwise the latest attempt that did, so a later attempt refused before
+// launch never hides an earlier launched one.
+export async function outcomeRow(core, provider, tried) {
+  const rows = await Promise.all(tried.map(settled => attemptRow(core, provider, settled)));
+  return rows.findLast(row => row.status !== 'refused') ?? rows.at(-1);
+}
+
 export async function executeBoundaryReviews(core, input, operation) {
   requireThat(input && Object.keys(input).every(key => ['consumed', 'history', 'claims', 'coverageClaims', 'prior', 'configuration'].includes(key)), 'Unsupported boundary review input');
   const currentView = await core.state();
@@ -249,9 +295,15 @@ export async function executeBoundaryReviews(core, input, operation) {
   requireThat(!['provider', 'model', 'reasoningEffort', 'reviewerSelection'].some(key => Object.hasOwn(configuration, key)), 'Review identities come from the recorded selection');
   const begin = { id: `round_${identity(operation.id).slice(7)}`, hash: identity({ operation }) };
   // Past round 6 a new revision is not reviewed until the human decides (AC6).
+  requireThat(state.candidate, 'Prepare a candidate first');
   const reviewed = await core.store.json(state.candidate);
   const roundPolicy = { policy: ROUND_POLICY, scope: boundaryScope(reviewed), revision: contentIdentity(reviewed) };
   assertRoundOpen(state, roundPolicy.scope, roundPolicy.revision, isGoal(state));
+  // Fail fast (issue #140): the verification precondition applies to every
+  // reviewer equally, so check it once before the round starts. A refusal
+  // appends nothing and charges no round.
+  await consumedProof(core, state, await checkCandidate(core.store, core.context, state.candidate, { live: state.phase !== 'INTEGRATED' }),
+    { gates: ['review'], consumed: input.consumed });
   const initialEstablished = Boolean(await initialRound(core, state, selected, new Map()));
   let round = currentView.events.find(event => event.operation.id === begin.id);
   if (!round) {
@@ -282,28 +334,43 @@ export async function executeBoundaryReviews(core, input, operation) {
   requireThat(retained.kind === 'boundary-review-baseline' && retained.state.runId === state.runId, 'Invalid retained review baseline');
   const baseline = { state: retained.state, events: currentView.events, round: round.hash,
     initialEstablished };
-  const outcomes = await Promise.allSettled(selected.selection.reviewers.map(async (reviewer, slot) => {
+  // Each reviewer's attempts in this round, in order: the first execution, at
+  // most one transient retry and at most one repair turn. A rejected attempt
+  // ends the sequence. The row is classified across all of them (issue #140).
+  const attempts = await Promise.all(selected.selection.reviewers.map(async (reviewer, slot) => {
     const { modelProvider: _family, reason: _reason, ...execution } = reviewer;
     const request = { gates: ['review'], configuration: { ...configuration, ...execution, reviewerSelection: selected.event },
       ...Object.fromEntries(['consumed', 'history', 'claims', 'coverageClaims'].filter(key => input[key] !== undefined).map(key => [key, input[key]])),
       ...(priors[reviewer.provider] ? { prior: priors[reviewer.provider] } : {}) };
-    const first = await executeGates(core, request,
-      { id: `review_${identity([operation.id, slot]).slice(7)}`, hash: identity({ operation, request }) }, baseline);
-    const reference = (first.event?.payload.results ?? first.results)?.[0];
+    const tried = [];
+    // Run one attempt; returns its first result, or null when it produced none.
+    const attempt = async (body, identityOf, events) => {
+      try {
+        const value = await executeGates(core, body, identityOf, events ? { ...baseline, events } : baseline);
+        tried.push({ status: 'fulfilled', value });
+        const reference = (value.event?.payload.results ?? value.results)?.[0];
+        return reference ? { reference, verdict: await core.store.json(reference) } : null;
+      } catch (reason) { tried.push({ status: 'rejected', reason }); return null; }
+    };
+    let last = await attempt(request, { id: `review_${identity([operation.id, slot]).slice(7)}`, hash: identity({ operation, request }) });
+    // One automatic retry of a transient provider failure (issue #140). Like
+    // the repair turn it shares the round's baseline, so it is not a round.
+    if (last && transientFailure(last.verdict)) {
+      last = await attempt(request, { id: `review_transient_${identity([operation.id, slot]).slice(7)}`, hash: identity({ operation, request, retry: TRANSIENT }) },
+        (await core.state()).events);
+    }
     // Exactly one automatic repair turn per reviewer, either provider (AC5).
     // It reuses the round's baseline, so it is not a further round.
-    if (!reference) return first;
-    const verdict = await core.store.json(reference);
-    if (!verdict.invalidVerdictContract) return first;
-    const correction = verdict.unvalidatedVerdict ? { ...request, repair: reference } : request;
-    const retry = { id: `review_retry_${identity([operation.id, slot]).slice(7)}`, hash: identity({ operation, correction }) };
-    return executeGates(core, correction, retry, { ...baseline, events: (await core.state()).events });
+    if (last?.verdict.invalidVerdictContract) {
+      const correction = last.verdict.unvalidatedVerdict ? { ...request, repair: last.reference } : request;
+      await attempt(correction, { id: `review_retry_${identity([operation.id, slot]).slice(7)}`, hash: identity({ operation, correction }) }, (await core.state()).events);
+    }
+    return tried;
   }));
   const current = (await core.state()).state;
   requireThat(current.candidate?.hash === state.candidate?.hash && current.reviewerSelection?.event === selected.event,
     'Candidate or reviewer selection changed during boundary execution; results remain retained');
+  const rows = await Promise.all(attempts.map((tried, slot) => outcomeRow(core, selected.selection.reviewers[slot].provider, tried)));
   return core.append(current, 'BOUNDARY_REVIEWED', { candidate: state.candidate, selection: selected.event, round: round.hash, roundPolicy,
-    outcomes: outcomes.map((outcome, slot) => ({ provider: selected.selection.reviewers[slot].provider,
-      ...(outcome.status === 'fulfilled' ? { status: 'completed', results: outcome.value.event?.payload.results ?? outcome.value.results ?? [] }
-        : { status: 'unavailable', reason: outcome.reason?.message ?? String(outcome.reason) }) })) }, operation);
+    outcomes: rows }, operation);
 }
