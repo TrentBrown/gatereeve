@@ -157,6 +157,8 @@ export class CurrentStore {
     for (const child of Object.values(value)) await this.closure(child, seen);
   }
   async json(ref) { return JSON.parse((await this.get(ref)).toString('utf8')); }
+  // The live bytes of a feature-home document, without retaining them.
+  async localBytes(path) { return readSafe(this.home, localPath(path)); }
   async fingerprint(path) {
     const bytes = await readSafe(this.home, localPath(path));
     return { path, hash: digest(bytes), bytes: bytes.length };

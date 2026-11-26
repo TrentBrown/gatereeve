@@ -136,7 +136,9 @@ test('a brief without goal, scope and findings log cannot be authorized', async 
 
 test('a changed brief invalidates implementation authority until it is re-authorized', async t => {
   const f = await fixture(t); await authorizeBrief(f); await prepare(f);
-  await writeFile(join(f.home, 'brief.md'), `${BRIEF}- Found: the answer is also exported elsewhere.\n`);
+  // A scope change; findings-log growth alone keeps authority (current-waivers.test.js).
+  const scoped = BRIEF.replace('app.js only.', 'app.js and the exported helper.');
+  await writeFile(join(f.home, 'brief.md'), scoped);
   const check = await f.request('milestone.check', { name: 'implementation' });
   assert.equal(check.allowed, false);
   assert.match(check.missing.join('; '), /current implementation authorization/);
@@ -145,7 +147,7 @@ test('a changed brief invalidates implementation authority until it is re-author
   // Restoring the authorized bytes restores the binding; new bytes need a new decision.
   await writeFile(join(f.home, 'brief.md'), BRIEF);
   assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, true);
-  await writeFile(join(f.home, 'brief.md'), `${BRIEF}- Found: the answer is also exported elsewhere.\n`);
+  await writeFile(join(f.home, 'brief.md'), scoped);
   await authorizeBrief(f, 'reauthorize');
   assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, true);
   const acceptance = await f.request('milestone.check', { name: 'acceptance' });

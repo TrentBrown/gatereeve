@@ -121,7 +121,7 @@ export async function finalHandoff(core, target) {
   }).join('');
   const exceptions = check.outcomes.flatMap(row => {
     const decision = row.exception ?? row.adjudication;
-    return decision ? [`<li>${html(row.id)} · ${html(decision.reason)} ${html(decision.consequences ?? decision.stopReason)}</li>`] : [];
+    return decision ? [`<li>${html(row.id)} · ${html(decision.reason)} ${html(decision.consequences ?? decision.stopReason)}${(row.waivedCoverage ?? []).map(item => `<br>Waived: ${html(item)}`).join('')}</li>`] : [];
   });
   const mutationSummary = mutation?.counts
     ? `${mutation.counts.generated} generated, ${mutation.counts.killed} killed, ${mutation.counts.survived} surviving, ${mutation.counts.uncovered} uncovered`
@@ -133,7 +133,7 @@ export async function finalHandoff(core, target) {
 <p>Head <code>${html(pin.head)}</code><br>Base <code>${html(pin.base)}</code><br>Target <code>${html(pin.target)}</code></p>
 <section><h2>Review summary</h2>${(review.pair?.members ?? []).map(({ result }) => `<p>${html(result.summary)}</p>`).join('')}</section>
 <section><h2>Acceptance criteria</h2><ul>${acceptance.map(item => `<li>${html(item.id)} · ${html(item.outcome)} · ${html(item.evidence)}</li>`).join('')}</ul></section>
-<section><h2>Verification</h2><ul>${check.outcomes.filter(row => ['context', 'verification'].includes(row.id)).map(row => `<li>${html(row.outcome)} · ${html(row.reason)}</li>`).join('')}${commands.map(row => `<li>${html(row.outcome)} · ${html(row.purpose)}</li>`).join('')}</ul></section>
+<section><h2>Verification</h2><ul>${check.outcomes.filter(row => ['context', 'verification'].includes(row.id)).map(row => `<li>${html(row.outcome)} · ${html(row.reason)}${row.waivedCoverage?.length ? ` · waived by human decision: ${html(row.waivedCoverage.join('; '))}` : ''}</li>`).join('')}${commands.map(row => `<li>${html(row.outcome)} · ${html(row.purpose)}</li>`).join('')}</ul></section>
 <section><h2>Findings and limits</h2>${findings.length ? `<ul>${findings.join('')}</ul>` : '<p>No findings reported.</p>'}${limitations.length ? `<ul>${limitations.map(item => `<li>${html(item)}</li>`).join('')}</ul>` : ''}${perspectives.join('')}</section>
 ${exceptions.length ? `<section><h2>Acceptance decisions</h2><ul>${exceptions.join('')}</ul></section>` : ''}
 <section><h2>Changed files</h2><ul>${files}</ul></section>

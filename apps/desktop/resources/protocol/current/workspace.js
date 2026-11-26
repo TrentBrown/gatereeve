@@ -103,14 +103,32 @@ export async function observeDelivery(root, branch, runtime = {}) {
   try { validateFeatureId(defaultBranch); }
   catch { return { ok: false, remote, ownerRepo, reason: `GET ${endpoint} did not report a usable default branch` }; }
   if (defaultBranch === branch) return { ok: false, remote, ownerRepo, defaultBranch, reason: `the current branch ${branch} is the default branch; start the run on a feature branch to configure delivery` };
-  return { ok: true, remote, ownerRepo, defaultBranch, source: `GET ${endpoint}`, observedAt: new Date().toISOString() };
+  return { ok: true, remote, ownerRepo, defaultBranch, source: `GET ${endpoint}`, observedAt: new Date().toISOString(),
+    featureBase: await observeFeatureBase(root, remote, defaultBranch, runtime) };
+}
+
+// GitHub issue #145: FEATURE scope needs the feature's original base. At run
+// start that is the merge base of HEAD with the default branch, preferring the
+// already-fetched remote-tracking ref (no fetch, no network side effect). When
+// neither ref resolves, the configuration omits it and the record says why.
+export async function observeFeatureBase(root, remote, defaultBranch, runtime = {}) {
+  const run = tools(runtime);
+  const refs = [`refs/remotes/${remote}/${defaultBranch}`, `refs/heads/${defaultBranch}`];
+  for (const ref of refs) {
+    try {
+      const sha = (await run.git(root, ['merge-base', 'HEAD', ref])).trim().toLowerCase();
+      if (/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/u.test(sha)) return { sha, ref };
+    } catch { /* Try the next ref; an unresolvable base is reported below. */ }
+  }
+  return { sha: null, reason: `no merge base of HEAD with ${refs.join(' or ')}; add featureBaseSha to the configuration by hand for FEATURE scope` };
 }
 
 // The minimal configuration: one repository at the workspace root, with the
-// default branch as integration and release.
+// default branch as integration and release, and the observed feature base.
 export function minimalConfiguration(featureId, observed) {
   return { schemaVersion: 1, featureId, repositories: { [FALLBACK_ALIAS]: { path: '.', remote: observed.remote,
-    integrationBranch: observed.defaultBranch, releaseBranch: observed.defaultBranch, keepPullRequestsClosed: false } } };
+    integrationBranch: observed.defaultBranch, releaseBranch: observed.defaultBranch, keepPullRequestsClosed: false,
+    ...(observed.featureBase?.sha ? { featureBaseSha: observed.featureBase.sha } : {}) } } };
 }
 const serialize = value => Buffer.from(`${JSON.stringify(value, null, 2)}\n`);
 
