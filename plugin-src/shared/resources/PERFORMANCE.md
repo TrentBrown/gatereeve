@@ -236,15 +236,15 @@ report.
 
 | Measure | Computed as | `met` |
 |---|---|---|
-| 1. Rounds to PASS | Per workflow and boundary scope instance (`slice`, `feature-final`; a new instance starts at each round-1 count: the next slice PR, a split part, the rounds after an amendment): the first round whose providers' final outcomes all completed with PASS, or an adjudicated round. Open scopes count their current round as a lower bound in the median; a `review` waiver closes only the scope instance of the workflow's latest reviewed round before it, when that instance never passed | false when the median exceeds 3 or a waive followed a FAIL; null while a scope is open or none passed; else true |
+| 1. Rounds to PASS | Per workflow and boundary scope instance (`slice`, `feature-final`; a new instance starts at each round-1 count: the next slice PR, a split part, the rounds after an amendment): the first round with a recorded pair whose every reviewer completed with PASS (reviewers of separate pair events never combine), or an adjudicated round. Open scopes count their current round as a lower bound in the median; a `review` waiver closes only the scope instance of the workflow's latest reviewed round before it, when that instance never passed | false when the median exceeds 3 or a waive followed a FAIL; null while a scope is open or none passed; else true |
 | 2. Demoted findings | `recorded`: demoted findings by severity, and how many have a rated severity and a failure scenario. `decided`: demoted findings by `followUp` | null while either part is null (follow-up decisions are not recorded yet); else both parts |
-| 3. Escaped defects traced to demoted findings | Confirmed escaped defects whose links include `finding:<result-hash>:<finding-id>` naming a demoted finding | always null: counted, with no threshold |
+| 3. Escaped defects traced to demoted findings | Confirmed escaped defects whose links include `finding:<result-hash>:<finding-id>` naming a demoted finding, the distinct linked demoted findings, and how many of them have a follow-up record | always null: counted, with no threshold |
 | 4. Second opinion | Per provider and reviewed round, its final outcome: the latest attempt that launched a reviewer (retries and re-reviews of one revision share the round and count once; a reused retained result is `refused` and never hides an attempt that ran). Rounds, rounds not completed (UNAVAILABLE), rate, and findings from completed final results. `peerUnmatchedClasses` is a class-ID proxy only | true when every provider is below 10% UNAVAILABLE and reported a finding; null without rows |
 
 The report also lists, per provider and model, review results by status,
 UNAVAILABLE reasons, normalization and rejection rule counts and findings by
 severity. Every measure states its denominator. Rows projected before these
-fields are counted as not recorded, never as zero, PASS or non-demoted; a
+fields (including review results without a reviewer status) are counted as not recorded, never as zero, PASS or non-demoted; a
 measure whose cohort contains them reports `coverage: incomplete` and
 `met: null`. Use `--since` to measure the runs after an upgrade. A `met`
 value is a reading of the recorded cohort, not proof that convergence

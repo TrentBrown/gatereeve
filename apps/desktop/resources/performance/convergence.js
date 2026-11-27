@@ -82,6 +82,10 @@ function roundOutcomes(rows) {
   }));
 }
 
+// Review results projected before these fields carry no reviewer status
+// (every current review result has one); they are not recorded (AC11).
+const legacyResults = rows => rows.filter(row => row.kind === 'artifact' && row.check === 'review' && row.reviewerStatus == null).length;
+
 // Measure 1 (AC6): rounds to PASS per workflow and boundary scope instance.
 export function roundsMeasure(rows) {
   const pairs = rows.filter(row => row.check === 'BOUNDARY_REVIEWED');
@@ -90,7 +94,8 @@ export function roundsMeasure(rows) {
   // A pair with its scope but no round launched no reviewer on a counted
   // revision, so it is not a round (round-policy.js); rows without the scope
   // were projected before these fields.
-  const notRecorded = [...pairs, ...counted].filter(row => row.reviewScope == null).length + adjudicated.filter(row => row.reviewScope == null || row.round == null).length;
+  const notRecorded = [...pairs, ...counted].filter(row => row.reviewScope == null).length + adjudicated.filter(row => row.reviewScope == null || row.round == null).length
+    + legacyResults(rows);
   const uncountedPairs = pairs.filter(row => row.reviewScope != null && row.round == null).length;
   const instances = scopeInstances(rows);
   for (const instance of instances) {
@@ -153,17 +158,19 @@ export function escapedMeasure(rows) {
   const defects = rows.filter(row => row.kind === 'escaped-defect');
   const confirmed = defects.filter(row => LINK_BASES.includes(row.linkBasis) && Array.isArray(row.links) && row.links.length);
   const findings = new Map(reviewFindings(rows).map(row => [`${row.reference}\u0000${row.findingId}`, row]));
-  const traced = [];
+  const traced = [], linkedFindings = new Set(), followedUp = new Set();
   let notRecorded = 0, unmatched = 0;
   for (const defect of confirmed) {
     const linked = defect.links.map(link => FINDING_LINK.exec(link)).filter(Boolean).map(([, hash, id]) => findings.get(`${hash}\u0000${id}`));
     if (linked.some(row => row === undefined)) unmatched++;
     if (linked.some(row => row && row.demoted == null)) notRecorded++;
     const demoted = linked.filter(row => row?.demoted === true);
+    for (const row of demoted) { linkedFindings.add(row.id); if (row.followUp != null) followedUp.add(row.id); }
     if (demoted.length) traced.push({ fixId: defect.fixId ?? null, findings: demoted.length, withFollowUp: demoted.filter(row => row.followUp != null).length });
   }
   return { target: 'escaped defects traced to demoted findings are counted (no threshold)', denominator: { escapedDefects: defects.length, confirmed: confirmed.length },
-    traced: traced.length, tracedWithFollowUp: traced.filter(row => row.withFollowUp > 0).length, defects: traced, unmatchedFindingLinks: unmatched,
+    // Distinct linked demoted findings, and how many of them have a follow-up record (AC8).
+    traced: traced.length, tracedFindings: linkedFindings.size, tracedWithFollowUp: followedUp.size, defects: traced, unmatchedFindingLinks: unmatched,
     statement: escapedDefectStatement(defects.length, confirmed.length), threshold: 'D6 sets no threshold for this measure: it is counted, not passed, so met is always null.',
     notRecorded, coverage: coverage(notRecorded), met: null };
 }
@@ -172,7 +179,7 @@ export function escapedMeasure(rows) {
 // of one revision and retries share the round and count once).
 export function secondOpinionMeasure(rows) {
   const all = rows.filter(row => row.check === 'boundary-reviewer');
-  const notRecorded = rows.filter(row => row.check === 'BOUNDARY_REVIEWED' && row.reviewScope == null).length;
+  const notRecorded = rows.filter(row => row.check === 'BOUNDARY_REVIEWED' && row.reviewScope == null).length + legacyResults(rows);
   const byResult = new Map();
   for (const row of reviewFindings(rows)) byResult.set(row.reference, [...(byResult.get(row.reference) ?? []), row]);
   const providers = new Map();
@@ -253,7 +260,7 @@ export function renderConvergenceMarkdown(value) {
   lines.push(`## 2. Demoted findings: ${met(demoted.met)}`, '', `Target: ${demoted.target}. Coverage: ${demoted.coverage} (${demoted.notRecorded} findings not recorded).`,
     `Demoted: ${demoted.denominator.demoted} of ${demoted.denominator.findings} findings (${counts(demoted.recorded.bySeverity)}). Recorded with severity and failure scenario: ${demoted.recorded.withSeverityAndScenario} (${met(demoted.recorded.met)}).`,
     `Decided: ${demoted.decided.statement ?? `${counts(demoted.decided.byFollowUp)} (${met(demoted.decided.met)})`}`, '');
-  lines.push(`## 3. Escaped defects traced to demoted findings: ${escaped.traced}`, '', `${escaped.threshold}`, `Confirmed escaped defects: ${escaped.denominator.confirmed} of ${escaped.denominator.escapedDefects}; traced to a demoted finding: ${escaped.traced} (${escaped.tracedWithFollowUp} with a follow-up record). Coverage: ${escaped.coverage}.`, escaped.statement, '');
+  lines.push(`## 3. Escaped defects traced to demoted findings: ${escaped.traced}`, '', `${escaped.threshold}`, `Confirmed escaped defects: ${escaped.denominator.confirmed} of ${escaped.denominator.escapedDefects}; traced to a demoted finding: ${escaped.traced} (${escaped.tracedFindings} linked demoted findings, ${escaped.tracedWithFollowUp} with a follow-up record). Coverage: ${escaped.coverage}.`, escaped.statement, '');
   lines.push(`## 4. Second opinion: ${met(secondOpinion.met)}`, '', `Target: ${secondOpinion.target}. Coverage: ${secondOpinion.coverage}. Reviewer rounds: ${secondOpinion.denominator.reviewerRounds}.`, '');
   if (secondOpinion.providers.length) {
     lines.push('| Provider | Rounds | UNAVAILABLE | Rate | Findings | Peer-unmatched classes (proxy) |', '| --- | --- | --- | --- | --- | --- |');

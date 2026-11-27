@@ -332,7 +332,11 @@ test('R8: escaped defects traced to demoted findings, with follow-up counts and 
     defect(['finding:abc:M1']),                               // malformed
     defect([`finding:${H(61)}:T1`, 'owner/repo#3'])];         // counted, with a follow-up
   const value = escapedMeasure(rows);
-  assert.deepEqual([value.denominator, value.traced, value.tracedWithFollowUp, value.met], [{ escapedDefects: 5, confirmed: 4 }, 2, 1, null]);
+  assert.deepEqual([value.denominator, value.traced, value.tracedFindings, value.tracedWithFollowUp, value.met], [{ escapedDefects: 5, confirmed: 4 }, 2, 2, 1, null]);
+  // One defect linking two demoted findings that both have follow-ups counts both findings.
+  const both = [findingRow({ reference: H(62), findingId: 'A', followUp: 'new-work' }), findingRow({ reference: H(62), findingId: 'B', followUp: 'accepted-risk' }),
+    defect([`finding:${H(62)}:A`, `finding:${H(62)}:B`])];
+  assert.deepEqual([escapedMeasure(both).traced, escapedMeasure(both).tracedFindings, escapedMeasure(both).tracedWithFollowUp], [1, 2, 2]);
   assert.match(value.threshold, /no threshold/u);
   assert.match(value.statement, /neither a defect rate nor evidence of safety/u);
   const none = escapedMeasure([demoted]);
@@ -385,6 +389,9 @@ test('R11: rows without the new fields are not recorded, never zero, and make th
   assert.deepEqual([value.rounds.notRecorded, value.rounds.coverage, value.rounds.met, value.rounds.medianRoundsToPass], [1, 'incomplete', null, 1]);
   assert.deepEqual([value.demoted.notRecorded, value.demoted.coverage, value.demoted.met, value.demoted.denominator.demoted], [1, 'incomplete', null, 1]);
   assert.deepEqual([value.secondOpinion.coverage, value.secondOpinion.met], ['incomplete', null]);
+  // A review result projected before these fields (no reviewer status) alone makes the cohort incomplete.
+  const oldResult = convergence([pairRow('w1', 'slice', 1, 'PASS', 1), row({ kind: 'artifact', check: 'review', outcome: 'FAIL', reference: H(5) })].flat());
+  assert.deepEqual([oldResult.rounds.coverage, oldResult.rounds.met, oldResult.secondOpinion.coverage, oldResult.secondOpinion.met], ['incomplete', null, 'incomplete', null]);
   // A pair with a scope but no round is not a round: excluded, not "not recorded".
   const uncounted = convergence([pairRow('w1', 'slice', 1, 'PASS', 1), row({ kind: 'event', check: 'BOUNDARY_REVIEWED', reviewScope: 'slice', outcome: 'UNAVAILABLE' }),
     row({ kind: 'artifact', check: 'boundary-reviewer', provider: 'codex', outcome: 'UNAVAILABLE', reviewScope: 'slice', id: 'u:reviewer:0' })].flat());

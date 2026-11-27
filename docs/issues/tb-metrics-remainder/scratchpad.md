@@ -145,3 +145,13 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
   pair outcome by the returned outcomes, and the effect is conservative (never
   a false "met").
 - **Reversibility:** high.
+
+## S11. Restarted-scope round 2 fixes
+
+- **Answered by:** agent
+- **Decision:** `tracedWithFollowUp` counts distinct linked demoted findings
+  with a follow-up record (new `tracedFindings` gives all linked demoted
+  findings), not defects. A review result without a reviewer status (an
+  earlier projection) makes measures 1 and 4 incomplete. The PERFORMANCE.md
+  measure 1 text now states the one-pair PASS rule.
+- **Reversibility:** high.
