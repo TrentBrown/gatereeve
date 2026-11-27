@@ -67,10 +67,17 @@ function roundOutcomes(rows) {
     const providers = rounds.get(row.round), provider = row.provider ?? NOT_RECORDED, previous = providers.get(provider);
     if (!previous || row.reviewerStatus !== 'refused' || previous.reviewerStatus === 'refused') providers.set(provider, row);
   }
+  // A round PASSes only when one recorded pair had every reviewer complete
+  // with PASS: completed reviewers of separate pair events (for example a
+  // reused result beside a later retry) never combine into a PASS no pair
+  // recorded (AC6).
+  const pairOf = row => row.id.replace(/:reviewer:\d+$/u, '');
   return new Map([...rounds].map(([round, providers]) => {
     const finals = [...providers.values()], completed = finals.filter(row => row.reviewerStatus === 'completed');
-    const outcome = finals.length && completed.length === finals.length && completed.every(row => row.outcome === 'PASS') ? 'PASS'
-      : completed.some(row => row.outcome === 'FAIL') ? 'FAIL' : 'UNAVAILABLE';
+    const members = new Map();
+    for (const row of rows.filter(item => item.check === 'boundary-reviewer' && item.round === round)) members.set(pairOf(row), [...(members.get(pairOf(row)) ?? []), row]);
+    const passingPair = [...members.values()].some(pair => pair.every(row => row.reviewerStatus === 'completed' && row.outcome === 'PASS'));
+    const outcome = passingPair ? 'PASS' : completed.some(row => row.outcome === 'FAIL') ? 'FAIL' : 'UNAVAILABLE';
     return [round, { outcome, finals, at: Math.max(...rows.filter(row => row.round === round && row.check === 'boundary-reviewer').map(time)) }];
   }));
 }

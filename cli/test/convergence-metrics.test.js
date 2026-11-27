@@ -291,6 +291,13 @@ test('R6: scope instances, one waiver per latest scope, re-reviews and reused re
   const [pair, codex, claude] = pairRow('w5', 'slice', 1, 'FAIL', 2);
   const reused = measure(counter('w5', 'slice', 1, 1), pair, codex, claude, reviewerRow(row({ ...pair, observedAt: at(3) }), 0, 'codex', { reviewerStatus: 'refused', outcome: 'PASS' }));
   assert.deepEqual(reused.scopes.map(scope => [scope.status, scope.roundsToPass]), [['open', null]]);
+  // Completed reviewers of separate pair events never combine into a PASS no pair recorded:
+  // codex PASSes while claude's provider fails; on re-review codex is reused (refused) and claude PASSes.
+  const [first, firstCodex, firstClaude] = pairRow('w7', 'slice', 1, 'UNAVAILABLE', 2);
+  const second = row({ ...first, observedAt: at(3) });
+  const combined = measure(counter('w7', 'slice', 1, 1), first, firstCodex, firstClaude, second,
+    reviewerRow(second, 0, 'codex', { reviewerStatus: 'refused', outcome: 'PASS' }), reviewerRow(second, 1, 'claude-code', { reviewerStatus: 'completed', outcome: 'PASS' }));
+  assert.deepEqual(combined.scopes.map(scope => [scope.status, scope.roundsToPass]), [['open', null]]);
   // A round where a reviewer only reused a retained result is not a completed pair.
   const [onlyPair, onlyCodex] = pairRow('w6', 'slice', 1, 'PASS', 2);
   const refused = measure(counter('w6', 'slice', 1, 1), onlyPair, onlyCodex, reviewerRow(onlyPair, 1, 'claude-code', { reviewerStatus: 'refused', outcome: 'PASS' }));
