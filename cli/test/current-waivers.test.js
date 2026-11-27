@@ -172,6 +172,16 @@ test('brief comparison keeps raw HTML <pre> content and hard line breaks (#157)'
   }
   const afterComment = '<!-- note --> <pre>\na  b\n</pre>';
   assert.notEqual(scope(afterComment.replace('a  b', 'a b')), scope(afterComment), 'a tag after a closed comment still opens');
+  // Review round 3: an escaped tag is text, an indented line continuing a
+  // paragraph still opens, and an inline comment left open hides nothing.
+  const escapedTag = 'Show \\<pre> literally.\n\nAfter  prose.';
+  assert.equal(scope(escapedTag.replace('After  prose', 'After prose')), scope(escapedTag), 'an escaped tag opens nothing');
+  const doubled = 'Show \\\\<pre>\nx  y\n</pre>';
+  assert.notEqual(scope(doubled.replace('x  y', 'x y')), scope(doubled), 'an escaped backslash leaves the tag open');
+  const continued = 'A paragraph\n    <pre>\nx  y\n</pre>';
+  assert.notEqual(scope(continued.replace('x  y', 'x y')), scope(continued), 'an indented tag continuing a paragraph opens');
+  const openComment = 'write <!-- to start\n\n<pre>\nx  y\n</pre>';
+  assert.notEqual(scope(openComment.replace('x  y', 'x y')), scope(openComment), 'an inline comment left open hides nothing');
   // A case-fold that changes string length never misplaces a close and reopen.
   const folded = '<pre>\n\u0130</pre><pre>\na  b\n</pre>';
   assert.notEqual(scope(folded.replace('a  b', 'a b')), scope(folded), 'a reopen after a length-changing character');

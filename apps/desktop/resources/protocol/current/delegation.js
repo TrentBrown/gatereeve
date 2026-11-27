@@ -335,11 +335,15 @@ export function briefLines(bytes) {
 }
 // The CommonMark HTML blocks that end only at their closing tag and keep their
 // inner whitespace. An opening tag is found anywhere in a prose line, so an
-// inline one fails closed too. An HTML comment is tracked so that a tag inside
-// it opens nothing; comment text is not rendered, so it stays prose.
+// inline one fails closed too; a backslash-escaped `\<` is text. An HTML
+// comment is tracked so that a tag inside it opens nothing; comment text is not
+// rendered, so it stays prose. A comment hides tags on later lines only when it
+// starts its line (an HTML block, which runs to `-->`); an inline `<!--` that
+// does not close on its line is text and hides nothing.
 const RAW_HTML_OPEN = /<(pre|script|style|textarea)(?=[\s>]|$)|<!--/giu;
 const RAW_HTML_CLOSE = /<\/(pre|script|style|textarea)>/giu;
 const COMMENT = 'comment';
+const escaped = (text, at) => { let count = 0; while (text[at - 1 - count] === '\\') count++; return count % 2 === 1; };
 // Whether a line is inside or opens raw HTML content (`open` is the tag, or
 // COMMENT, still open from earlier lines), and which remains open after it. A
 // line of fenced or indented code (`opens` false) can close an open tag or
@@ -360,7 +364,9 @@ function rawHtml(line, open, opens) {
     }
     if (!opens) return { open: null, touched };
     RAW_HTML_OPEN.lastIndex = at;
-    const found = RAW_HTML_OPEN.exec(masked);
+    let found;
+    while ((found = RAW_HTML_OPEN.exec(masked)) && (escaped(masked, found.index)
+      || !found[1] && line.indexOf('-->', found.index + 4) === -1 && !/^ {0,3}$/u.test(line.slice(0, found.index))));
     if (!found) return { open: null, touched };
     open = found[1] ? found[1].toLowerCase() : COMMENT; at = found.index + found[0].length;
     if (open !== COMMENT) touched = true;
@@ -418,9 +424,14 @@ export function briefScope(bytes) {
   // keeps a "break" entry: that is a hard line break wherever it renders one, and
   // only stricter elsewhere (before a list item or a fence).
   let raw = null;
-  const html = outside.map(({ line, code }) => {
+  // A line indented four or more columns opens raw content only when it
+  // continues a paragraph (the line before is unindented prose); otherwise it
+  // may be indented code, which shows a tag rather than opening one.
+  const continues = index => index > 0 && Boolean(outside[index - 1].line.trim()) && !outside[index - 1].code
+    && !outside[index - 1].level && indentColumns(outside[index - 1].line) < 4;
+  const html = outside.map(({ line, code }, index) => {
     if (code && !raw) return false;
-    const found = rawHtml(line, raw, !code && indentColumns(line) < 4); raw = found.open;
+    const found = rawHtml(line, raw, !code && (indentColumns(line) < 4 || continues(index))); raw = found.open;
     return found.touched;
   });
   const verbatim = outside.map(({ line, code }, index) => Boolean(code) || html[index] || indentColumns(line) >= 4 && Boolean(line.trim()));
