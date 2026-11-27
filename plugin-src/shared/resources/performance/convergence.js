@@ -179,7 +179,7 @@ export function escapedMeasure(rows) {
 // of one revision and retries share the round and count once).
 export function secondOpinionMeasure(rows) {
   const all = rows.filter(row => row.check === 'boundary-reviewer');
-  const notRecorded = rows.filter(row => row.check === 'BOUNDARY_REVIEWED' && row.reviewScope == null).length + legacyResults(rows);
+  let notRecorded = rows.filter(row => row.check === 'BOUNDARY_REVIEWED' && row.reviewScope == null).length + legacyResults(rows);
   const byResult = new Map();
   for (const row of reviewFindings(rows)) byResult.set(row.reference, [...(byResult.get(row.reference) ?? []), row]);
   const providers = new Map();
@@ -187,6 +187,9 @@ export function secondOpinionMeasure(rows) {
   for (const instance of scopeInstances(rows)) for (const { finals } of instance.rounds.values()) {
     const own = row => row.reviewerStatus === 'completed' ? byResult.get(row.reference) ?? [] : [];
     for (const row of finals) {
+      // A final outcome without a recorded status is not recorded, never
+      // counted as UNAVAILABLE or available.
+      if (row.reviewerStatus == null) { notRecorded++; continue; }
       const provider = row.provider ?? NOT_RECORDED;
       if (!providers.has(provider)) providers.set(provider, { provider, rounds: 0, unavailable: 0, findings: 0, peerUnmatchedClasses: 0, models: new Set() });
       const entry = providers.get(provider);

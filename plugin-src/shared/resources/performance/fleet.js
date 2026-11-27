@@ -10,6 +10,7 @@ import { validateRecord } from './store.js';
 import { OUTCOME_STATUSES } from '../protocol/current/boundary-review.js';
 import { UNAVAILABLE_REASONS } from '../protocol/current/execution.js';
 import { convergence } from './convergence.js';
+import { GATES } from '../protocol/current/contracts.js';
 
 export const SNAPSHOT_FORMAT = 'gatereeve-metrics-snapshot/1';
 const compare = (a,b) => a < b ? -1 : a > b ? 1 : 0;
@@ -69,6 +70,7 @@ export const SEVERITIES = Object.freeze(['high','medium','low','unrated']);
 export const BANDS = Object.freeze(['legacy','all-non-low','high-and-medium-regressions','hand-back']);
 // Set by follow-up records (issue #148); accepted here so the measures count it.
 export const FOLLOW_UP_STATUSES = Object.freeze(['undecided','accepted-risk','new-work','fixed']);
+const GATE_IDS = Object.freeze(GATES.map(gate => gate.id));
 const ENUMS = { severity: () => SEVERITIES, band: () => BANDS, followUp: () => FOLLOW_UP_STATUSES, reviewerStatus: () => OUTCOME_STATUSES, unavailableReason: () => UNAVAILABLE_REASONS };
 export const LINK_BASES = Object.freeze(['human-stated','agent-proposed']);
 export function observation(input) {
@@ -82,6 +84,7 @@ export function observation(input) {
   for (const [key, values] of Object.entries(ENUMS)) if (value[key] != null) check(values().includes(value[key]), `Invalid reporting ${key}`);
   if (value.round != null) check(Number.isSafeInteger(value.round) && value.round >= 0, 'Invalid reporting round');
   if (value.classStatement != null) check(value.classStatement.length <= 200, 'Invalid reporting classStatement');
+  if (Array.isArray(value.gates)) check(value.gates.every(gate => GATE_IDS.includes(gate)), 'Invalid reporting gates');
   if (value.attempt != null) check(REVIEW_ATTEMPTS.includes(value.attempt), 'Invalid reporting attempt');
   if (value.durationMs != null) check(Number.isFinite(value.durationMs) && value.durationMs >= 0, 'Invalid reporting duration');
   // Unknown usage stays null, never zero.

@@ -179,7 +179,7 @@ test('R4: the observation schema accepts valid convergence fields and rejects in
   for (const [key, value] of [['severity', 'critical'], ['reviewerStatus', 'unknown'], ['band', 'wide'], ['unavailableReason', 'nope'], ['followUp', 'later'],
     ['round', -1], ['round', 1.5], ['round', '4'], ['blocking', 'true'], ['demoted', 1], ['reviewerBlocking', null === 0], ['hasFailureScenario', 'yes'],
     ['classStatement', 'x'.repeat(201)], ['classId', 'a\nb'], ['criterion', 'R1\nR2'], ['criterion', 'x'.repeat(1025)], ['reviewScope', 'slice\n'], ['reviewScope', 7],
-    ['providerFailure', 'time\tout'], ['providerFailure', { category: 'timeout' }], ['gates', 'review'], ['gates', ['a\nb']]]) {
+    ['providerFailure', 'time\tout'], ['providerFailure', { category: 'timeout' }], ['gates', 'review'], ['gates', ['a\nb']], ['gates', ['not-a-gate']]]) {
     if (key === 'reviewerBlocking') { assert.throws(() => observation({ ...base, [key]: 'false' }), /Invalid reporting reviewerBlocking/u); continue; }
     assert.throws(() => observation({ ...base, [key]: value }), /Invalid reporting|Unsupported/u, `${key}=${JSON.stringify(value)}`);
   }
@@ -392,6 +392,11 @@ test('R11: rows without the new fields are not recorded, never zero, and make th
   // A review result projected before these fields (no reviewer status) alone makes the cohort incomplete.
   const oldResult = convergence([pairRow('w1', 'slice', 1, 'PASS', 1), row({ kind: 'artifact', check: 'review', outcome: 'FAIL', reference: H(5) })].flat());
   assert.deepEqual([oldResult.rounds.coverage, oldResult.rounds.met, oldResult.secondOpinion.coverage, oldResult.secondOpinion.met], ['incomplete', null, 'incomplete', null]);
+  // A final reviewer outcome without a recorded status is not recorded, not UNAVAILABLE.
+  const [statusPair, statusCodex, statusClaude] = pairRow('w1', 'slice', 1, 'PASS', 1);
+  const { reviewerStatus: _omitted, ...noStatus } = statusClaude;
+  const missing = convergence([statusPair, statusCodex, noStatus, findingRow({})]);
+  assert.deepEqual([missing.secondOpinion.notRecorded, missing.secondOpinion.coverage, missing.secondOpinion.met, missing.secondOpinion.denominator.reviewerRounds], [1, 'incomplete', null, 1]);
   // A pair with a scope but no round is not a round: excluded, not "not recorded".
   const uncounted = convergence([pairRow('w1', 'slice', 1, 'PASS', 1), row({ kind: 'event', check: 'BOUNDARY_REVIEWED', reviewScope: 'slice', outcome: 'UNAVAILABLE' }),
     row({ kind: 'artifact', check: 'boundary-reviewer', provider: 'codex', outcome: 'UNAVAILABLE', reviewScope: 'slice', id: 'u:reviewer:0' })].flat());

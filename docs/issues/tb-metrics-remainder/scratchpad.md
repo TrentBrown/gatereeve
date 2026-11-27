@@ -155,3 +155,18 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
   earlier projection) makes measures 1 and 4 incomplete. The PERFORMANCE.md
   measure 1 text now states the one-pair PASS rule.
 - **Reversibility:** high.
+
+## S12. Merge of main and post-merge round fixes
+
+- **Answered by:** agent
+- **Decision:** main (#142's attempt, duration and token fields) was merged
+  in, keeping both field sets. The post-merge round's two Codex findings
+  were fixed: waiver `gates` must be protocol gate IDs (unknown IDs are
+  dropped at projection and rejected by validation), and a final reviewer
+  outcome without a recorded status counts as not recorded in measure 4
+  instead of UNAVAILABLE. Claude's low note on Unicode line separators in
+  class statements was also fixed. Its other two low notes were left as
+  they are: the receipt purpose wording stays unchanged so the check
+  identity stays stable, and the replay re-reads results that were
+  already projected.
+- **Reversibility:** high.

@@ -4,7 +4,7 @@ import { sourceGit } from '../protocol/current/git-source.js';
 import { hostname } from 'node:os';
 import { MetricsStore } from './store.js';
 import { reportingDatabase, observation, DIAL_FIELDS, LINK_BASES, reportingDial, CONVERGENCE_FIELDS } from './fleet.js';
-import { DEFAULT_DIALS } from '../protocol/current/contracts.js';
+import { DEFAULT_DIALS, GATES } from '../protocol/current/contracts.js';
 import { captureWarning } from './observe.js';
 import { scheduledBlocking, severityOf, band } from '../protocol/current/round-policy.js';
 import { outcomeStatus, OUTCOME_STATUSES } from '../protocol/current/boundary-review.js';
@@ -40,7 +40,7 @@ function measured(type, value) {
     // A decision applied under a standing grant keeps the grant's original
     // authority kind; its basis distinguishes it from a per-decision human act.
     case 'DECIDED': return defined({ authorityKind: text(value.authority?.kind),
-      gates: (value.kind === 'waive' || value.actions?.includes('waive')) && Array.isArray(value.gates) && value.gates.length ? [...value.gates].filter(text).sort() : undefined,
+      gates: (value.kind === 'waive' || value.actions?.includes('waive')) && Array.isArray(value.gates) && value.gates.length ? [...value.gates].filter(gate => GATES.some(known => known.id === gate)).sort() : undefined,
       authorityBasis: text(value.authority?.basis) ?? (value.standingGrant ? 'standing-grant' : undefined),
       actions: Array.isArray(value.actions) && value.actions.length ? value.actions : undefined,
       count: value.kind === 'stay-light' && Array.isArray(value.hits) ? value.hits.length : undefined });
@@ -67,7 +67,7 @@ function attemptMeasures(receipt) {
 // Convergence fields (issue #149): enumerated values, counts, flags and short
 // labels only. Failure scenarios, evidence and paths never leave the journal;
 // a class statement is kept only as one short line (design D7).
-const statement = value => typeof value === 'string' && value.length <= 200 && !/[\x00-\x1f]/u.test(value) && value.trim() ? value : undefined;
+const statement = value => typeof value === 'string' && value.length <= 200 && !/[\x00-\x1f\x7f-\x9f\u2028\u2029]/u.test(value) && value.trim() ? value : undefined;
 const roundFields = policy => policy && text(policy.scope) ? defined({ reviewScope: policy.scope, round: Number.isSafeInteger(policy.round) ? policy.round : undefined,
   band: Number.isSafeInteger(policy.round) ? band(policy.round) : undefined }) : {};
 // Whether a finding blocked when it was raised: the round schedule with the
