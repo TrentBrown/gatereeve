@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "featureId": "tb-code-health-step",
+  "repositories": {
+    "repository": {
+      "path": ".",
+      "remote": "origin",
+      "integrationBranch": "main",
+      "releaseBranch": "main",
+      "keepPullRequestsClosed": false
+    }
+  }
+}

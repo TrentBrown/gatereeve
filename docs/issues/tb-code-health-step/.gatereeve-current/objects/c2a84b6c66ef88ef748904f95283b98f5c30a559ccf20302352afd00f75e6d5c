@@ -1,0 +1,84 @@
+# Plan - tb-code-health-step
+
+**Feature:** `tb-code-health-step`
+**Spec:** [`spec.md`](spec.md)
+**Design:** [`design.md`](design.md)
+**Interview:** [`interview.md`](interview.md)
+**Created:** 2026-11-27
+
+## Inputs
+
+- `spec.md` controls scope, required behavior, and rubric mapping.
+- `design.md` (with `## Changes` C1) supplies the chosen architecture, constraints, and boundaries.
+- `interview.md` supplies supporting examples, rationale, references, and edge cases.
+
+## Strategy
+
+Build from the outside in, so each slice is independently testable:
+
+1. A self-contained wrapper module with no core dependency.
+2. The `init` preset and vendored plugin, which the wrapper and doctor consume.
+3. Core enforcement and decisions.
+4. Doctor plus GateReeve dogfooding.
+
+The wrapper is plain Node (ESM) under `plugin-src/shared/resources/code-health/`, so the plugin-local adapter can spawn it with `process.execPath` and no CLI is needed. The CLI command `gatereeve code-health` delegates to it. Habit Hooks is treated as an external process through its `habit-sensors` JSON contract, and coaching comes from `habit-mapper`, fed only the new findings. Every external process (git, `habit-sensors`, `habit-mapper`) goes through an injectable runner, so tests use fake executables and never need Habit Hooks installed.
+
+Delivery: slice branches `tb-code-health-step-NN-<desc>` produce SLICE PRs into the integration branch `tb-code-health-step`. The final FEATURE PR `tb-code-health-step` → `main` waits for Trent's per-PR merge instruction.
+
+## Steps
+
+- **P1. Wrapper core** (`code-health/{scope,governed,worktree,neutralize,sensors,compare,render,cache,run,cli}.js`). **Advances:** R1, R2, R3, R4.
+  - `scope`: merge base via `git merge-base`, `git diff -M --name-status <mb> HEAD`, and filtering through `.habit-hooks/config.toml` `files` globs, including `!` exclusions.
+  - `governed`: default governed paths plus `.habit-hooks/gatereeve.json` extras; per-table hashing for `pyproject.toml`; a governed-change subject equal to the sha256 of the sorted path → (base hash, head hash) pairs.
+  - `worktree`: temporary `git worktree add --detach` for the merge base and the head; the head's governed files overlaid onto the base; `node_modules` and `.venv` symlinked; cleanup in `finally`.
+  - `neutralize`: line-preserving rewrite of ESLint and Ruff directives in scoped files.
+  - `sensors`: a generated `--config` (the head config with `files` set to the exact scoped list) and `habit-sensors --all`, parsing JSON and the version.
+  - `compare`: D4 counts and the severity split, with severity read from Habit Hooks' catalogue defaults plus `[smells.*] severity` overrides.
+  - `render`: `habit-mapper` coaching for new findings, then the advisory list and thresholds.
+  - `cache`: base results keyed by `(merge base, scoped file list with rename map, governed hashes, tool versions)`.
+  - `cli`: `--base`, `--json`, `--approved <subject>` (repeatable), and exit codes 0/1/2.
+- **P2. CLI command** `gatereeve code-health [run]` in `cli/src/commands/code-health.js`, registered in `cli/src/index.js`. **Advances:** R3.
+- **P3. Preset and vendored plugin** (`code-health/preset/`) and `gatereeve code-health init --preset moderate`. **Advances:** R9.
+  - `.habit-hooks/config.toml`: JS/TS/Python globs, test exclusions, the plugins, `[smells]` severity and guide entries, and `[sensors.jscpd] disabled`.
+  - `.habit-hooks/gatereeve/`: `config.toml`, the `ruff-s110` sensor, and guides for floating-promise, misused-promise and swallowed-exception, plus threshold-accurate guide overrides.
+  - An ESLint flat config with moderate limits and the type-aware rules, and a Ruff config snippet.
+  - `init` writes only files that don't already exist, and reports devDependencies and the approval subject.
+- **P4. Core: policy marker and command construction.** **Advances:** R5.
+  - `run.start` records `codeHealth: {policy: "code-health/1", optOut?}` in `STARTED`, projected into state.
+  - In `execution.js` `commands()`, a check with `purpose: "code-health"` gets core-built argv: `process.execPath`, the wrapper `cli.js`, `--base <target>`, `--json`, plus `--approved` for each recorded config approval.
+- **P5. Core: qualification.** `boundary-review.js` marks a round non-qualifying under a policy-marked, non-opted-out run when no consumed Verification has a PASS `code-health` receipt on the candidate tree, with a reason naming `code-health`. Waiver support uses the existing `waive` path, scoped to `code-health`. **Advances:** R5.
+- **P6. Core: decisions.** `DECISION_KINDS` gains `approve-code-health-config` (subject = wrapper governed-change subject, `human-confirmed` only) and `opt-out-code-health` (`human-confirmed` only). Both are projected into state. Opt-out is shown in `status` and in `publication.js` `renderSummary`. **Advances:** R6, R7.
+- **P7. CI coverage test** for a `code-health` receipt under `qualifyCi`. **Advances:** R8.
+- **P8. Mirrors and docs.** **Advances:** R12.
+  - `PROTOCOL.md` operations, decisions and execution sections, and the `pr-boundary` command.
+  - CLI help for decisions, `CLI_FORMS`, and the metrics `OPERATIONS` list if any operation is added.
+  - Restaging the desktop protocol copy, and the workflow inventory if it lists commands.
+- **P9. Doctor** (`workflow_doctor.py`). **Advances:** R10.
+  - Reads `.habit-hooks/config.toml` under `--repository`; the opted-out state is passed in as an option.
+  - Checks `habit-sensors`, the plugins (installed or vendored), the GateReeve plugin and sensor tools through injectable lookups.
+  - Reports thresholds from the ESLint config and the Ruff table as info.
+- **P10. Dogfood.** **Advances:** R11.
+  - Apply the preset to GateReeve, adapted to its layout: a root `tsconfig.json` and a root `package.json` with devDependencies only, or the existing cli package if root tooling conflicts (decided in the slice and recorded).
+  - Install locally and run the wrapper against `main`.
+  - Include a `code-health` check in the final acceptance Verification.
+
+## Slices
+
+| Slice | Branch | Steps | Rubric |
+|---|---|---|---|
+| S1 | `tb-code-health-step-01-wrapper` | P1, P2 | R1–R4 |
+| S2 | `tb-code-health-step-02-init` | P3 | R9 |
+| S3 | `tb-code-health-step-03-core` | P4–P8 | R5–R8, R12 |
+| S4 | `tb-code-health-step-04-doctor-dogfood` | P9, P10 | R10, R11, R12 |
+
+## Test strategy
+
+- **Wrapper:** `node --test` under `cli/test/code-health-*.test.js`, using real temporary git repos (fast), a fake `habit-sensors` (a Node script emitting fixture JSON per worktree, chosen by file content markers) and a fake `habit-mapper`.
+- **Core:** the existing fixture helpers in `cli/test/helpers/` with the injected runtime, following `ci-after-convergence.test.js` and `current-waivers.test.js`.
+- **Doctor:** Python `unittest` with injected lookups.
+- **Integration:** one real Habit Hooks 1.5.0 run (`habit-hooks` is installed locally in a scratch venv) over the init output and over GateReeve itself.
+
+## Verification
+
+- Each slice: focused suites for the changed areas, plus `npm test --prefix cli` and the Python suites. The pre-existing `ci/portable-acceptance.sh` runs in hosted CI.
+- **Final step:** run full rubric evaluation and produce the completion report.

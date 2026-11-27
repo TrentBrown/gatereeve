@@ -1,0 +1,206 @@
+# Design - tb-code-health-step
+
+**Status:** approved (gate passed 2026-11-27)
+
+Source: `interview.md` (D1–D16, closing summary, spike results) and `handoff.md`.
+
+## Problem
+
+Agents write worse code in unhealthy codebases. They also skip quality checks that exist only as prose instructions; Böckeler found agent-file and skill instructions "quite unreliable". Today GateReeve runs nothing deterministic about structural code health before review. The paired reviewers notice structure only when they happen to, and Mutineer (the one external-tool integration) runs after acceptance, when the agent can no longer act on it. When agents do face a lint gate, they loosen it themselves: they raise thresholds, add suppressions or snooze findings.
+
+## Intent
+
+Add a deterministic code-health check to GateReeve's development loop. It's on by default, and only a human can opt a repository out:
+
+- It runs static analysis (Habit Hooks plus a GateReeve plugin) on the change.
+- It turns findings into agent-directed coaching (what to do instead, and why).
+- It blocks a PR-boundary review round only when the branch makes code health **worse than the merge base**.
+- It can't be quietly loosened by the agent it's judging.
+
+GateReeve dogfoods it in this feature.
+
+## Chosen shape
+
+### 1. Where it runs (D1, D12, D13)
+
+- The check is a Verification check inside every PR-boundary review round, in full and light runs alike.
+- Agents may also run it any time during slices to get coaching early.
+- There's no per-edit hook (a follow-on).
+
+### 2. On by default, human opt-out (D2, D8, D17)
+
+- **Required by default.** In every repository GateReeve runs in, the core refuses to count a review round as qualifying unless the round's consumed Verification contains a valid `code-health` receipt (see §4) for the candidate tree. This holds in both rigors.
+- **Not set up yet:** a repository with no Habit Hooks, no plugins or no `.habit-hooks/config.toml` gets **UNAVAILABLE**. The message names the two ways forward: `gatereeve code-health init --preset moderate`, or a human opt-out.
+- **Rollout:** the requirement applies only to runs started after the upgrade that ships it. Runs already in progress keep their current rules, so nobody is stopped mid-boundary.
+- **Opt-out needs a human.** It's recorded only through a human-confirmed decision: `human.decide` with a new kind (working name `opt-out-code-health`), or `run.start`/`workspace.configure` with human `authority`.
+  - It's scoped to the repository, and it shows in `status` and in the PR's published review summary.
+  - A `codeHealth: false` flag alone in `.agentic-workflow.json` (local, git-excluded, agent-editable) has no effect.
+  - Whether an opt-out persists across runs or is recorded per run is settled in the spec.
+- **Optional repository settings** (extra governed paths, scope globs) live in a `codeHealth` object on the repository entry. The exact key is settled in the spec. Settings can't turn the check off.
+
+### 3. The wrapper: `gatereeve code-health` (D6)
+
+GateReeve ships a wrapper, available both as a CLI command and as a plugin-local adapter command, that computes the verdict deterministically:
+
+1. **Resolve scope.** Take the candidate's integration base, compute the merge base, and list the changed files, using `git diff -M` so renamed files map back to their base paths. Test code is excluded (D14): the `files` globs exclude `**/test/**` and `**/*.test.*`.
+2. **Detect governed-config changes (D5).** Hash every governed path at the merge base and at the head. If any differ, and no current human approval covers exactly those head hashes, the result is **UNAVAILABLE ("config changed")**. The wrapper names the changed files and the approval command.
+3. **Run the sensors twice.** Run `habit-sensors` on the changed files at the merge base (in a temporary worktree) and at the head, **both using the head's config**.
+   - Cache the base result, keyed by merge-base commit, governed-config hashes and tool versions.
+   - Any `incomplete-run` or `parse-error` smell, a missing tool or plugin, or a sensor crash makes the result **UNAVAILABLE** (D8).
+4. **Compare (D3, D4).** For every **enforced** smell, group issues by `(file, smell, source rule)`. The result is **FAIL** if any group has more issues at the head than at the base, otherwise **PASS**. Suggested smells and pre-existing enforced issues are advisory.
+5. **Coach.** Print Habit Hooks' coaching for the new findings first, then list the pre-existing and advisory ones. Show the effective thresholds (D16).
+6. **Emit a receipt** through the normal Verification runner path (§4).
+
+### 4. The receipt and how the core validates it
+
+The receipt has purpose `code-health` and records:
+
+- the wrapper version, plus Habit Hooks and plugin versions;
+- the integration base ref and the merge-base commit;
+- the head tree;
+- the governed-path hashes, and the config approval reference if one applies;
+- the effective thresholds;
+- counts per smell (new, pre-existing, advisory);
+- the verdict (PASS, FAIL or UNAVAILABLE).
+
+The core accepts it only when all of these hold:
+
+- it came from the wrapper;
+- its merge base matches the candidate's integration base;
+- its tree equals the candidate tree.
+
+A FAIL blocks the round. A scoped human waiver can accept it, and the original FAIL is kept. Under the existing CI-coverage rule, a re-run of the wrapper in the final Verification on the exact head covers the receipt (D7). No CI job is required.
+
+### 5. Governed config and approvals (D5, D16)
+
+- **Default governed paths:**
+  - `.habit-hooks/**`, including `snooze.json` and guide overrides;
+  - ESLint config (`eslint.config.*`, `.eslintrc*`);
+  - `tsconfig*.json`, because it controls what type-aware rules can see;
+  - `ruff.toml` and `.ruff.toml`;
+  - the `[tool.ruff]` and `[tool.habit-hooks]` tables of `pyproject.toml`, which are hashed per table so a dependency bump in `pyproject.toml` doesn't trigger an approval;
+  - `knip.json`;
+  - any extra paths the repository lists in its `codeHealth` config. That list is itself governed.
+- **Inline suppressions are governed too:**
+  - The wrapper runs ESLint with `--no-inline-config` and Ruff with `--ignore-noqa`, at both the base and the head.
+  - So an `eslint-disable` or `# noqa` added by the branch has no effect.
+  - Legacy suppressions surface as pre-existing findings, which are advisory under D4.
+  - `@ts-ignore`/`@ts-expect-error` don't hide lint findings and aren't special-cased.
+- **Approval:** Trent records a `human.decide` with a new kind (working name `approve-code-health-config`). It's bound to the exact set of governed-path hashes at the head. Any later edit to a governed path voids it. A snooze is one of these config changes, so a snooze needs Trent's approval.
+- **Thresholds live only in the tools' config (D16).** `gatereeve code-health init --preset moderate` writes the starting config (D15):
+  - 40 lines per function, 5 parameters, complexity 15, 500-line files, nesting depth 4;
+  - matching Ruff limits.
+
+  It also writes guide overrides that restate the real limits, so the coaching doesn't cite Habit Hooks' 12-line ideal. Doctor and the wrapper report the effective values.
+
+### 6. GateReeve plugin: `floating-promise` and `dropped-error` (D10)
+
+A GateReeve-maintained Habit Hooks plugin, written to Habit Hooks' plugin-authoring spec, with two **enforced** smells:
+
+- `floating-promise`, from typescript-eslint `no-floating-promises` and `no-misused-promises`. Known-safe `node:test` calls are allowed.
+- `dropped-error`, from Ruff `BLE001`/`S110`, and swallowed-exception promoted to enforced.
+
+Each smell ships an agent-directed coaching guide. Type-aware linting needs a TypeScript program: for JavaScript repositories, a `tsconfig` with `allowJs`/`checkJs` and typescript-eslint `projectService`.
+
+### 7. Doctor (D8)
+
+For every repository that hasn't been opted out, `workflow-doctor` checks:
+
+- `habit-sensors`;
+- each enabled plugin package;
+- each enabled sensor's tool, resolved the way Habit Hooks resolves them (`.venv/bin`, `node_modules/.bin`, then `PATH`);
+- that the GateReeve plugin is installed.
+
+It reports the effective thresholds and installs nothing.
+
+### 8. Dogfooding on GateReeve (D11, D14, D15)
+
+GateReeve adds:
+
+- a root `tsconfig.json` (`allowJs`, `checkJs`, `noEmit`);
+- an ESLint flat config with the plugin's type-aware rules and the moderate limits;
+- `.habit-hooks/config.toml` with JS globs (the typescript plugin defaults to `.ts`/`.tsx` only) and the test exclusions;
+- the dev dependencies.
+
+The check is on by default (D17), so GateReeve needs no opt-in and is the first repository to live with that default.
+
+The existing findings (about 1,000 oversized functions and so on) stay advisory under D4. No cleanup is required.
+
+### Out of scope
+
+- Mutation testing (Trent's separate tool, Mutineer).
+- Hotspot weighting.
+- A per-edit hook.
+- A required CI job (a `ciCheck` mapping is a follow-on).
+- Any pattern-review integration. Retiring pattern-review is a separate later feature (D9).
+- Learning custom smells from repeated findings.
+- Upstreaming the base/head compare to Habit Hooks.
+
+## Alternatives considered
+
+- **A supplemental gate like `pattern`, a Mutineer-style handoff advisory, or a new required obligation (D1).** A supplemental gate is skippable. A handoff advisory comes too late to act on. A new obligation changes the core contract.
+- **Opt-in per repository (the original D2).** Trent changed this to opt-out at the design gate, to see how a default-on gate goes (D17).
+- **Enforcing only where `.habit-hooks/` exists (D17a).** That amounts to auto-detected opt-in.
+- **Blocking runs already in progress (D17a).** Maximum disruption.
+- **An opt-out flag in workspace config (D17b).** Agents can edit that file.
+- **Reviewer-only enforcement, or the core invoking Habit Hooks itself (D2, D6).** Reviewer-only enforcement depends on a model noticing a missing receipt. A core-invoked run would give coaching only at the round.
+- **Blocking on any enforced smell in touched files (D3).** It would blame agents for legacy code next to a one-line edit.
+- **Advisory-first with a later switch (D3).** The gate would do nothing until someone flips it.
+- **Magnitude parsing, symbol anchoring, or changed-hunk-only comparison (D4).** Magnitude parsing is brittle across tools and versions. Symbol anchoring needs a per-language resolver. Changed-hunk only blames legacy smells.
+- **Pinning config to the merge base (D5).** Every legitimate change would land one PR late, the adoption PR would have no base config, and the real thresholds live in mixed-purpose files.
+- **Trusting reviewers to catch loosening (D5).** That's exactly the failure Böckeler observed.
+- **Requiring a CI job (D7).** It would put Habit Hooks, its plugins and their tools into every CI.
+- **Degrading to advisory, or auto-installing missing tools (D8).** Degrading silently disables the gate. Auto-install changes the environment without asking.
+- **Habit Hooks' default limits, or a lenient start (D15).** The defaults force mechanical splitting. A lenient start has little effect.
+- **Thresholds in GateReeve config or CLI flags (D16).** Settings would drift between GateReeve and the tools, and per-run flags are an ungoverned way to loosen the gate.
+- **Building from scratch instead of on Habit Hooks (handoff decision 1).** Habit Hooks already maps tool rule IDs to smells with coaching guides; rebuilding that has no payoff.
+
+## Constraints
+
+- Trent's branch rule: never merge or rebase a `development`/`development-*` branch into any other branch.
+- Existing PR-boundary contract: paired cross-provider review rounds, the round policy, the CI-coverage rule, and waivers that keep the original outcome. This feature adds a receipt requirement; it changes none of these.
+- Habit Hooks 1.5.0 behaviour as observed in the sandbox:
+  - issues are keyed by file, with no symbol identity;
+  - `habit-sensors` emits JSON and exits 0 even with findings;
+  - plugins are separate packages;
+  - missing tools surface as an `incomplete-run` smell.
+- Supply chain: nothing is auto-installed, and all tools resolve from the project or `PATH`.
+- Portability: the wrapper must work as both the CLI command and the plugin-local adapter command, like the other adapter operations.
+
+## Open risks
+
+- **Low `floating-promise` yield on GateReeve.** The spike found 0 floating Promises in `cli/` and `plugin-src/`, and 28% of calls are typed `any`, mostly through injected `core.*` objects. The plugin earns its place on GateReeve mainly as a guard on new code, and more on typed repositories. JSDoc on the core's injected interfaces would raise its yield; that's out of scope.
+- **Cost.**
+  - A run takes about 50 s uncached (stock 7.6 s plus type-aware 16.5 s, twice).
+  - Type-aware ESLint used about 1.8 GB RSS.
+  - Base caching roughly halves repeat runs.
+  - If rounds feel slow, a follow-on could make type-aware rules opt-in per repository.
+- **Comparison blind spots (D4).** A smell that grows (74 → 120 lines) passes, a moved smell can mask a new one, and rename detection depends on git's similarity heuristic.
+- **Unverified Habit Hooks details.**
+  - The override path for a project ESLint config under `.habit-hooks/`.
+  - How `--no-inline-config` and `--ignore-noqa` get passed through `[sensors.*] args`.
+  - The plugin-authoring spec.
+  - The three `.cjs` files that failed to parse under the TypeScript program.
+
+  The spec phase must verify each one, and choose a fallback (for example, the wrapper passes `--config`) if passing the flags through doesn't work.
+- **Dependence on an outside maintainer.** Habit Hooks has a single maintainer, who is looking for co-maintainers. Pin versions, and keep the wrapper's dependency to the `habit-sensors` JSON contract.
+- **Default-on rollout hits every user (D17).** Every repository that starts a new run after the upgrade is blocked until it runs `init` (installing Habit Hooks, the plugins, ESLint, typescript-eslint and a `tsconfig`) or until a human opts it out. That includes non-JS/Python repositories, which have no stock plugin coverage beyond the generic one.
+  - The release notes and the UNAVAILABLE message must make both paths obvious.
+  - "See how it goes" needs a measure. The spec should define one, such as opt-out rate, approval count and round time, using the existing metrics store.
+- **Approval friction.** Every change to governed config, including routine tsconfig edits, needs Trent's approval. That's intended, but it may prove noisy; the per-table hashing of `pyproject.toml` is the first mitigation.
+
+## Changes
+
+### C1 — 2026-11-27: refinements from codebase and Habit Hooks verification (in-mandate, agent)
+
+These come from reading the core (`plugin-src/shared/resources/protocol/current/`) and Habit Hooks 1.5.0 source. Each one keeps the approved intent and changes only the mechanism.
+
+1. **The core runs the check (§2, §3, §4).** GateReeve records Verification receipts only through `gate.execute verification`, where the core spawns each configured check on the pinned, clean head (`execution.js` `commands()`); agent-run commands never become receipts. So a `code-health` check is one the core runs. When the agent lists a check with `purpose: "code-health"`, the core **builds the wrapper command itself**, passing the candidate's integration target as the base, and ignores any agent-supplied arguments for it. The scope can't be narrowed, and §4's validation that the receipt came from the wrapper holds by construction. Agents still run `gatereeve code-health` directly during slices for coaching.
+2. **Inline suppressions are detected in the diff (§5).** Habit Hooks' Ruff sensor runs a fixed command line, so `--ignore-noqa` can't be passed through. Instead, the wrapper scans the branch's added lines for suppression directives: `eslint-disable`, `eslint-disable-next-line`, `eslint-disable-line`, `/* eslint ` inline config, and `# noqa`. Any added directive counts as a governed change and needs the same human approval, bound to the hashes. This treats both languages the same, and legacy directives are unaffected.
+3. **Smell names and plugin packaging (§6).**
+   - Habit Hooks forwards ESLint rules it doesn't map under the rule's own ID. The floating-promise findings therefore surface as the smells `@typescript-eslint/no-floating-promises` and `@typescript-eslint/no-misused-promises`, and the project config's `[smells."…"]` declares them `severity = "enforced"` with a GateReeve `guide`.
+   - Dropped errors use Habit Hooks' existing `swallowed-exception` smell (Ruff `BLE001`), promoted to enforced, plus a GateReeve sensor for Ruff `S110` (try/except/pass) mapped to the same smell.
+   - The plugin is a **vendored Habit Hooks plugin directory** (`.habit-hooks/gatereeve/`: `config.toml`, `sensors/`, `guides/`) that `init` copies in, so no PyPI package is needed. Habit Hooks resolves a plugin from `.habit-hooks/<plugin>/config.toml`.
+   - The concepts are unchanged; only the smell identifiers differ from the working names `floating-promise` and `dropped-error`.
+4. **Head config at the base (§3).** "Both runs use the head's config" is implemented by overlaying the head's governed files onto the base worktree before running. The head's `node_modules` and `.venv` are linked in so the same tools resolve. Each run uses a generated `--config` whose `files` list is the exact changed-file set (head paths at the head, rename-mapped paths at the base), with `--all`. This is because Habit Hooks' own `--branch` scoping would be empty inside the base worktree.
+5. **Opt-out scope.** An opt-out is recorded **per run** (decisions are run-scoped in the core), at `run.start` or as a `human.decide` during the run. A standing cross-run opt-out is a follow-on.
