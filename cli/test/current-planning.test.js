@@ -16,6 +16,11 @@ test('ambiguous and missing definitions are never silently omitted', () => {
     assert.throws(() => planningFacts(body));
   }
   assert.throws(() => planningFacts('# Nothing to test'), /needs acceptance/);
+  // Fact extraction shares the CommonMark fence rule (issue #143 sweep): a
+  // sample criterion inside a four-backtick fence is not a definition.
+  const sampled = planningFacts(table.replace('## Rubric', '````\n```\n- **AC9.** Sample only.\n```\n````\n## Rubric'));
+  assert.deepEqual(sampled.acceptance.map(item => item.id), ['AC1']);
+  assert.throws(() => planningFacts(table + '\n````\n```\n'), /Unclosed code fence/);
 });
 test('supporting tasks need no artificial criterion mapping but real references are validated', () => {
   const facts = planningFacts(table);
@@ -46,6 +51,11 @@ test('a spec needs a nonempty, resolved Failure model section (AC3)', async () =
   assert.match(rules(spec('## Failure model\n```\nonly code\n```\n')).join(), /line 2 is empty/u, 'fenced content alone is empty');
   assert.match(rules(spec('## Failure model\nTODO: name the handled conditions.\n')).join(), /line 2 is unresolved \(TODO\)/u);
   assert.deepEqual(rules(spec('## Failure model\nOne writer.\n```\nTODO example in a fence\n```\n')), [], 'a TODO inside a fence is example text');
+  // A longer fence is not closed by a shorter run, a different character or a run with an info string.
+  const sample = '````\n```\n## Failure model\nSample only.\n```\n~~~~\n```js\n````\n';
+  assert.match(rules(spec(sample)).join(), /needs a "## Failure model" section/u, 'a sample heading inside a four-backtick fence does not count');
+  assert.deepEqual(rules(spec(sample + MODEL)), []);
+  assert.deepEqual(rules(spec(MODEL, '- **AC1.** Export the value.\n````\n```\nalways any\n```\n````')), [], 'sample wording inside a longer fence is not linted');
   // The section ends at the next level-1 or level-2 heading, not a level-3 one.
   assert.deepEqual(rules(spec('## Failure model\n### Handled\n- one writer\n')), []);
   const failed = await validatePlanning(spec(''));

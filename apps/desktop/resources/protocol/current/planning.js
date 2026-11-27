@@ -4,17 +4,33 @@ import { digest, identity, requireThat } from './contracts.js';
 export const PLANNING_POLICY = 'planning-facts/2';
 const plain = text => text.replace(/[*_`]/gu, '').trim();
 
+// Fenced code (CommonMark): a fence opens on a run of three or more backticks
+// or tildes, and closes only on a line holding a run of the same character at
+// least as long as the opening run, and nothing else. Returns, per line,
+// whether it is prose, and whether a fence is left open.
+const FENCE = /^\s*(`{3,}|~{3,})/u;
+function fences(lines) {
+  let fence = null;
+  const prose = lines.map(line => {
+    const marker = line.match(FENCE)?.[1];
+    if (!fence) { if (marker) { fence = marker; return false; } return true; }
+    const closing = line.match(/^\s*(`{3,}|~{3,})\s*$/u)?.[1];
+    if (closing && closing[0] === fence[0] && closing.length >= fence.length) fence = null;
+    return false;
+  });
+  return { prose, open: fence !== null };
+}
+const outsideFences = lines => fences(lines).prose;
+
 // Extract identities and referenced text, not semantic adequacy. The original
 // documents remain reviewer inputs. Unknown definitions are errors, never omissions.
 export function planningFacts(body) {
   requireThat(typeof body === 'string', 'Planning document must be text');
   const lines = body.split(/\r?\n/u), criteria = [], acceptance = [], warnings = [];
-  let fence = null;
+  const { prose, open } = fences(lines);
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const marker = line.match(/^\s*(`{3,}|~{3,})/u)?.[1];
-    if (marker) { if (!fence) fence = marker[0]; else if (fence === marker[0]) fence = null; continue; }
-    if (fence) continue;
+    if (!prose[i]) continue;
     const text = plain(line.replace(/^\s*(?:#{1,6}\s+|[-+]\s+|\d+[.)]\s+)/u, ''));
     const ac = text.match(/^(AC\d+)(?:[.:)\s—–-]+)(.+)$/u);
     if (ac) { acceptance.push({ id: ac[1], text: ac[2].trim(), line: i + 1 }); continue; }
@@ -44,7 +60,7 @@ export function planningFacts(body) {
     }
     requireThat(!/^(?:\|\s*)?(?:AC|R)\d+(?:\b|$)/u.test(text), `Unrecognized requirement definition at line ${i + 1}`);
   }
-  requireThat(!fence, 'Unclosed code fence makes planning extraction ambiguous');
+  requireThat(!open, 'Unclosed code fence makes planning extraction ambiguous');
   requireThat(acceptance.length && criteria.length, 'Specification needs acceptance criteria and rubric definitions');
   for (const [label, entries] of [['acceptance', acceptance], ['rubric', criteria]]) {
     requireThat(new Set(entries.map(item => item.id)).size === entries.length, `Duplicate ${label} identity`);
@@ -56,7 +72,6 @@ export function planningFacts(body) {
 
 // Specification rules (spec AC3, AC4; design D3, D4). Separate from fact
 // extraction: a grandfathered spec reports them as warnings, never silently.
-const FENCE = /^\s*(`{3,}|~{3,})/u;
 const SECTION_END = /^#{1,2}\s/u;
 const UNBOUNDED = Object.freeze([['always', /\balways\b/iu], ['any', /\bany\b/iu], ['all cases', /\ball cases\b/iu],
   ['never fails', /\bnever fails\b/iu], ['converges', /\bconverges\b/iu], ['robust', /\brobust\b/iu]]);
@@ -64,14 +79,6 @@ const UNBOUNDED = Object.freeze([['always', /\balways\b/iu], ['any', /\bany\b/iu
 // phrase. Requirement identifiers (AC1, R2, I-3, D4, P5) are not numerals.
 const BOUND = /failure model|\b(?:at most|at least|up to|no more than|within)\b|\b\d+\b/iu;
 const IDENTIFIER = /\b(?:AC|R|D|P|I-)\d+\b/gu;
-function outsideFences(lines) {
-  let fence = null;
-  return lines.map(line => {
-    const marker = line.match(FENCE)?.[1];
-    if (marker) { if (!fence) fence = marker[0]; else if (fence === marker[0]) fence = null; return false; }
-    return !fence;
-  });
-}
 function sectionLines(lines, prose, pattern) {
   const start = lines.findIndex((line, i) => prose[i] && pattern.test(line));
   if (start < 0) return null;

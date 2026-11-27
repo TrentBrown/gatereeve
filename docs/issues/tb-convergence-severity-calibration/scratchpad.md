@@ -102,3 +102,19 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
   once this merges); add failure models to every old feature home (rewrites
   dozens of historical records); no portable enforcement (contradicts AC5).
 - **Reversibility:** high; two CI lines.
+
+## S8. Boundary round 2: one CommonMark fence rule for extraction and rules
+
+- **Answered by:** agent
+- **Decision:** Codex round 2 found that a three-backtick line closed a
+  four-backtick fence, so a sample `## Failure model` heading inside a longer
+  fence counted. Class: fence tracking that ignores the opening run's length.
+  Sites (searched `planning.js` for fence matching): the new rules pass and
+  the existing fact extractor `planningFacts`. Both now use one `fences`
+  helper: a fence closes only on a run of the same character at least as long
+  as the opening run, with nothing else on the line. Tests cover the rules
+  pass and extraction (sample AC inside a longer fence; unclosed longer
+  fence).
+- **Alternatives:** fix only the new rules pass (leaves the extractor
+  disagreeing with the rules, which the first test run showed).
+- **Reversibility:** high.

@@ -226,7 +226,7 @@ including a changed spec in an old run and a fresh start through
 `run.resume-current`, is held to them. The portable `lint_spec.py` applies them
 as failures; `--specification-rules=warn` reports them as warnings instead, for
 record checks of feature homes that may hold a grandfathered spec (CI's
-review-artifact validation). Light briefs may carry an optional
+review-artifact validation and the portable-acceptance record check). Light briefs may carry an optional
 `## Failure model` section and are not linted.
 Python remains a leaf provider for Git integration/context checks; it does not
 control semantic planning acceptance.
