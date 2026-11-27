@@ -148,3 +148,15 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
   validation, which would have caught it. One paired round reviews the fix,
   then CI reruns.
 - **Reversibility:** not applicable.
+
+## S13. Merging main before merge
+
+- **Answered by:** agent (merge authorized by Trent on 2026-11-27)
+- **Decision:** The PR had fallen 26 commits behind main and conflicted with
+  #142 in `execution.js` (the value now carries both `incorporated` and
+  `sweepRecords`; the reuse check compares both). Merged main into the
+  branch and moved the local `featureBaseSha` to the new merge base with
+  main, as the workspace configuration defines it, so the FEATURE candidate
+  reviews this feature's diff rather than #142's. One paired review round
+  (round 5) and hosted CI rerun on the merged head before merging.
+- **Reversibility:** reversible.

@@ -31,3 +31,5 @@ Append pull-request review boundary entries here.
 - 2026-11-27 boundary round 3 (head d5e37f2): codex PASS; claude-code PASS
   (low CR3-1). Hosted CI: portability lint failed (new module missing from
   the declared protocol inventory). Fixed; local Verification extended.
+- 2026-11-27 merged main (26 commits, #142 conflict in execution.js resolved);
+  feature base moved to the merge base; round 5 and CI on the merged head.
