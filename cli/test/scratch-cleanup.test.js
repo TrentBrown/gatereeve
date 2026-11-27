@@ -1,8 +1,8 @@
 import './helpers/private-scratch.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, readdir, rm, mkdir, writeFile, symlink, lstat, rename, chmod, link } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdtemp, readFile, readdir, rm, mkdir, writeFile, symlink, lstat, rename, chmod, link, utimes } from 'node:fs/promises';
+import { tmpdir, uptime } from 'node:os';
 import { join, resolve } from 'node:path';
 import { execFile, spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
@@ -311,7 +311,7 @@ test('a run removed by a concurrent cleanup is skipped, not a failure', async t 
 });
 
 test('a leftover tombstone alone is reclaimed; a deletion failure is an error, not a concurrent removal', async t => {
-  const { root } = await fixture(t);
+  const { root, parent } = await fixture(t);
   await createScratch({ root, purpose: 'register' }).then(run => cleanupScratch({ root, run: run.id, apply: true, ...inactive }));
   const runs = join(root, 'runs');
   await mkdir(join(runs, '.removing-only'), { mode: 0o700 });
@@ -320,7 +320,7 @@ test('a leftover tombstone alone is reclaimed; a deletion failure is an error, n
   const seen = await inspectScratch({ root, quick: true });
   assert.deepEqual([seen.tombstones, seen.tombstoneFiles], [1, 2]);
   const cli = fileURLToPath(new URL('../bin/workflow.js', import.meta.url));
-  const printed = (await execute(process.execPath, [cli, 'cleanup'], { env: { ...process.env, GATEREEVE_SCRATCH_ROOT: root } })).stdout;
+  const printed = (await execute(process.execPath, [cli, 'cleanup'], { env: { ...process.env, GATEREEVE_SCRATCH_ROOT: root, GATEREEVE_INSTALLER_ROOT: join(parent, 'installers') } })).stdout;
   assert.match(printed, /Interrupted deletions \(tombstones\): 1 \(2 files\)/u);
   assert.doesNotMatch(printed, /No managed scratch runs/u);
   const reclaimed = await cleanupScratch({ root, apply: true, ...inactive });
@@ -331,4 +331,41 @@ test('a leftover tombstone alone is reclaimed; a deletion failure is an error, n
   const failed = await cleanupScratch({ root, run: run.id, apply: true, ...inactive, removeTree: async () => { throw new Error('EBUSY fixture'); } });
   assert.match(failed.errors[0]?.reason ?? '', /EBUSY fixture/u);
   assert.deepEqual(failed.skipped, []);
+});
+
+// #159: macOS APFS can renumber a volume's st_dev across a reboot or OS update
+// while the directory, inode, owner and mode stay the same.
+const beforeThisBoot = () => new Date(Date.now() - uptime() * 1000 - 60000);
+test('a device renumbered in an earlier boot keeps the scratch root and its runs; same-boot and replaced roots are refused', async t => {
+  const { root, parent } = await fixture(t);
+  const run = await createScratch({ root, purpose: 'renumbered' });
+  const rootOwner = join(root, 'owner.json'), actual = await lstat(root);
+  const recorded = async () => JSON.parse(await readFile(rootOwner, 'utf8'));
+  const before = await recorded();
+  // A record last written in this boot must still name the current device.
+  await writeFile(rootOwner, JSON.stringify({ ...before, dev: actual.dev + 1 }));
+  assert.match((await inspectScratch({ root, quick: true })).error, /Scratch root ownership changed/u);
+  await assert.rejects(createScratch({ root, purpose: 'same boot' }), /Scratch root ownership changed/u);
+  // The same record last written before this boot is a renumbered device.
+  await utimes(rootOwner, beforeThisBoot(), beforeThisBoot());
+  await changeOwner(run, { state: 'finished', dev: actual.dev + 1 }); await rm(join(run.path, '.active'));
+  // Read-only inspection opens the root and accepts the run without writing.
+  const preview = await inspectScratch({ root, ...inactive });
+  assert.equal(preview.error, undefined);
+  assert.equal(preview.entries[0].status, 'eligible', JSON.stringify(preview.entries[0]));
+  assert.equal((await recorded()).dev, actual.dev + 1);
+  // A writing operation re-records the current device and keeps the inode.
+  const cleaned = await cleanupScratch({ root, run: run.id, apply: true, ...inactive });
+  assert.deepEqual(cleaned.removed.map(item => item.id), [run.id], JSON.stringify(cleaned));
+  assert.deepEqual(await recorded(), { kind: 'gatereeve-scratch/1', uid: process.getuid(), dev: actual.dev, ino: actual.ino });
+  // A copied root has the same records but a different inode.
+  await rename(root, join(parent, 'original'));
+  spawnSync('cp', ['-Rp', join(parent, 'original'), root]);
+  assert.notEqual((await lstat(root)).ino, actual.ino);
+  assert.match((await cleanupScratch({ root, apply: true, ...inactive })).error, /Scratch root ownership changed/u);
+  assert.match((await inspectScratch({ root, quick: true })).error, /Scratch root ownership changed/u);
+  // A symlinked root record is refused as unsafe, not followed.
+  await rename(rootOwner, join(parent, 'owner.json'));
+  await symlink(join(parent, 'owner.json'), rootOwner);
+  assert.match((await inspectScratch({ root, quick: true })).error, /Unsafe scratch record/u);
 });
