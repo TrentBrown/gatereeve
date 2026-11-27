@@ -49,6 +49,10 @@ export function recordRoundDecision(state, value, event) {
 export function roundOf(state, scope, revision) {
   return state.reviewScopes?.[scope]?.revisions.findLast(row => row.revision === revision)?.round ?? null;
 }
+// Times this scope has closed (integration, split, amendment): a review's
+// `roundPolicy.epoch`, so records and round groups of a closed scope never
+// match a later scope with the same name and revision (issue #144).
+export const scopeEpoch = (state, scope) => (state.reviewScopeHistory ?? []).filter(entry => entry.scope === scope).length;
 // Whether a revision is the scope's current round (a re-review of it is not a new round).
 export const currentRevision = (state, scope, revision) => state.reviewScopes?.[scope]?.revisions.at(-1)?.revision === revision;
 // The round a review of this revision belongs to: its counted round, or the

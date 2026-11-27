@@ -1,0 +1,1363 @@
+✔ a same-tree ci Verification covering the consumed receipts qualifies the converged reviews without a model call (25957.504917ms)
+✔ a consumed receipt is covered by a same-tree receipt in the final Verification; an uncovered one fails by name (13243.48525ms)
+✔ a ci Verification for a different tree is rejected naming both trees; another commit with the same tree is not the exact head (9443.197667ms)
+✔ acceptance is refused on local evidence the converged reviews did not assess (12935.120042ms)
+✔ a review consuming a Verification with no receipt on the candidate tree is not qualifying (5353.230917ms)
+✔ after a hosted CI failure one paired delta round on the fix and a passing CI run qualify acceptance (30927.797125ms)
+✔ pushing a PR branch before the reviews converge is warned about, never denied (8037.506208ms)
+✔ a repository with hosted CI is never accepted on local evidence alone (18818.098917ms)
+✔ a failed CI job outside the declared required checks fails the qualification (17624.5005ms)
+✔ CI for another commit with the same tree never qualifies the candidate (8621.052084ms)
+✔ CI qualification fails when the converged reviews assessed no planned CI scope (8945.204791ms)
+✔ a CI plan bound in a retained Verification input counts when its runner omits it (17692.042167ms)
+✔ a planned CI job must pass in each repository it is planned for (0.328125ms)
+✔ autonomous authority requires an explicit named-run human grant, mandate and release protection (5274.90575ms)
+✔ an in-mandate independently reviewed amendment renews authority without a human handback (14034.216708ms)
+✔ a mandate failure cannot be hidden behind overall planning PASS (2411.527583ms)
+✔ autonomous adjudication accepts eligible dissent, retains FAIL and records diminishing returns (17269.455333ms)
+✔ residual-risk authority cannot substitute for mandatory evidence or mandate compliance (0.697625ms)
+✔ autonomous delivery stops at a published ready final PR without authorizing its release merge (17018.479541ms)
+✔ autonomous judgment rebuts a completed negative planning opinion without rewriting its FAIL (2364.888459ms)
+✔ unsupported mandate claims need counterevidence and cannot be accepted as known violations (11016.62575ms)
+✔ unsupported scope claims need counterevidence and cannot be accepted as known violations (10614.9385ms)
+✔ unsupported evidence claims need counterevidence and cannot be accepted as known violations (11851.003292ms)
+✔ a rebuttal cannot excuse a failed actual mandatory verification check (17331.451208ms)
+✔ an incomplete code conclusion cannot become autonomous acceptance (9506.223584ms)
+✔ an incomplete requirements conclusion cannot become autonomous acceptance (14744.719875ms)
+✔ an incomplete findings conclusion cannot become autonomous acceptance (10959.796958ms)
+✔ an incomplete criterion conclusion cannot become autonomous acceptance (5906.881083ms)
+✔ a later FAIL cannot erase an open app/app.js finding (10589.858ms)
+✔ a later FAIL cannot erase an open planning/plan.md finding (25782.032792ms)
+✔ a later FAIL cannot erase an open requirements/spec.md finding (26689.592334ms)
+✔ a later FAIL cannot erase an open requirements/brief.md finding (18242.44925ms)
+✔ follow-up peers may both retain one original finding without duplicate-disposition deadlock (23145.177667ms)
+✔ two complete light boundary reviews run concurrently and retain both receipts (20354.080209ms)
+✔ two complete full boundary reviews run concurrently and retain both receipts (8375.548417ms)
+✔ a fast initial reviewer cannot enter the delayed peer preparation history (6502.62775ms)
+✔ a dial change during preparation prevents both reviewers launching under stale authority (4941.211667ms)
+✔ an unavailable peer preserves the completed reviewer and cannot count as approval (6720.856333ms)
+✔ a single historical assessment never satisfies the paired boundary obligation (4787.956417ms)
+✔ serial individual assessments cannot seed initial history (tagged) (11587.647583ms)
+✔ serial individual assessments cannot seed initial history (unmarked) (11080.395792ms)
+✔ an unavailable initial peer can recover without either new context seeing the earlier peer report (6733.650334ms)
+✔ withholding initial peer output cannot erase a known blocking finding (24146.624041ms)
+✔ an interrupted initial round retains its baseline and completed peer on retry (10167.990791ms)
+✔ unchanged successful perspectives are reused independently (12843.675667ms)
+✔ lost initial-round context blocks acceptance and fresh independent proof can replace it (19063.5615ms)
+✔ lost review output retains qualified finding context (follow-up after initial pair) (13375.942083ms)
+✔ lost review output retains qualified finding context (older source before initial pair) (27074.869333ms)
+✔ local finding IDs retain distinct reviewer provenance (12845.097792ms)
+✔ opposed reviews remain visible without making peer approval override the failure (10768.009584ms)
+✔ each provider supplies its own delta after source changes and cannot borrow the peer prior (27653.56775ms)
+✔ Claude gets one same-model correction and retains the original Codex result (8149.95375ms)
+✔ Claude can supply an omitted blocking flag and qualify the same pinned source in its retry (14024.203125ms)
+✔ codex gets exactly one automatic repair turn and a failed repair stays UNAVAILABLE (15945.89575ms)
+✔ claude-code gets exactly one automatic repair turn and a failed repair stays UNAVAILABLE (15212.335083ms)
+✔ a repaired verdict that rewords dependent text qualifies the pair (11518.876333ms)
+✔ review.execute without verification refuses before the round and the same operation succeeds after verification (5482.209708ms)
+✔ review.execute refuses when the latest verification is FAIL (4164.0115ms)
+✔ review.execute refuses when the latest verification is UNAVAILABLE (7390.263208ms)
+✔ an individual review without verification refuses with the same code and counts no round (4181.017166ms)
+✔ a packet-assembly precondition refuses both reviewers without counting a round (13107.144334ms)
+✔ each status class is reported with its reason, and a round with a reviewer that ran counts (18860.543625ms)
+✔ an execution that launched no reviewer is refused and one that failed after launch is a provider failure (0.185792ms)
+✔ codex: a transient provider failure is retried once in the same round (13598.24425ms)
+✔ claude-code: a transient provider failure is retried once in the same round (11633.573834ms)
+✔ a second transient failure is a provider failure and timeouts or non-transient failures are not retried (23989.719916ms)
+✔ a retried reviewer whose verdict is then rejected gets exactly one repair turn (13596.612625ms)
+✔ a retry refused before launch keeps the row classified from the attempt that launched (11954.332209ms)
+✔ a claim naming a finding GateReeve no longer holds is dropped and recorded; both reviewers run without it (15619.899083ms)
+✔ a repair turn whose provider fails ends provider-failed, and provider failures record their category (21983.207542ms)
+✔ explicit earlier passing proof cannot reach behind a later failing verification (18378.403833ms)
+✔ a failure before the provider launches (adapter checks) is refused and counts no round (20251.278917ms)
+✔ a repair turn refused before launch keeps the rejected verdict and its result (17561.040875ms)
+✔ a reviewer whose adapter reports spawn counts only once its process starts (16096.037667ms)
+✔ reused retained results launch no reviewer and are reported as refused with reused (6655.975875ms)
+✔ verification from an earlier candidate supplied explicitly is refused with VERIFICATION_REQUIRED (3604.508041ms)
+✔ a prose unwrap and envelope extras are recorded on every result of a two-gate execution (3870.532166ms)
+✔ a missing blocking value goes to the repair turn with its path, and a supplied value is accepted (6647.958125ms)
+✔ an individual review with a stale claim runs without it and records the drop (13224.094208ms)
+✔ a stale claim on an otherwise reusable review runs the reviewer and records the drop (14996.570917ms)
+✔ a prose unwrap is still recorded when the unwrapped object fails the envelope check (9079.363916ms)
+
+Shard 1/4
+TAP version 13
+# Subtest: current run preserves old record and blocks implementation until actual decisions and spec check
+ok 1 - current run preserves old record and blocks implementation until actual decisions and spec check
+  ---
+  duration_ms: 5396.545041
+  type: 'test'
+  ...
+# Subtest: repeat operations return original passage; conflicting reuse and concurrent writers cannot overwrite
+ok 2 - repeat operations return original passage; conflicting reuse and concurrent writers cannot overwrite
+  ---
+  duration_ms: 6317.131375
+  type: 'test'
+  ...
+# Subtest: foreign active feature identity and damaged journal cannot be used
+ok 3 - foreign active feature identity and damaged journal cannot be used
+  ---
+  duration_ms: 6017.792
+  type: 'test'
+  ...
+# Subtest: runner bookkeeping contract retains current proof and diagnostics: timeout
+ok 4 - runner bookkeeping contract retains current proof and diagnostics: timeout
+  ---
+  duration_ms: 3926.871708
+  type: 'test'
+  ...
+# Subtest: independent triage proof becomes stale when its supporting document changes
+ok 5 - independent triage proof becomes stale when its supporting document changes
+  ---
+  duration_ms: 3590.788375
+  type: 'test'
+  ...
+# Subtest: amendment can authorize implementation once while retaining old and new requirements
+ok 6 - amendment can authorize implementation once while retaining old and new requirements
+  ---
+  duration_ms: 1896.678083
+  type: 'test'
+  ...
+# Subtest: simultaneous identical requests claim one execution and reconcile its result
+ok 7 - simultaneous identical requests claim one execution and reconcile its result
+  ---
+  duration_ms: 2892.763041
+  type: 'test'
+  ...
+# Subtest: protected merge recloses a drifted PR (target-after-checks) without merging
+ok 8 - protected merge recloses a drifted PR (target-after-checks) without merging
+  ---
+  duration_ms: 54579.841583
+  type: 'test'
+  ...
+# Subtest: protected merge recovers a lost merge response without repeating the merge
+ok 9 - protected merge recovers a lost merge response without repeating the merge
+  ---
+  duration_ms: 93673.907167
+  type: 'test'
+  ...
+# Subtest: protected merge leaves a promoted draft ready after fallback CI fails
+ok 10 - protected merge leaves a promoted draft ready after fallback CI fails
+  ---
+  duration_ms: 83572.969167
+  type: 'test'
+  ...
+# Subtest: development branch direction is rejected and cannot be waived
+ok 11 - development branch direction is rejected and cannot be waived
+  ---
+  duration_ms: 0.387542
+  type: 'test'
+  ...
+# Subtest: changed services/python/.venv bytes are outside local execution-context assurance
+ok 12 - changed services/python/.venv bytes are outside local execution-context assurance
+  ---
+  duration_ms: 12066.316917
+  type: 'test'
+  ...
+# Subtest: parent Git tracked records complete local review without evidence commits
+ok 13 - parent Git tracked records complete local review without evidence commits
+  ---
+  duration_ms: 36808.662833
+  type: 'test'
+  ...
+# Subtest: current resume preserves damaged SQLite events and starts without inherited authority
+ok 14 - current resume preserves damaged SQLite events and starts without inherited authority
+  ---
+  duration_ms: 2472.60425
+  type: 'test'
+  ...
+# Subtest: Git symlinks and gitlinks are retained as typed metadata without following external targets
+ok 15 - Git symlinks and gitlinks are retained as typed metadata without following external targets
+  ---
+  duration_ms: 4762.277584
+  type: 'test'
+  ...
+# Subtest: fresh proof recovers historical artifact loss without fabricating lost bytes
+ok 16 - fresh proof recovers historical artifact loss without fabricating lost bytes
+  ---
+  duration_ms: 54128.376833
+  type: 'test'
+  ...
+# Subtest: a missing newer failure output cannot resurrect an older PASS, but fresh proof recovers
+ok 17 - a missing newer failure output cannot resurrect an older PASS, but fresh proof recovers
+  ---
+  duration_ms: 10993.624417
+  type: 'test'
+  ...
+# Subtest: implementation rejects lost retained human decision documents
+ok 18 - implementation rejects lost retained human decision documents
+  ---
+  duration_ms: 2190.361708
+  type: 'test'
+  ...
+# Subtest: base-only delta changes require path coverage and export both prior source endpoints
+ok 19 - base-only delta changes require path coverage and export both prior source endpoints
+  ---
+  duration_ms: 12405.195084
+  type: 'test'
+  ...
+# Subtest: CI validates a retained current journal and accepts optional untracked evidence without replay
+ok 20 - CI validates a retained current journal and accepts optional untracked evidence without replay
+  ---
+  duration_ms: 499.838583
+  type: 'test'
+  ...
+# Subtest: runner reuse binds declared inherited additions without retaining plaintext values
+ok 21 - runner reuse binds declared inherited additions without retaining plaintext values
+  ---
+  duration_ms: 10244.811459
+  type: 'test'
+  ...
+# Subtest: review views expose regular Git modes at every current and prior endpoint
+ok 22 - review views expose regular Git modes at every current and prior endpoint
+  ---
+  duration_ms: 8166.180333
+  type: 'test'
+  ...
+# Subtest: reopened blocking findings remain required in automatic history with changed source true
+ok 23 - reopened blocking findings remain required in automatic history with changed source true
+  ---
+  duration_ms: 22048.758959
+  type: 'test'
+  ...
+# Subtest: delta prior cannot reorder an older closure after a reopened blocking finding with changed source false
+ok 24 - delta prior cannot reorder an older closure after a reopened blocking finding with changed source false
+  ---
+  duration_ms: 41797.801916
+  type: 'test'
+  ...
+# Subtest: qualified closure reuses equivalent review with claims 1
+ok 25 - qualified closure reuses equivalent review with claims 1
+  ---
+  duration_ms: 19925.486375
+  type: 'test'
+  ...
+# Subtest: unrecorded copied PASS cannot supply verification or delta ancestry
+ok 26 - unrecorded copied PASS cannot supply verification or delta ancestry
+  ---
+  duration_ms: 14103.061792
+  type: 'test'
+  ...
+# Subtest: lost failed-spec evidence stays visible after correction and blocks retention until restored
+ok 27 - lost failed-spec evidence stays visible after correction and blocks retention until restored
+  ---
+  duration_ms: 13504.949458
+  type: 'test'
+  ...
+# Subtest: stale newer finding cannot resurrect older PASS through environment
+ok 28 - stale newer finding cannot resurrect older PASS through environment
+  ---
+  duration_ms: 83857.722375
+  type: 'test'
+  ...
+# Subtest: later finding outside selected criteria does not supersede applicable review
+ok 29 - later finding outside selected criteria does not supersede applicable review
+  ---
+  duration_ms: 13620.127167
+  type: 'test'
+  ...
+# Subtest: transaction rollback preserves pause and original failures across replacement threads
+ok 30 - transaction rollback preserves pause and original failures across replacement threads
+  ---
+  duration_ms: 11547.881125
+  type: 'test'
+  ...
+# Subtest: late READY invalidates checked milestone and restores exact failed outcome
+ok 31 - late READY invalidates checked milestone and restores exact failed outcome
+  ---
+  duration_ms: 34312.873959
+  type: 'test'
+  ...
+# Subtest: READY retries journal contention without rerunning provider or erasing pause
+ok 32 - READY retries journal contention without rerunning provider or erasing pause
+  ---
+  duration_ms: 4701.887834
+  type: 'test'
+  ...
+# Subtest: unrelated later finding does not reopen prior closures
+ok 33 - unrelated later finding does not reopen prior closures
+  ---
+  duration_ms: 28246.9915
+  type: 'test'
+  ...
+# Subtest: late failed spec validation preserves newer authority in replacement through public
+ok 34 - late failed spec validation preserves newer authority in replacement through public
+  ---
+  duration_ms: 6459.171916
+  type: 'test'
+  ...
+# Subtest: late failed spec validation preserves newer authority in pause through public
+ok 35 - late failed spec validation preserves newer authority in pause through public
+  ---
+  duration_ms: 6413.193625
+  type: 'test'
+  ...
+# Subtest: public resume preserves unsupported matching activation records with current-field
+ok 36 - public resume preserves unsupported matching activation records with current-field
+  ---
+  duration_ms: 4029.174834
+  type: 'test'
+  ...
+# Subtest: public resume preserves unsupported matching activation records with renamed-field
+ok 37 - public resume preserves unsupported matching activation records with renamed-field
+  ---
+  duration_ms: 3857.425167
+  type: 'test'
+  ...
+# Subtest: public resume preserves unsupported matching activation records with invalid-current-field
+ok 38 - public resume preserves unsupported matching activation records with invalid-current-field
+  ---
+  duration_ms: 6029.622084
+  type: 'test'
+  ...
+# Subtest: default reviewer context and proof admission preserve cross-gate failures
+ok 39 - default reviewer context and proof admission preserve cross-gate failures
+  ---
+  duration_ms: 17642.13675
+  type: 'test'
+  ...
+# Subtest: root session history is absent from current, base, target and prior grouped reviewer views
+ok 40 - root session history is absent from current, base, target and prior grouped reviewer views
+  ---
+  duration_ms: 15933.177
+  type: 'test'
+  ...
+# Subtest: retained session-contaminated proof becomes context only and never exports prior source
+ok 41 - retained session-contaminated proof becomes context only and never exports prior source
+  ---
+  duration_ms: 11887.405583
+  type: 'test'
+  ...
+# Subtest: session record case alias stays isolated: .CHECKPOINTS/checkpoint-2026-10-23.md
+ok 42 - session record case alias stays isolated: .CHECKPOINTS/checkpoint-2026-10-23.md
+  ---
+  duration_ms: 4466.238375
+  type: 'test'
+  ...
+# Subtest: external shebang observations disclose limits and agent-requested reruns retain actual failure
+ok 43 - external shebang observations disclose limits and agent-requested reruns retain actual failure
+  ---
+  duration_ms: 6231.633625
+  type: 'test'
+  ...
+# Subtest: standing status reports current candidate mismatch: branch
+ok 44 - standing status reports current candidate mismatch: branch
+  ---
+  duration_ms: 8072.875
+  type: 'test'
+  ...
+# Subtest: standing status reports current candidate mismatch: missing-source
+ok 45 - standing status reports current candidate mismatch: missing-source
+  ---
+  duration_ms: 3442.309209
+  type: 'test'
+  ...
+# Subtest: standing authority protected merge: acceptance-only
+ok 46 - standing authority protected merge: acceptance-only
+  ---
+  duration_ms: 30001.222375
+  type: 'test'
+  ...
+# Subtest: standing authority protected merge: expire-during-final-qualification
+ok 47 - standing authority protected merge: expire-during-final-qualification
+  ---
+  duration_ms: 63164.871208
+  type: 'test'
+  ...
+# Subtest: integration observation uses discovered Python and Git with an empty GUI PATH
+ok 48 - integration observation uses discovered Python and Git with an empty GUI PATH
+  ---
+  duration_ms: 5911.83975
+  type: 'test'
+  ...
+# Subtest: Whiteboard waiver requires retained non-behavioral basis or explicit policy amendment
+ok 49 - Whiteboard waiver requires retained non-behavioral basis or explicit policy amendment
+  ---
+  duration_ms: 8990.534
+  type: 'test'
+  ...
+# Subtest: oversized operation IDs fail before execution and legacy completed outcomes reconcile once
+ok 50 - oversized operation IDs fail before execution and legacy completed outcomes reconcile once
+  ---
+  duration_ms: 5828.909042
+  type: 'test'
+  ...
+1..50
+# tests 50
+# suites 0
+# pass 50
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 912712.223833
+
+Shard 2/4
+TAP version 13
+# Subtest: readiness is a declaration with no reviewer execution and no repeated-round limit
+ok 1 - readiness is a declaration with no reviewer execution and no repeated-round limit
+  ---
+  duration_ms: 18896.159833
+  type: 'test'
+  ...
+# Subtest: interrupted startup reconciles durable run before activating it
+ok 2 - interrupted startup reconciles durable run before activating it
+  ---
+  duration_ms: 615.778209
+  type: 'test'
+  ...
+# Subtest: actual runner receipts preserve success/failure, reuse equivalent work, and reject consumed failure
+ok 3 - actual runner receipts preserve success/failure, reuse equivalent work, and reject consumed failure
+  ---
+  duration_ms: 5323.923417
+  type: 'test'
+  ...
+# Subtest: runner bookkeeping contract retains current proof and diagnostics: postflight-read-error
+ok 4 - runner bookkeeping contract retains current proof and diagnostics: postflight-read-error
+  ---
+  duration_ms: 3173.417542
+  type: 'test'
+  ...
+# Subtest: current adapter resolves canonical parent records and gives actionable old-record guidance
+ok 5 - current adapter resolves canonical parent records and gives actionable old-record guidance
+  ---
+  duration_ms: 629.829875
+  type: 'test'
+  ...
+# Subtest: resume uses observed approvals, preserves old files and reconciles repeated entry
+ok 6 - resume uses observed approvals, preserves old files and reconciles repeated entry
+  ---
+  duration_ms: 1694.443041
+  type: 'test'
+  ...
+# Subtest: pattern rules are retained and policy changes invalidate earlier assessment
+ok 7 - pattern rules are retained and policy changes invalidate earlier assessment
+  ---
+  duration_ms: 4064.874542
+  type: 'test'
+  ...
+# Subtest: protected merge merges a reviewed cumulative feature onto its separately assessed advanced target
+ok 8 - protected merge merges a reviewed cumulative feature onto its separately assessed advanced target
+  ---
+  duration_ms: 71855.13
+  type: 'test'
+  ...
+# Subtest: protected merge keeps concurrent resumptions from repeating external writes
+ok 9 - protected merge keeps concurrent resumptions from repeating external writes
+  ---
+  duration_ms: 87044.77125
+  type: 'test'
+  ...
+# Subtest: protected merge rejects target identity drift after fallback CI passes
+ok 10 - protected merge rejects target identity drift after fallback CI passes
+  ---
+  duration_ms: 80052.46825
+  type: 'test'
+  ...
+# Subtest: status remains read-only and task-breakdown edits preserve implementation authority
+ok 11 - status remains read-only and task-breakdown edits preserve implementation authority
+  ---
+  duration_ms: 4811.291791
+  type: 'test'
+  ...
+# Subtest: one instruction can waive failed quality proof and accept without rewriting its verdict
+ok 12 - one instruction can waive failed quality proof and accept without rewriting its verdict
+  ---
+  duration_ms: 73637.188833
+  type: 'test'
+  ...
+# Subtest: parent Git ignored records complete local review without evidence commits
+ok 13 - parent Git ignored records complete local review without evidence commits
+  ---
+  duration_ms: 34602.94275
+  type: 'test'
+  ...
+# Subtest: incidental host environment preserves proof while declared additions invalidate runner evidence
+ok 14 - incidental host environment preserves proof while declared additions invalidate runner evidence
+  ---
+  duration_ms: 14998.157458
+  type: 'test'
+  ...
+# Subtest: reconciliation rejects unknown rubric mappings even when documents are readable
+ok 15 - reconciliation rejects unknown rubric mappings even when documents are readable
+  ---
+  duration_ms: 4611.49475
+  type: 'test'
+  ...
+# Subtest: provider failure diagnostics do not enter visible gate summaries
+ok 16 - provider failure diagnostics do not enter visible gate summaries
+  ---
+  duration_ms: 6842.541958
+  type: 'test'
+  ...
+# Subtest: resolved history above 64 records does not halt fresh review
+ok 17 - resolved history above 64 records does not halt fresh review
+  ---
+  duration_ms: 422264.612958
+  type: 'test'
+  ...
+# Subtest: completion cannot combine a superseded candidate with newly authorized commitments
+ok 18 - completion cannot combine a superseded candidate with newly authorized commitments
+  ---
+  duration_ms: 1784.168417
+  type: 'test'
+  ...
+# Subtest: ordinary CLI status exposes original failed outcomes and accepted consequences
+ok 19 - ordinary CLI status exposes original failed outcomes and accepted consequences
+  ---
+  duration_ms: 37875.895459
+  type: 'test'
+  ...
+# Subtest: retained workflow history stays outside source at every endpoint and supports untracked continuation
+ok 20 - retained workflow history stays outside source at every endpoint and supports untracked continuation
+  ---
+  duration_ms: 5149.076958
+  type: 'test'
+  ...
+# Subtest: failed specification and reconciliation checks retain exact diagnostics without passage
+ok 21 - failed specification and reconciliation checks retain exact diagnostics without passage
+  ---
+  duration_ms: 9210.57725
+  type: 'test'
+  ...
+# Subtest: later runner preflight failure retains completed check output with exit 0
+ok 22 - later runner preflight failure retains completed check output with exit 0
+  ---
+  duration_ms: 5875.795834
+  type: 'test'
+  ...
+# Subtest: corrected runner configuration recovers after invalid arguments undefined
+ok 23 - corrected runner configuration recovers after invalid arguments undefined
+  ---
+  duration_ms: 12013.948208
+  type: 'test'
+  ...
+# Subtest: delta prior cannot reorder an older closure after a reopened blocking finding with changed source true
+ok 24 - delta prior cannot reorder an older closure after a reopened blocking finding with changed source true
+  ---
+  duration_ms: 28237.537791
+  type: 'test'
+  ...
+# Subtest: repository order and grouped gate order preserve equivalent review identity
+ok 25 - repository order and grouped gate order preserve equivalent review identity
+  ---
+  duration_ms: 12993.006125
+  type: 'test'
+  ...
+# Subtest: reserved history with Git mode 100755 fails capture without leaking or hiding source
+ok 26 - reserved history with Git mode 100755 fails capture without leaking or hiding source
+  ---
+  duration_ms: 937.8005
+  type: 'test'
+  ...
+# Subtest: independent-gate exception binds consumed runner risk transitively
+ok 27 - independent-gate exception binds consumed runner risk transitively
+  ---
+  duration_ms: 6924.943833
+  type: 'test'
+  ...
+# Subtest: stale newer finding cannot resurrect older PASS through expiry
+ok 28 - stale newer finding cannot resurrect older PASS through expiry
+  ---
+  duration_ms: 55636.493667
+  type: 'test'
+  ...
+# Subtest: historical delta ancestry cannot grant current authority to superseded consumed proof
+ok 29 - historical delta ancestry cannot grant current authority to superseded consumed proof
+  ---
+  duration_ms: 11516.600459
+  type: 'test'
+  ...
+# Subtest: saved completed failure reconciles before changed-source preflight and remains in fresh reviewer history
+ok 30 - saved completed failure reconciles before changed-source preflight and remains in fresh reviewer history
+  ---
+  duration_ms: 13945.903542
+  type: 'test'
+  ...
+# Subtest: review started before newer failure cannot confer current authority
+ok 31 - review started before newer failure cannot confer current authority
+  ---
+  duration_ms: 4398.593625
+  type: 'test'
+  ...
+# Subtest: fresh PASS after failed-receipt loss must recover current authority
+ok 32 - fresh PASS after failed-receipt loss must recover current authority
+  ---
+  duration_ms: 2819.755333
+  type: 'test'
+  ...
+# Subtest: evaluator qualification blocks low efforts and mismatched receipt profiles across review roles
+ok 33 - evaluator qualification blocks low efforts and mismatched receipt profiles across review roles
+  ---
+  duration_ms: 4869.936459
+  type: 'test'
+  ...
+# Subtest: late failed spec validation preserves newer authority in same-run through core
+ok 34 - late failed spec validation preserves newer authority in same-run through core
+  ---
+  duration_ms: 1063.619542
+  type: 'test'
+  ...
+# Subtest: source admission rejects configured subdirectories and accepts linked worktree roots
+ok 35 - source admission rejects configured subdirectories and accepts linked worktree roots
+  ---
+  duration_ms: 3800.620291
+  type: 'test'
+  ...
+# Subtest: public resume preserves unsupported conflicting activation records with current-field
+ok 36 - public resume preserves unsupported conflicting activation records with current-field
+  ---
+  duration_ms: 1547.571375
+  type: 'test'
+  ...
+# Subtest: public resume preserves unsupported conflicting activation records with renamed-field
+ok 37 - public resume preserves unsupported conflicting activation records with renamed-field
+  ---
+  duration_ms: 618.347917
+  type: 'test'
+  ...
+# Subtest: public resume preserves unsupported conflicting activation records with invalid-current-field
+ok 38 - public resume preserves unsupported conflicting activation records with invalid-current-field
+  ---
+  duration_ms: 770.660709
+  type: 'test'
+  ...
+# Subtest: cross-gate same finding IDs retain separate closure authority
+ok 39 - cross-gate same finding IDs retain separate closure authority
+  ---
+  duration_ms: 9844.97725
+  type: 'test'
+  ...
+# Subtest: root session history with Git mode 100755 cannot hide application source
+ok 40 - root session history with Git mode 100755 cannot hide application source
+  ---
+  duration_ms: 6242.251459
+  type: 'test'
+  ...
+# Subtest: activation successor schema validation applies only to current contract false
+ok 41 - activation successor schema validation applies only to current contract false
+  ---
+  duration_ms: 2919.265
+  type: 'test'
+  ...
+# Subtest: session record case alias stays isolated: .HANDOFFS/handoff-reviewer-2026-10-23.MD
+ok 42 - session record case alias stays isolated: .HANDOFFS/handoff-reviewer-2026-10-23.MD
+  ---
+  duration_ms: 3922.681917
+  type: 'test'
+  ...
+# Subtest: acceptance assessment requires explicit backstop scope and every independent responsibility
+ok 43 - acceptance assessment requires explicit backstop scope and every independent responsibility
+  ---
+  duration_ms: 11301.877333
+  type: 'test'
+  ...
+# Subtest: standing status reports current candidate mismatch: target
+ok 44 - standing status reports current candidate mismatch: target
+  ---
+  duration_ms: 3821.412333
+  type: 'test'
+  ...
+# Subtest: standing scope rejects implicit deployment, unknown fields, missing expiry and changed commitments/remotes/branches
+ok 45 - standing scope rejects implicit deployment, unknown fields, missing expiry and changed commitments/remotes/branches
+  ---
+  duration_ms: 7512.94025
+  type: 'test'
+  ...
+# Subtest: standing authority protected merge: revoke-during-checks
+ok 46 - standing authority protected merge: revoke-during-checks
+  ---
+  duration_ms: 31515.266459
+  type: 'test'
+  ...
+# Subtest: standing authority protected merge: revoke-during-input-guard
+ok 47 - standing authority protected merge: revoke-during-input-guard
+  ---
+  duration_ms: 30656.572208
+  type: 'test'
+  ...
+# Subtest: amendment rollback cannot revive direct planning or candidate authority
+ok 48 - amendment rollback cannot revive direct planning or candidate authority
+  ---
+  duration_ms: 22497.409958
+  type: 'test'
+  ...
+# Subtest: behavioral Whiteboard exception requires a named policy amendment
+ok 49 - behavioral Whiteboard exception requires a named policy amendment
+  ---
+  duration_ms: 2977.198792
+  type: 'test'
+  ...
+1..49
+# tests 49
+# suites 0
+# pass 49
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1190420.773084
+
+Shard 3/4
+TAP version 13
+# Subtest: local requirement snapshots work with parent untracked records
+ok 1 - local requirement snapshots work with parent untracked records
+  ---
+  duration_ms: 7040.4345
+  type: 'test'
+  ...
+# Subtest: traversal, symlinks, corrupted retained bytes and source injection fail
+ok 2 - traversal, symlinks, corrupted retained bytes and source injection fail
+  ---
+  duration_ms: 3321.708417
+  type: 'test'
+  ...
+# Subtest: runner bookkeeping contract retains current proof and diagnostics: bookkeeping
+ok 3 - runner bookkeeping contract retains current proof and diagnostics: bookkeeping
+  ---
+  duration_ms: 10061.948583
+  type: 'test'
+  ...
+# Subtest: one fresh evaluator supplies two separate verdicts; missing verdicts and inherited contexts remain unavailable
+ok 4 - one fresh evaluator supplies two separate verdicts; missing verdicts and inherited contexts remain unavailable
+  ---
+  duration_ms: 9928.663125
+  type: 'test'
+  ...
+# Subtest: real local fresh evaluator produces a bound code-review receipt
+ok 5 - real local fresh evaluator produces a bound code-review receipt # SKIP
+  ---
+  duration_ms: 0.099875
+  type: 'test'
+  ...
+# Subtest: policy amendment is explicit and cannot waive integrity or authority
+ok 6 - policy amendment is explicit and cannot waive integrity or authority
+  ---
+  duration_ms: 4354.405375
+  type: 'test'
+  ...
+# Subtest: protected merge revalidates the exact action and observes integration
+ok 7 - protected merge revalidates the exact action and observes integration
+  ---
+  duration_ms: 69480.928166
+  type: 'test'
+  ...
+# Subtest: protected merge recloses a drifted PR (candidate-before-write) without merging
+ok 8 - protected merge recloses a drifted PR (candidate-before-write) without merging
+  ---
+  duration_ms: 80156.045375
+  type: 'test'
+  ...
+# Subtest: protected merge integrates after watching all reported CI when no required checks exist
+ok 9 - protected merge integrates after watching all reported CI when no required checks exist
+  ---
+  duration_ms: 92266.936625
+  type: 'test'
+  ...
+# Subtest: protected merge integrates only after unfiltered confirmation of no CI
+ok 10 - protected merge integrates only after unfiltered confirmation of no CI
+  ---
+  duration_ms: 81266.937541
+  type: 'test'
+  ...
+# Subtest: changed node_modules bytes are outside local execution-context assurance
+ok 11 - changed node_modules bytes are outside local execution-context assurance
+  ---
+  duration_ms: 11504.37225
+  type: 'test'
+  ...
+# Subtest: two repositories share exact parent requirements and either source invalidates the combined review
+ok 12 - two repositories share exact parent requirements and either source invalidates the combined review
+  ---
+  duration_ms: 14983.477
+  type: 'test'
+  ...
+# Subtest: an explicit pause stops passage and its recorded continuation restores permitted repair
+ok 13 - an explicit pause stops passage and its recorded continuation restores permitted repair
+  ---
+  duration_ms: 4003.78825
+  type: 'test'
+  ...
+# Subtest: a narrower passing check cannot hide earlier failed verification and packets refresh their inventory
+ok 14 - a narrower passing check cannot hide earlier failed verification and packets refresh their inventory
+  ---
+  duration_ms: 15370.806375
+  type: 'test'
+  ...
+# Subtest: narrowed repository scope rejects broader prior history before launching an evaluator
+ok 15 - narrowed repository scope rejects broader prior history before launching an evaluator
+  ---
+  duration_ms: 9534.646208
+  type: 'test'
+  ...
+# Subtest: fresh assessment uses available historical findings as context when original output was lost
+ok 16 - fresh assessment uses available historical findings as context when original output was lost
+  ---
+  duration_ms: 6017.760333
+  type: 'test'
+  ...
+# Subtest: long runs with large retained reports stay reviewable without dropping open findings
+ok 17 - long runs with large retained reports stay reviewable without dropping open findings
+  ---
+  duration_ms: 170123.277292
+  type: 'test'
+  ...
+# Subtest: existing canonical home cannot escape through an ancestor symlink on status or read
+ok 18 - existing canonical home cannot escape through an ancestor symlink on status or read
+  ---
+  duration_ms: 239.064875
+  type: 'test'
+  ...
+# Subtest: executable files under bookkeeping-looking directories stay in source and cleanliness checks
+ok 19 - executable files under bookkeeping-looking directories stay in source and cleanliness checks
+  ---
+  duration_ms: 2115.763292
+  type: 'test'
+  ...
+# Subtest: configuration and executable files remain source inside report directories
+ok 20 - configuration and executable files remain source inside report directories
+  ---
+  duration_ms: 5003.702875
+  type: 'test'
+  ...
+# Subtest: combined amendment records a pending instruction before interruption and reconciles retry once
+ok 21 - combined amendment records a pending instruction before interruption and reconciles retry once
+  ---
+  duration_ms: 7919.892542
+  type: 'test'
+  ...
+# Subtest: later runner preflight failure retains completed check output with exit 7
+ok 22 - later runner preflight failure retains completed check output with exit 7
+  ---
+  duration_ms: 4500.770292
+  type: 'test'
+  ...
+# Subtest: corrected runner configuration recovers after invalid arguments "--version"
+ok 23 - corrected runner configuration recovers after invalid arguments "--version"
+  ---
+  duration_ms: 6984.743083
+  type: 'test'
+  ...
+# Subtest: milestone passage rejects candidate replacement during an otherwise passing check
+ok 24 - milestone passage rejects candidate replacement during an otherwise passing check
+  ---
+  duration_ms: 34247.545875
+  type: 'test'
+  ...
+# Subtest: decision passage cannot adopt state changes after-pending
+ok 25 - decision passage cannot adopt state changes after-pending
+  ---
+  duration_ms: 1364.066625
+  type: 'test'
+  ...
+# Subtest: reserved history with Git mode 120000 fails capture without leaking or hiding source
+ok 26 - reserved history with Git mode 120000 fails capture without leaking or hiding source
+  ---
+  duration_ms: 1142.006584
+  type: 'test'
+  ...
+# Subtest: exception risk detects expired consumed proof and changed pattern or triage inputs
+ok 27 - exception risk detects expired consumed proof and changed pattern or triage inputs
+  ---
+  duration_ms: 47904.525542
+  type: 'test'
+  ...
+# Subtest: retained provider output round-trips through public receipt validation
+ok 28 - retained provider output round-trips through public receipt validation
+  ---
+  duration_ms: 4491.026333
+  type: 'test'
+  ...
+# Subtest: current admission preserves substantive unavailable-finding after expiry
+ok 29 - current admission preserves substantive unavailable-finding after expiry
+  ---
+  duration_ms: 11690.022625
+  type: 'test'
+  ...
+# Subtest: unknown interrupted execution blocks older proof but a fresh complete review recovers
+ok 30 - unknown interrupted execution blocks older proof but a fresh complete review recovers
+  ---
+  duration_ms: 15369.451958
+  type: 'test'
+  ...
+# Subtest: READY crash restores exact cache once without rerunning evaluator
+ok 31 - READY crash restores exact cache once without rerunning evaluator
+  ---
+  duration_ms: 7495.142959
+  type: 'test'
+  ...
+# Subtest: late old-run outcome must not contaminate replacement run
+ok 32 - late old-run outcome must not contaminate replacement run
+  ---
+  duration_ms: 9652.009125
+  type: 'test'
+  ...
+# Subtest: current planning proof rejects changed parser bindings without changing implementation authority
+ok 33 - current planning proof rejects changed parser bindings without changing implementation authority
+  ---
+  duration_ms: 4072.445083
+  type: 'test'
+  ...
+# Subtest: late failed spec validation preserves newer authority in same-run through public
+ok 34 - late failed spec validation preserves newer authority in same-run through public
+  ---
+  duration_ms: 7565.813875
+  type: 'test'
+  ...
+# Subtest: public resume preserves unsupported primary activation records with current-field
+ok 35 - public resume preserves unsupported primary activation records with current-field
+  ---
+  duration_ms: 2835.937208
+  type: 'test'
+  ...
+# Subtest: public resume preserves unsupported primary activation records with renamed-field
+ok 36 - public resume preserves unsupported primary activation records with renamed-field
+  ---
+  duration_ms: 4142.607167
+  type: 'test'
+  ...
+# Subtest: public resume preserves unsupported primary activation records with invalid-current-field
+ok 37 - public resume preserves unsupported primary activation records with invalid-current-field
+  ---
+  duration_ms: 7008.422375
+  type: 'test'
+  ...
+# Subtest: default reviewer context and proof admission preserve criterion-only failures
+ok 38 - default reviewer context and proof admission preserve criterion-only failures
+  ---
+  duration_ms: 16365.173125
+  type: 'test'
+  ...
+# Subtest: transport unavailability alone preserves applicable independent proof
+ok 39 - transport unavailability alone preserves applicable independent proof
+  ---
+  duration_ms: 6200.962459
+  type: 'test'
+  ...
+# Subtest: root session history with Git mode 120000 cannot hide application source
+ok 40 - root session history with Git mode 120000 cannot hide application source
+  ---
+  duration_ms: 3182.663166
+  type: 'test'
+  ...
+# Subtest: activation successor schema validation applies only to current contract true
+ok 41 - activation successor schema validation applies only to current contract true
+  ---
+  duration_ms: 2349.499583
+  type: 'test'
+  ...
+# Subtest: external argument observations disclose limits and agent-requested reruns retain actual failure
+ok 42 - external argument observations disclose limits and agent-requested reruns retain actual failure
+  ---
+  duration_ms: 6837.750791
+  type: 'test'
+  ...
+# Subtest: standing authority is explicit, run-scoped, visible, revocable and never substitutes for proof
+ok 43 - standing authority is explicit, run-scoped, visible, revocable and never substitutes for proof
+  ---
+  duration_ms: 5222.716208
+  type: 'test'
+  ...
+# Subtest: standing status reports current candidate mismatch: repository
+ok 44 - standing status reports current candidate mismatch: repository
+  ---
+  duration_ms: 2103.53675
+  type: 'test'
+  ...
+# Subtest: standing authority protected merge: slice
+ok 45 - standing authority protected merge: slice
+  ---
+  duration_ms: 70517.173041
+  type: 'test'
+  ...
+# Subtest: standing authority protected merge: expire-during-checks
+ok 46 - standing authority protected merge: expire-during-checks
+  ---
+  duration_ms: 67417.437875
+  type: 'test'
+  ...
+# Subtest: standing acceptance rejects a different assessed target and subsequent target drift
+ok 47 - standing acceptance rejects a different assessed target and subsequent target drift
+  ---
+  duration_ms: 32496.826042
+  type: 'test'
+  ...
+# Subtest: superseded direct merge decisions and exceptions do not revive with equivalent content
+ok 48 - superseded direct merge decisions and exceptions do not revive with equivalent content
+  ---
+  duration_ms: 0.487375
+  type: 'test'
+  ...
+# Subtest: milestone admission rejects unjournaled drift during qualification and before passage
+ok 49 - milestone admission rejects unjournaled drift during qualification and before passage
+  ---
+  duration_ms: 47806.841459
+  type: 'test'
+  ...
+1..49
+# tests 49
+# suites 0
+# pass 48
+# fail 0
+# cancelled 0
+# skipped 1
+# todo 0
+# duration_ms 1035741.439875
+
+Shard 4/4
+TAP version 13
+# Subtest: local requirement snapshots work with repository-local untracked records
+ok 1 - local requirement snapshots work with repository-local untracked records
+  ---
+  duration_ms: 7039.2305
+  type: 'test'
+  ...
+# Subtest: quality exceptions retain facts and never authorize merge or waive integrity
+ok 2 - quality exceptions retain facts and never authorize merge or waive integrity
+  ---
+  duration_ms: 13381.865625
+  type: 'test'
+  ...
+# Subtest: runner bookkeeping contract retains current proof and diagnostics: dependency
+ok 3 - runner bookkeeping contract retains current proof and diagnostics: dependency
+  ---
+  duration_ms: 3144.492666
+  type: 'test'
+  ...
+# Subtest: delta assessment keeps prior provenance, covers changed paths and allows new supported defects
+ok 4 - delta assessment keeps prior provenance, covers changed paths and allows new supported defects
+  ---
+  duration_ms: 8735.587041
+  type: 'test'
+  ...
+# Subtest: all gates, actual external integration and completion work without evidence commits
+ok 5 - all gates, actual external integration and completion work without evidence commits
+  ---
+  duration_ms: 132083.73325
+  type: 'test'
+  ...
+# Subtest: runner source mutation remains unavailable and never produces reusable passing proof
+ok 6 - runner source mutation remains unavailable and never produces reusable passing proof
+  ---
+  duration_ms: 10977.309
+  type: 'test'
+  ...
+# Subtest: protected merge recloses a drifted PR (true) without merging
+ok 7 - protected merge recloses a drifted PR (true) without merging
+  ---
+  duration_ms: 78382.211083
+  type: 'test'
+  ...
+# Subtest: protected merge does not attribute an observed merge to a replacement candidate
+ok 8 - protected merge does not attribute an observed merge to a replacement candidate
+  ---
+  duration_ms: 80172.431458
+  type: 'test'
+  ...
+# Subtest: protected merge recloses a PR after fallback CI fails
+ok 9 - protected merge recloses a PR after fallback CI fails
+  ---
+  duration_ms: 70081.597125
+  type: 'test'
+  ...
+# Subtest: protected merge rejects target identity drift after confirmation of no CI
+ok 10 - protected merge rejects target identity drift after confirmation of no CI
+  ---
+  duration_ms: 66125.543542
+  type: 'test'
+  ...
+# Subtest: changed cli/node_modules bytes are outside local execution-context assurance
+ok 11 - changed cli/node_modules bytes are outside local execution-context assurance
+  ---
+  duration_ms: 20901.133625
+  type: 'test'
+  ...
+# Subtest: same source bytes at a new commit reuse the original qualified review
+ok 12 - same source bytes at a new commit reuse the original qualified review
+  ---
+  duration_ms: 6627.335875
+  type: 'test'
+  ...
+# Subtest: spec execution automatically binds current Verification without hand-authored transport
+ok 13 - spec execution automatically binds current Verification without hand-authored transport
+  ---
+  duration_ms: 16995.177292
+  type: 'test'
+  ...
+# Subtest: review PASS needs dispositions for supplied open findings and claimed fixes
+ok 14 - review PASS needs dispositions for supplied open findings and claimed fixes
+  ---
+  duration_ms: 15567.884
+  type: 'test'
+  ...
+# Subtest: changed closed findings need an independent relevance decision and affected dispositions
+ok 15 - changed closed findings need an independent relevance decision and affected dispositions
+  ---
+  duration_ms: 15749.756709
+  type: 'test'
+  ...
+# Subtest: a missing newer failure root cannot resurrect an older PASS, but fresh proof recovers
+ok 16 - a missing newer failure root cannot resurrect an older PASS, but fresh proof recovers
+  ---
+  duration_ms: 6027.732958
+  type: 'test'
+  ...
+# Subtest: malformed successful provider text never reaches gate summaries or artifacts
+ok 17 - malformed successful provider text never reaches gate summaries or artifacts
+  ---
+  duration_ms: 2218.030459
+  type: 'test'
+  ...
+# Subtest: FEATURE scope enforces its configured original base and invalidates changed range policy
+ok 18 - FEATURE scope enforces its configured original base and invalidates changed range policy
+  ---
+  duration_ms: 2012.061875
+  type: 'test'
+  ...
+# Subtest: quality exception survives bookkeeping-equivalent commits but not changed source
+ok 19 - quality exception survives bookkeeping-equivalent commits but not changed source
+  ---
+  duration_ms: 3826.363334
+  type: 'test'
+  ...
+# Subtest: target-only changes invalidate proof and appear in delta review with prior target bytes
+ok 20 - target-only changes invalidate proof and appear in delta review with prior target bytes
+  ---
+  duration_ms: 7617.370041
+  type: 'test'
+  ...
+# Subtest: waiver with acceptance retains pending human instruction before failed continuation
+ok 21 - waiver with acceptance retains pending human instruction before failed continuation
+  ---
+  duration_ms: 48291.439167
+  type: 'test'
+  ...
+# Subtest: reopened blocking findings remain required in automatic history with changed source false
+ok 22 - reopened blocking findings remain required in automatic history with changed source false
+  ---
+  duration_ms: 25527.20775
+  type: 'test'
+  ...
+# Subtest: corrected runner configuration recovers after invalid arguments [4]
+ok 23 - corrected runner configuration recovers after invalid arguments [4]
+  ---
+  duration_ms: 3740.1335
+  type: 'test'
+  ...
+# Subtest: qualified closure reuses equivalent review with claims 0
+ok 24 - qualified closure reuses equivalent review with claims 0
+  ---
+  duration_ms: 6432.829625
+  type: 'test'
+  ...
+# Subtest: decision passage cannot adopt state changes after-validation
+ok 25 - decision passage cannot adopt state changes after-validation
+  ---
+  duration_ms: 1377.759417
+  type: 'test'
+  ...
+# Subtest: finding-scoped exceptions cannot absorb other findings and runner exceptions expire on changed risk
+ok 26 - finding-scoped exceptions cannot absorb other findings and runner exceptions expire on changed risk
+  ---
+  duration_ms: 25419.536834
+  type: 'test'
+  ...
+# Subtest: explicit missing-pattern exception expires when policy appears and cannot waive unsafe policy
+ok 27 - explicit missing-pattern exception expires when policy appears and cannot waive unsafe policy
+  ---
+  duration_ms: 8640.608708
+  type: 'test'
+  ...
+# Subtest: generic provider unavailability does not erase otherwise qualifying review proof
+ok 28 - generic provider unavailability does not erase otherwise qualifying review proof
+  ---
+  duration_ms: 13566.484541
+  type: 'test'
+  ...
+# Subtest: current admission preserves substantive failed-criterion after expiry
+ok 29 - current admission preserves substantive failed-criterion after expiry
+  ---
+  duration_ms: 11239.143834
+  type: 'test'
+  ...
+# Subtest: public resume preserves durable pause without selecting a new run
+ok 30 - public resume preserves durable pause without selecting a new run
+  ---
+  duration_ms: 3164.772791
+  type: 'test'
+  ...
+# Subtest: READY/cache conflict remains intact and blocks reconciliation
+ok 31 - READY/cache conflict remains intact and blocks reconciliation
+  ---
+  duration_ms: 5118.125333
+  type: 'test'
+  ...
+# Subtest: run replacement after READY cannot receive old JOB_FINISHED
+ok 32 - run replacement after READY cannot receive old JOB_FINISHED
+  ---
+  duration_ms: 5795.459834
+  type: 'test'
+  ...
+# Subtest: late failed spec validation preserves newer authority in replacement through core
+ok 33 - late failed spec validation preserves newer authority in replacement through core
+  ---
+  duration_ms: 7419.437625
+  type: 'test'
+  ...
+# Subtest: late failed spec validation preserves newer authority in pause through core
+ok 34 - late failed spec validation preserves newer authority in pause through core
+  ---
+  duration_ms: 4204.175917
+  type: 'test'
+  ...
+# Subtest: public resume preserves unsupported witness activation records with current-field
+ok 35 - public resume preserves unsupported witness activation records with current-field
+  ---
+  duration_ms: 7986.471833
+  type: 'test'
+  ...
+# Subtest: public resume preserves unsupported witness activation records with renamed-field
+ok 36 - public resume preserves unsupported witness activation records with renamed-field
+  ---
+  duration_ms: 3449.258625
+  type: 'test'
+  ...
+# Subtest: public resume preserves unsupported witness activation records with invalid-current-field
+ok 37 - public resume preserves unsupported witness activation records with invalid-current-field
+  ---
+  duration_ms: 3048.240208
+  type: 'test'
+  ...
+# Subtest: default reviewer context and proof admission preserve coverage-only failures
+ok 38 - default reviewer context and proof admission preserve coverage-only failures
+  ---
+  duration_ms: 18241.295167
+  type: 'test'
+  ...
+# Subtest: review context keeps an R1 failure after an unrelated R2 assessment
+ok 39 - review context keeps an R1 failure after an unrelated R2 assessment
+  ---
+  duration_ms: 21177.093792
+  type: 'test'
+  ...
+# Subtest: root session history with Git mode 160000 cannot hide application source
+ok 40 - root session history with Git mode 160000 cannot hide application source
+  ---
+  duration_ms: 2305.47975
+  type: 'test'
+  ...
+# Subtest: session record case alias stays isolated: checkpoint.md
+ok 41 - session record case alias stays isolated: checkpoint.md
+  ---
+  duration_ms: 4393.313916
+  type: 'test'
+  ...
+# Subtest: external library observations disclose limits and agent-requested reruns retain actual failure
+ok 42 - external library observations disclose limits and agent-requested reruns retain actual failure
+  ---
+  duration_ms: 10207.648708
+  type: 'test'
+  ...
+# Subtest: standing status reports current candidate mismatch: scope
+ok 43 - standing status reports current candidate mismatch: scope
+  ---
+  duration_ms: 2145.355416
+  type: 'test'
+  ...
+# Subtest: standing status reports current candidate mismatch: missing-root
+ok 44 - standing status reports current candidate mismatch: missing-root
+  ---
+  duration_ms: 1554.768917
+  type: 'test'
+  ...
+# Subtest: standing authority protected merge: final
+ok 45 - standing authority protected merge: final
+  ---
+  duration_ms: 15980.749834
+  type: 'test'
+  ...
+# Subtest: standing authority protected merge: revoke-during-final-qualification
+ok 46 - standing authority protected merge: revoke-during-final-qualification
+  ---
+  duration_ms: 62315.834375
+  type: 'test'
+  ...
+# Subtest: standing status uses the host-discovered Git when GUI PATH cannot resolve git
+ok 47 - standing status uses the host-discovered Git when GUI PATH cannot resolve git
+  ---
+  duration_ms: 4219.909958
+  type: 'test'
+  ...
+# Subtest: explanation requires an explicit policy amendment instead of an ordinary waiver
+ok 48 - explanation requires an explicit policy amendment instead of an ordinary waiver
+  ---
+  duration_ms: 9872.386833
+  type: 'test'
+  ...
+# Subtest: standing grants bind effective fetch and push URLs even with unchanged raw URL and target commit
+ok 49 - standing grants bind effective fetch and push URLs even with unchanged raw URL and target commit
+  ---
+  duration_ms: 46521.83275
+  type: 'test'
+  ...
+1..49
+# tests 49
+# suites 0
+# pass 49
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 951106.814958
+Registered 197 cases across 4 disjoint groups.
+✔ core fixtures in isolated process groups (1191045.964291ms)
+✔ a PASS whose affected list includes an open prior finding and a claimed fix is accepted (0.81175ms)
+✔ undisclosed affected IDs are still rejected; repeats are normalized (AC5) (0.53675ms)
+✔ carried closures still need a reason, and every required ID a supported disposition (0.235583ms)
+✔ review requires an explicit alias when a relative finding path has multiple owners (0.337292ms)
+✔ the ledger names exactly the dispositions required and every disclosed ID (0.753584ms)
+✔ the output schema is built per request with finding-ID enums (0.322208ms)
+✔ a disclosed but not required affected ID is normalized, never rejected (0.767542ms)
+✔ a PASS marking a blocking finding present is a FAIL; a missing disposition stays a contract error (0.117208ms)
+✔ a present historical finding now rated low takes a disposition that no longer blocks (0.0835ms)
+✔ findings need severity, failure scenario and class; low never blocks (0.220583ms)
+✔ format repair is judged by substance identity (1.198875ms)
+✔ paired reviewers rating one class differently resolve to the higher rating (0.1835ms)
+✔ every UNAVAILABLE cause maps to one reason code (0.143083ms)
+✔ code (full) rejects a finding missing any severity, failure scenario or class field (0.239791ms)
+✔ spec (full) rejects a finding missing any severity, failure scenario or class field (0.121ms)
+✔ judge (full) rejects a finding missing any severity, failure scenario or class field (0.100875ms)
+✔ review (full) rejects a finding missing any severity, failure scenario or class field (0.105917ms)
+✔ review (light brief) rejects a finding missing any severity, failure scenario or class field (0.068333ms)
+✔ code (light brief) rejects a finding missing any severity, failure scenario or class field (0.061833ms)
+✔ a FAIL resting only on low findings is PASS only when nothing else fails (0.316333ms)
+✔ an unrelated low finding never makes an independent failure adjudicable (0.178833ms)
+✔ a disposition cannot carry or change a severity (0.454791ms)
+✔ planning reviews require the same finding fields; low never blocks (0.267959ms)
+✔ verdict rejections name the field path or finding ID (0.19375ms)
+✔ a claimed finding without a supported disposition says what the claim needs (0.101916ms)
+✔ format repair rejections name the changed field or ID (6.178791ms)
+✔ a claimed blocking finding marked present on PASS is recorded as FAIL (0.06575ms)
+✔ tally: a PASS reporting a blocking finding is recorded as FAIL (1.255625ms)
+✔ tally: a PASS marking an earlier blocking finding present is recorded as FAIL, rated or unrated (0.19275ms)
+✔ a PASS whose only blocking findings are low stays PASS, current or earlier (0.177333ms)
+✔ tally: present for a claimed non-blocking earlier finding is accepted and recorded (0.154042ms)
+✔ tally: an undisclosed review disposition is dropped and recorded (0.096167ms)
+✔ tally: unknown properties are stripped at every level and recorded with their paths (0.598667ms)
+✔ a missing required field is not stripped and reaches repair with its path (0.499916ms)
+✔ tally: exactly one JSON object inside prose is found; none or two are not (0.168375ms)
+✔ the Claude parser unwraps one object only when asked to record it (0.417458ms)
+✔ codex: prose-wrapped output is unwrapped through the hook; without it, malformed JSON (2031.599958ms)
+✔ claude-code: prose-wrapped output is unwrapped through the hook; without it, malformed JSON (1708.107958ms)
+✔ tally: a repair may supply the disposition the original omitted; stated dispositions keep their status (6.104166ms)
+✔ tally: a repair may say FAIL where the original PASS showed the blocking finding (0.388792ms)
+✔ meaning-changing gaps stay contract errors that name the field path (0.598375ms)
+✔ every rejection rule this change names maps to a stable identifier (0.204333ms)
+ℹ tests 124
+ℹ suites 0
+ℹ pass 124
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1191108.529125

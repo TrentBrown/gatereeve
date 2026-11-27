@@ -18,7 +18,7 @@ import { agentDecisions, AGENT_DECISION_RULE } from './goal.js';
 import { newView } from './source-views.js';
 import { localPath } from './store.js';
 import { assertSourceIsolation, checkCandidate, checkSource, contentIdentity, git, assertClean, briefBased } from './evidence.js';
-import { ROUND_POLICY, boundaryScope, scheduledRound, assertRoundOpen, countReviewRound, band as roundBand } from './round-policy.js';
+import { ROUND_POLICY, boundaryScope, scheduledRound, assertRoundOpen, countReviewRound, scopeEpoch, band as roundBand } from './round-policy.js';
 import { createCodexAgentAdapter, createClaudeCodeAgentAdapter, promptCharacters, MAX_PROMPT_CHARACTERS_LIMIT } from '../local-agent-adapters.js';
 import { fitHistory, writeHistoryIndex, HISTORY_PRIORITY } from './review-history.js';
 import { findingObligations, reviewScope } from './review-findings.js';
@@ -988,7 +988,7 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
     const previous = revisions.at(-1)?.revision === revision ? revisions.at(-2) : revisions.at(-1);
     let regressionPaths = [];
     if (previous?.candidate) try { regressionPaths = changedPaths(await core.store.json(previous.candidate), candidate); } catch { regressionPaths = []; }
-    roundPolicy = { policy: ROUND_POLICY, scope, revision, round, band: roundBand(round), regressionPaths };
+    roundPolicy = { policy: ROUND_POLICY, scope, epoch: scopeEpoch(state, scope), revision, round, band: roundBand(round), regressionPaths };
   }
   const sweepRecords = await packetSweepRecords(core, state, roundPolicy, claims, history);
   const value = { contract: CONTRACT, gates: input.gates, candidate: state.candidate, configuration, consumed, support, mandate, ...agentDecisionInput,

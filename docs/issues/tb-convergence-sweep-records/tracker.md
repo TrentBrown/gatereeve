@@ -20,3 +20,7 @@
 ## Review Log
 
 Append pull-request review boundary entries here.
+- 2026-11-27 boundary round 1 (FEATURE, head 850684d): codex FAIL (high
+  closed-scope sweep reuse; medium missing desktop receipt; low help receipt);
+  claude-code FAIL (medium CR-1 first raise counted as re-report; lows CR-2,
+  CR-3). Fixed: scope epoch, first-raise rule, desktop and help receipts.

@@ -1,4 +1,5 @@
 import { identity, requireThat } from './contracts.js';
+import { scopeEpoch } from './round-policy.js';
 
 // Class-level fix records (issue #144, source design D12). An implementer's
 // claim says whether it fixed a finding (`fixed`) or rebuts it (`disputed`).
@@ -81,9 +82,10 @@ export function claimRecords(claims, history, round) {
 
 // Records in the inputs of earlier boundary reviews of revisions that belong to
 // the open review scope. A closed scope (integration, split, amendment) has no
-// entry, so its records are not carried.
+// entry, and a later scope of the same name has a later epoch, so a closed
+// scope's records are not carried.
 export async function scopeSweepRecords(core, state, scope) {
-  const revisions = new Set((state.reviewScopes?.[scope]?.revisions ?? []).map(row => row.revision));
+  const revisions = new Set((state.reviewScopes?.[scope]?.revisions ?? []).map(row => row.revision)), epoch = scopeEpoch(state, scope);
   if (!revisions.size) return [];
   const records = [], inputs = new Set();
   for (const ref of state.results) {
@@ -94,7 +96,7 @@ export async function scopeSweepRecords(core, state, scope) {
       inputs.add(report.input.hash);
       input = await core.store.json(report.input);
     } catch { continue; } // An unreadable review contributes no record.
-    if (input.roundPolicy?.scope !== scope || !revisions.has(input.roundPolicy.revision)) continue;
+    if (input.roundPolicy?.scope !== scope || input.roundPolicy.epoch !== epoch || !revisions.has(input.roundPolicy.revision)) continue;
     records.push(...(input.sweepRecords?.records ?? []));
   }
   return uniqueRecords(records);

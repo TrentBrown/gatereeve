@@ -333,9 +333,11 @@ are not counted. `status.rounds` shows each scope, its round and band, and advic
   claimed finding (see Fix claims and sweep records). Peer reviews of one round are
   judged together: a finding counts as resolved only when no reviewer of that
   round still marks it present or re-reports it as a finding, so a disagreement
-  keeps its regression status. A round is the round policy's scope, round and
-  revision (`packet.roundPolicy` carries all three), so two individual
-  selection-tagged reviews of one revision are judged as one round. A planning round that failed at
+  keeps its regression status; the round that first raised a finding can still
+  close it. A round is the round policy's scope epoch (how many times the scope
+  has closed), round and revision (`packet.roundPolicy` carries all of them),
+  so two individual selection-tagged reviews of one revision are judged as one
+  round. A planning round that failed at
   the provider keeps its documents as the next round's regression baseline. Reviewers
   receive `packet.roundPolicy` (scope, round, band and the previous fix's changed
   paths) and apply the band themselves. Other findings stop blocking and stay
@@ -722,7 +724,8 @@ revisions in the same open review scope. Each record has `findingId`, `classId`
 the claim; null outside the round policy) and the six sweep fields. Records with
 equal content are carried once; a finding claimed fixed again in a later round
 keeps both records. When the scope closes (integration, split or an amendment
-reset), its records are no longer carried. The guide tells reviewers to verify
+reset), its records are no longer carried, including by a later scope of the
+same name that reviews the same revision (its epoch differs). The guide tells reviewers to verify
 each record, to report a missed site with the record's `classId`, and that such
 a finding is a regression of the previous fix (see Round policy). GateReeve never
 changes a reviewer's `blocking` flag; the regression status applies when the pair

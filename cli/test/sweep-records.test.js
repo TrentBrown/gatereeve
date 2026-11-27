@@ -116,6 +116,7 @@ test('R3: a round carries its fixed claims as sweep records, and later rounds an
     assert.deepEqual(packet.sweepRecords.records, [expected]);
     assert.equal(packet.roundPolicy.round, 4);
     assert.match(packet.roundPolicy.revision, /^sha256:[0-9a-f]{64}$/);
+    assert.equal(packet.roundPolicy.epoch, 0);
   }
   // Round 5 without new claims: both peers' inputs held the record, carried once.
   await revise(f, { 'other.js': 'export const other = 2;\n' }, 'r5');
@@ -140,6 +141,10 @@ test('R3: a round carries its fixed claims as sweep records, and later rounds an
   const current = (await f.core.state()).state;
   assert.equal((await scopeSweepRecords(f.core, current, 'slice')).length, 2);
   assert.deepEqual(await scopeSweepRecords(f.core, { ...current, reviewScopes: {} }, 'slice'), []);
+  // A later scope of the same name that counts the same revisions (after a
+  // split or an amendment reset) is a new epoch: the old records do not match.
+  const reopened = { ...current, reviewScopeHistory: [...current.reviewScopeHistory, { ...current.reviewScopes.slice, closed: { reason: 'split', event: 'split' } }] };
+  assert.deepEqual(await scopeSweepRecords(f.core, reopened, 'slice'), []);
 });
 
 test('R3: without a retained fixed claim the packet has no sweepRecords; a dropped claim contributes no record', async t => {

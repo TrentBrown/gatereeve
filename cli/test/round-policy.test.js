@@ -546,3 +546,36 @@ for (const variant of peerReReport) test(`a peer's re-report keeps a regression'
   assert.equal(reviewed.round.round, 5);
   assert.equal(reviewed.outcome, 'FAIL', reviewed.summary);
 });
+
+// Review round 1 finding CR-1: the round that first raised a finding can still
+// close it. A re-review of the same revision is the same round, so the first
+// raise must not count as a peer's re-report.
+test('a same-revision re-review can close a finding its round raised', async t => {
+  const f = await lightRun(t);
+  const F = 'codex/codex-finding-0';
+  reviewers(f, { findings: { codex: [{ path: 'app/app.js', evidence: '[medium] The export is wrong.' }] } });
+  await f.request('review.execute', {}, 'round-1');
+  assert.equal((await pair(f)).outcome, 'FAIL');
+  const unsupported = (verdict, request) => {
+    if (!(request.input.dispositionsRequired ?? []).some(row => row.id === F)) return;
+    verdict.dispositions = [{ id: F, status: 'unsupported', evidence: 'The rebuttal holds: the export is intended.' }];
+  };
+  reviewers(f, { patch: { codex: unsupported, 'claude-code': unsupported } });
+  await f.request('review.execute', {}, 'round-1-rereview');
+  const reviewed = await pair(f);
+  assert.equal(reviewed.round.round, 1, 'the same revision is the same round');
+  assert.equal(reviewed.outcome, 'PASS', reviewed.summary);
+  // The next round's reviewers owe nothing for the closed finding, and its
+  // history (the raise and both closures) does not reopen it.
+  await revise(f, { 'other.js': 'export const other = 2;\n' }, 'r2');
+  // The reviewers carry the closure forward: the change does not affect F.
+  const reconsider = (verdict, request) => {
+    if ((request.input.dispositionsRequired ?? []).some(row => row.id === F && row.reason === 'reconsider')) verdict.historyAssessment = { affected: [], carryForwardReason: 'other.js does not touch the rebutted export.' };
+  };
+  reviewers(f, { patch: { codex: reconsider, 'claude-code': reconsider } });
+  await f.request('review.execute', {}, 'round-2');
+  const next = await pair(f);
+  assert.equal(next.round.round, 2);
+  assert.equal(next.outcome, 'PASS', next.summary);
+  assert.ok(next.members.every(member => !member.qualification), next.members.map(member => member.qualification).join('; '));
+});

@@ -92,3 +92,25 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
   'commander'`). Installed with `npm ci --prefix cli` and reran the same
   checks with unchanged arguments.
 - **Reversibility:** not applicable (environment).
+
+## S10. Boundary review round 1 findings
+
+- **Answered by:** agent
+- **Decision:** Round 1 (head 850684d): both FAIL.
+  - Codex high `closed-scope-sweep-reuse`: records from a closed scope could
+    match a later scope with the same name and revision. Fixed with a scope
+    epoch (`roundPolicy.epoch`, the number of times the scope has closed),
+    required to match when collecting records and used in the #134 round key.
+  - Claude medium `CR-1`: the prepass counted a finding's first raise as a
+    re-report, so with same-revision grouping a re-review could never close
+    a finding its round raised; a later round then reopened it. Fixed: only a
+    re-report of an ID an earlier round raised counts as present.
+  - Codex medium / Claude low: no local desktop test receipt. Added
+    `npm test --prefix apps/desktop` to the local Verification.
+  - Codex low: no receipt for the `--claims` help text. Added a check.
+  - Claude low `CR-2` (a reused finding ID keeps the oldest raising report as
+    origin): not changed. It needs a reviewer to reuse an ID for a different
+    defect after its reports leave the packet; recorded for the PR.
+  The new tests fail on the round-1 code. Claims were passed in the old
+  `{findingId, claim}` shape because the run uses the installed rc.34 CLI.
+- **Reversibility:** reversible.
