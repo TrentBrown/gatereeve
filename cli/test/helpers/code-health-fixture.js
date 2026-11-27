@@ -38,7 +38,8 @@ for (const file of files) {
     if (!marker || disabled) return;
     if (/eslint-disable-line|#\\s*noqa/.test(line)) return;
     if (index > 0 && /eslint-disable-next-line/.test(lines[index - 1])) return;
-    add(marker[1], { key: file, details: { file, line: index + 1, column: 1, message: line.trim(), source: marker[2] } });
+    const reported = mode === 'dotslash' ? './' + file : mode === 'absolute' ? require('node:path').join(process.cwd(), file) : file;
+    add(marker[1], { key: reported, details: { file: reported, line: index + 1, column: 1, message: line.trim(), source: marker[2] } });
   });
 }
 console.log(JSON.stringify([...bySmell].map(([smell, issues]) => ({ smell, details: {}, issues, language: 'javascript' }))));

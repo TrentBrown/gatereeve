@@ -7,7 +7,7 @@ import { resolveTool, run } from './process.js';
 
 // Bump when the comparison, neutralization or scoping rules change, so cached
 // baselines from an earlier wrapper are never reused.
-export const WRAPPER_VERSION = 'gatereeve-code-health/2';
+export const WRAPPER_VERSION = 'gatereeve-code-health/3';
 
 const COMMANDS = ['eslint', 'ruff', 'knip', 'deptry'];
 const PACKAGES = ['typescript', 'typescript-eslint', '@typescript-eslint/parser', '@typescript-eslint/eslint-plugin', 'ts-morph'];

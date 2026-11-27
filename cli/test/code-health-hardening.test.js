@@ -66,7 +66,7 @@ test('effective ESLint thresholds come from the resolved tool and tool versions 
   const first = await check(root, { useCache: true, env });
   assert.deepEqual(first.thresholds.eslint, { functionLines: 40, parameters: 5, complexity: 15, depth: 4, fileLines: 500 });
   assert.equal(first.tools.eslint, 'v9.0.0');
-  assert.equal(first.tools.wrapper, 'gatereeve-code-health/2');
+  assert.equal(first.tools.wrapper, 'gatereeve-code-health/3');
   assert.equal(first.tools.habitSensors, 'habit-sensors 9.9.9-fake');
   assert.equal((await check(root, { useCache: true, env })).cache.hit, true);
   const upgraded = await check(root, { useCache: true, env: { ...env, FAKE_ESLINT_VERSION: '10.0.0' } });
@@ -157,6 +157,35 @@ test('the TOML reader handles the configuration shapes the wrapper reads', () =>
   for (const bad of ['a = 1\na = 2', 'a = "open', '[a]\nb = 1\n[a.b]', 'a = nope']) assert.throws(() => parseToml(bad), TomlError, bad);
   const value = { plugins: ['a'], smells: { 'x/y': { severity: 'enforced' } } };
   assert.deepEqual(parseToml(stringifyToml(value)), value);
+});
+
+test('round 2: prototype keys, vendored plugin, reported paths and probe parse errors', async () => {
+  const parsed = parseToml('[__proto__]\ndisabled = true\n[smells.__proto__]\nseverity = "suggested"\n');
+  assert.equal(({}).disabled, undefined, 'Object.prototype is untouched');
+  assert.equal(Object.getPrototypeOf(parsed), Object.prototype);
+  assert.deepEqual(Object.keys(parsed), ['__proto__', 'smells']);
+
+  const noVendored = fixtureRepository({ files: { 'src/a.js': 'x\n' } });
+  rmSync(join(noVendored, '.habit-hooks', 'gatereeve'), { recursive: true });
+  commit(noVendored, 'drop vendored plugin');
+  const missing = await check(noVendored, { base: 'HEAD' });
+  assert.equal(missing.reasons[0]?.cause, 'plugin-not-configured');
+  assert.match(missing.reasons[0].message, /vendored plugin \.habit-hooks\/gatereeve\/ is not committed/);
+
+  for (const mode of ['dotslash', 'absolute']) {
+    const root = fixtureRepository({ files: { 'src/a.js': 'SMELL:oversized-function:eslint:x\n' } });
+    write(root, { 'src/a.js': 'SMELL:oversized-function:eslint:x\nSMELL:oversized-function:eslint:x\n' });
+    commit(root, 'regression');
+    const result = await check(root, { env: { FAKE_SENSORS_MODE: mode } });
+    assert.equal(result.verdict, 'FAIL', mode);
+    assert.deepEqual(result.groups.map(group => [group.file, group.base, group.head]), [['src/a.js', 1, 2]], mode);
+  }
+
+  const probeBroken = fixtureRepository({ files: { 'src/a.js': 'x\n', 'src/legacy.py': 'PARSE_ERROR\n' } });
+  write(probeBroken, { 'src/a.js': 'y\n' });
+  commit(probeBroken, 'js only');
+  const probed = await check(probeBroken, { env: { FAKE_SENSORS_MODE: 'parse' } });
+  assert.equal(probed.verdict, 'PASS', 'a parse error in an untouched probe file does not block the change');
 });
 
 test.after(() => rmSync(tools.directory, { recursive: true, force: true }));

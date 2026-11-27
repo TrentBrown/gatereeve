@@ -134,7 +134,7 @@ async function evaluate(result, { cwd, base, approved, env, habitSensors, habitM
       await trees.neutralize(headTree, headPaths);
       headConfig = await writeRunConfig(headTree, config, [...headPaths, ...probes]);
       const scoped = new Set(headPaths);
-      headFindings = (await sense({ executable: sensors, worktree: headTree, configPath: headConfig, env, timeoutMs, side: 'head' }))
+      headFindings = (await sense({ executable: sensors, worktree: headTree, configPath: headConfig, env, timeoutMs, side: 'head', probes }))
         .map(finding => ({ ...finding, issues: finding.issues.filter(issue => scoped.has(issue.details?.file ?? issue.key)) }))
         .filter(finding => finding.issues.length);
     }

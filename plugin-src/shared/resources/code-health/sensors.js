@@ -52,7 +52,17 @@ function validFindings(value) {
   return Array.isArray(value) && value.every(finding => finding && typeof finding.smell === 'string' && Array.isArray(finding.issues));
 }
 
-export async function sense({ executable, worktree, configPath, env, timeoutMs, side }) {
+// Habit Hooks may report a file as './x' or as an absolute path; compare and
+// scope by the repository-relative path only.
+function relativeFile(file, worktree) {
+  if (typeof file !== 'string') return file;
+  let path = file.replace(/\\/g, '/');
+  const root = worktree.replace(/\\/g, '/').replace(/\/$/, '');
+  if (path.startsWith(`${root}/`)) path = path.slice(root.length + 1);
+  return path.replace(/^(\.\/)+/, '');
+}
+
+export async function sense({ executable, worktree, configPath, env, timeoutMs, side, probes = [] }) {
   const result = await run(executable, ['--all', '--config', configPath], { cwd: worktree, env, timeoutMs });
   const tail = (result.stderr || '').trim().split('\n').slice(-3).join(' | ');
   if (result.timedOut) throw new Unavailable('sensor-failed', `habit-sensors timed out on the ${side} after ${timeoutMs} ms`);
@@ -64,7 +74,16 @@ export async function sense({ executable, worktree, configPath, env, timeoutMs, 
     throw new Unavailable('sensor-failed', `habit-sensors emitted output on the ${side} that is not JSON`);
   }
   if (!validFindings(findings)) throw new Unavailable('sensor-failed', `habit-sensors emitted JSON on the ${side} that is not a findings array`);
-  const broken = findings.filter(finding => BROKEN_RUN_SMELLS.includes(finding.smell) && finding.issues.length);
+  for (const finding of findings) for (const issue of finding.issues) {
+    if (issue.details?.file) issue.details.file = relativeFile(issue.details.file, worktree);
+    else if (typeof issue.key === 'string' && !issue.details?.content) issue.key = relativeFile(issue.key, worktree);
+  }
+  // A probe file only shows that the tools run; its own parse errors are not
+  // this change's concern. Tooling failures (incomplete-run) still count.
+  const ignored = new Set(probes);
+  const broken = findings
+    .map(finding => ({ ...finding, issues: finding.issues.filter(issue => !(finding.smell === 'parse-error' && ignored.has(issue.details?.file ?? issue.key))) }))
+    .filter(finding => BROKEN_RUN_SMELLS.includes(finding.smell) && finding.issues.length);
   if (broken.length) {
     const detail = broken.flatMap(finding => finding.issues.map(issue => `${finding.smell}: ${issue.details?.file ?? ''} ${issue.details?.message ?? issue.details?.content ?? issue.key}`.trim()));
     throw new Unavailable('incomplete-run', `The ${side} run did not complete cleanly:\n  ${detail.slice(0, 10).join('\n  ')}`, { issues: detail });

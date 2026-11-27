@@ -159,7 +159,7 @@ class Reader {
 
   inlineTable() {
     this.next();
-    const table = {};
+    const table = Object.create(null);
     this.spaces();
     if (this.peek() === '}') {
       this.next();
@@ -199,12 +199,14 @@ class Reader {
   }
 }
 
-const isTable = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+const isTable = value => value !== null && typeof value === 'object' && !Array.isArray(value) && (Object.getPrototypeOf(value) === null || Object.getPrototypeOf(value) === Object.prototype);
 
+// Tables are prototype-less while parsing, so a key such as `__proto__` is an
+// ordinary own key and can never reach Object.prototype.
 function descend(reader, root, path, { create = true } = {}) {
   let table = root;
   for (const part of path) {
-    if (!(part in table) && create) table[part] = {};
+    if (!Object.hasOwn(table, part) && create) table[part] = Object.create(null);
     let next = table[part];
     if (Array.isArray(next) && next.length && isTable(next.at(-1))) next = next.at(-1);
     if (!isTable(next)) reader.fail(`key ${path.join('.')} is not a table`);
@@ -216,13 +218,23 @@ function descend(reader, root, path, { create = true } = {}) {
 function assign(reader, table, path, value) {
   const parent = descend(reader, table, path.slice(0, -1));
   const last = path.at(-1);
-  if (last in parent) reader.fail(`duplicate key ${path.join('.')}`);
+  if (Object.hasOwn(parent, last)) reader.fail(`duplicate key ${path.join('.')}`);
   parent[last] = value;
+}
+
+// Return plain objects; keys are defined, never assigned, so `__proto__`
+// stays an own data property.
+function plain(value) {
+  if (Array.isArray(value)) return value.map(plain);
+  if (!isTable(value)) return value;
+  const result = {};
+  for (const key of Object.keys(value)) Object.defineProperty(result, key, { value: plain(value[key]), enumerable: true, writable: true, configurable: true });
+  return result;
 }
 
 export function parseToml(text) {
   const reader = new Reader(text);
-  const root = {};
+  const root = Object.create(null);
   let current = root;
   while (reader.index < reader.text.length) {
     reader.blank();
@@ -234,9 +246,9 @@ export function parseToml(text) {
       reader.index += 2;
       const parent = descend(reader, root, path.slice(0, -1));
       const last = path.at(-1);
-      parent[last] ??= [];
+      if (!Object.hasOwn(parent, last)) parent[last] = [];
       if (!Array.isArray(parent[last])) reader.fail(`key ${path.join('.')} is not an array of tables`);
-      current = {};
+      current = Object.create(null);
       parent[last].push(current);
       reader.endOfLine();
     } else if (reader.peek() === '[') {
@@ -252,5 +264,5 @@ export function parseToml(text) {
       reader.endOfLine();
     }
   }
-  return root;
+  return plain(root);
 }
