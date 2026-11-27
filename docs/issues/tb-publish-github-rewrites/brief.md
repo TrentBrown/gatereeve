@@ -5,8 +5,9 @@ Closes #155. Light rigor; goal autonomy granted by the human for this run.
 ## Goal
 
 `review.publish` succeeds when a reviewer's summary or finding text quotes
-text that GitHub rewrites on write, starting with the JSON-style NUL escape
-(a backslash, `u`, then four zeros). Before the PR description is written,
+text that does not survive the write to GitHub and the `gh` read-back
+unchanged, starting with the JSON-style NUL escape (a backslash, `u`, then
+four zeros). Before the PR description is written,
 the rendered review section neutralizes such text in a deterministic,
 readable way, so the byte-for-byte read-back still compares equal. The
 read-back check itself stays exact: any other difference between the written
@@ -34,3 +35,19 @@ issues).
 
 - 2026-11-26: Run started light, then raised to goal autonomy, on the
   instruction relayed by the orchestrating thread.
+- 2026-11-26: Probed draft PR #160 with `gh pr edit --body-file` and read
+  back through `gh pr view --json body`, the REST API and GraphQL (gh
+  2.97.0). GitHub stores the description bytes exactly, except that it drops
+  a raw NUL. The rewrite #155 saw is gh's own control-character sanitizer on
+  read: a JSON-style escape for a C0 or C1 control other than tab, LF, VT and
+  CR (`\u0000`-`\u0008`, `\u000c`, `\u000e`-`\u001f`, `\u0080`-`\u009f`, hex
+  in either case, after any number of backslashes) becomes caret notation
+  (`\^@`), and raw C0/C1 controls that GitHub's JSON sends unescaped do too.
+  `\U0000`, `\x00`, `\u007f` and ` ` pass unchanged. The issue's
+  "GitHub changes that text on write" is therefore mostly a read-side
+  rewrite; the fix is the same either way.
+- 2026-11-26: Neutralize the rendered section; do not relax the read-back
+  (scratchpad D1).
+- 2026-11-26: Text outside the summary section is the author's and is read
+  through the same sanitizer, so the first publish writes the rewritten form
+  back. Left to follow-up #161 (scratchpad D2).
