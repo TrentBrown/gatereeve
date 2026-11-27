@@ -9,6 +9,7 @@ export function toolList(management=false) {
   const tool=(name,description,inputSchema,readOnlyHint=true)=>({name:`metrics_${name}`,description,inputSchema,annotations:{readOnlyHint,destructiveHint:name==='cleanup',idempotentHint:readOnlyHint,openWorldHint:false}});
   return [tool('status','Inspect local collection settings, storage and capture health.',object({})),tool('report','Query bounded local timings, repetition, reuse and capture gaps. Does not refresh CI or run tests.',query),tool('export','Return the same normalized report as versioned JSON; no filesystem write.',query),
     tool('datasets','List fixed reporting datasets and source coverage.',object({})),
+    tool('convergence','The four convergence measures and the per-reviewer table from local reporting rows or a fixed dataset. Not recorded is never zero.',object({dataset:{type:'string'},project:{type:'string'},since:{type:'string'},until:{type:'string'}})),
     tool('reevaluate','All-project snapshot report with project/workflow/check/model/platform drill downs.',fleetQuery),
     tool('snapshot-export','Export a fixed portable dataset; no file write or authority transfer.',object({dataset:{type:'string'}})),
     tool('databases','Inspect known local metrics/workflow databases; no filesystem scan.',object({workflow:{type:'string'}})),

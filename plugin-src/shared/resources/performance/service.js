@@ -2,6 +2,7 @@ import { captureSnapshot, importSnapshot, exportSnapshot, importLegacySnapshot, 
 import { analyzeReport } from './analysis.js';
 import { MetricsStore } from './store.js';
 import { report, status, renderReport } from './report.js';
+import { convergenceReport, renderConvergenceMarkdown } from './convergence.js';
 export async function metricsRequest(action, input={}, store=new MetricsStore()) {
   if(!input || typeof input!=='object' || Array.isArray(input))throw new Error('Expected metrics input object');
   if(action==='capture')return captureSnapshot(input,store);
@@ -11,6 +12,7 @@ export async function metricsRequest(action, input={}, store=new MetricsStore())
   if(action==='datasets')return listDatasets(store);
   if(action==='combine')return combineSnapshots(input,store);
   if(action==='reevaluate')return reevaluationReport(input,store);
+  if(action==='convergence')return convergenceReport(input,store);
   if(action==='analyze')return analyzeReport(input,store);
   if(action==='databases')return knownDatabases(input,store);
   if(action==='report'||action==='export')return report(input,store);
@@ -24,4 +26,4 @@ export async function metricsRequest(action, input={}, store=new MetricsStore())
   }
   throw new Error('Unknown metrics action');
 }
-export { renderReport, renderReevaluation };
+export { renderReport, renderReevaluation, renderConvergenceMarkdown };

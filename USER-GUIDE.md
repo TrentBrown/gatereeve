@@ -363,6 +363,43 @@ Say exactly what you want reviewed:
 The reviewer should begin read-only, distinguish blocking findings from
 optional suggestions, and cite concrete evidence.
 
+### Check whether reviews are converging
+
+After several real runs, ask:
+
+> Show the convergence measures for the runs since the last upgrade.
+
+The agent runs `gatereeve metrics convergence --since <date> --format markdown`
+(or you can, or open **Load convergence measures** in the desktop metrics
+card). It reports four measures from the local metrics store:
+
+1. **Rounds to PASS.** The median number of paired review rounds until a
+   review scope passed, with open scopes counted at their current round. Met
+   when the median is 3 or fewer and no run waived the review after a FAIL
+   streak.
+2. **Demoted findings.** Findings a reviewer marked blocking that the round
+   schedule did not let block (low severity, or medium non-regressions in
+   rounds 4-5), by severity, and whether each records its severity and failure
+   scenario. Whether each was decided at Completion is shown as not recorded
+   until follow-up records exist.
+3. **Escaped defects traced to demoted findings.** A count, with no target:
+   escaped defects whose confirmed origin is a demoted finding.
+4. **Second opinion.** For each reviewer provider, how often it was
+   UNAVAILABLE and how many findings it reported. Met when every provider is
+   below 10% and reported findings.
+
+Each reading is `met`, `not met` or `not measurable`, with its denominator.
+Runs recorded before this version, and in-progress review scopes, make a
+measure not measurable rather than met. A per-reviewer table shows each
+provider and model's result statuses, UNAVAILABLE reasons and corrected or
+rejected verdict rules. These are observations of your recorded runs, not
+proof that the workflow improved; details are in
+[PERFORMANCE.md](plugin-src/shared/resources/PERFORMANCE.md#convergence-measures-current8).
+
+To link an escaped defect to the demoted finding that let it through, name the
+finding when you confirm the origin; the agent records the origin link as
+`finding:<result-hash>:<finding-id>`.
+
 ### Work without the workflow temporarily
 
 You can explicitly ask an agent not to use the workflow for one task. To pause

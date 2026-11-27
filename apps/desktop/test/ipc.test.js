@@ -271,6 +271,11 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
   await assert.rejects(handlers.get(IPC_CHANNELS.metrics)(event,{action:'execute'}), /Invalid/);
   assert.equal((await handlers.get(IPC_CHANNELS.addProject)(event)).phase, 'ready');
   assert.equal((await handlers.get(IPC_CHANNELS.activateProject)(event, '/repo')).phase, 'ready');
+  // Convergence measures are scoped to the selected project; the scope cannot be overridden (issue #149).
+  await assert.rejects(handlers.get(IPC_CHANNELS.metrics)(event,{action:'convergence',input:{project:'/unselected'}}), /scope/);
+  await assert.rejects(handlers.get(IPC_CHANNELS.metrics)(event,{action:'convergence',input:{dataset:'other'}}), /scope/);
+  const convergence = await handlers.get(IPC_CHANNELS.metrics)(event,{action:'convergence',input:{since:'2026-01-01T00:00:00Z'}});
+  assert.deepEqual([convergence.cohort.project, convergence.cohort.since, convergence.format], ['/repo', '2026-01-01T00:00:00Z', 'gatereeve-convergence/1']);
   assert.equal((await handlers.get(IPC_CHANNELS.reorderProjects)(event, ['/repo'])).phase, 'ready');
   assert.equal((await handlers.get(IPC_CHANNELS.removeProject)(event, '/repo')).phase, 'ready');
   assert.deepEqual(await handlers.get(IPC_CHANNELS.readDetail)(
