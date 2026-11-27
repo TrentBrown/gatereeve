@@ -9,7 +9,7 @@ Operational task breakdown derived from the plan. GitHub issue #149.
 
 ## I-1 - Projection fields and schema
 
-- **Status:** todo
+- **Status:** in-review
 - **Estimate:** 3h
 - **Plan steps:** P1, P2
 - **Rubric criteria:** R1, R2, R3, R4, R5
@@ -20,7 +20,7 @@ Finding, result, round, pair, reviewer, adjudication and waiver fields; validati
 
 ## I-2 - Convergence measures
 
-- **Status:** todo
+- **Status:** in-review
 - **Estimate:** 3h
 - **Plan steps:** P3
 - **Rubric criteria:** R6, R7, R8, R9, R10, R11
@@ -31,7 +31,7 @@ The four D6 measures and the per-reviewer table from observation rows alone.
 
 ## I-3 - CLI and MCP surfaces
 
-- **Status:** todo
+- **Status:** in-review
 - **Estimate:** 1h
 - **Plan steps:** P4
 - **Rubric criteria:** R12
@@ -42,7 +42,7 @@ The four D6 measures and the per-reviewer table from observation rows alone.
 
 ## I-4 - Documentation and mirror
 
-- **Status:** todo
+- **Status:** in-review
 - **Estimate:** 1h
 - **Plan steps:** P5, P6
 - **Rubric criteria:** R14
@@ -53,7 +53,7 @@ User guide, PERFORMANCE.md, PROTOCOL.md, CLI README; desktop mirror restaged.
 
 ## I-5 - Desktop surface
 
-- **Status:** todo
+- **Status:** in-review
 - **Estimate:** 1h
 - **Plan steps:** P4
 - **Rubric criteria:** R13

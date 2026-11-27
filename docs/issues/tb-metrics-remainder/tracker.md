@@ -9,20 +9,20 @@
 
 | # | Criterion (short) | Status | Review | Notes |
 |---|-------------------|--------|----|-------|
-| R1 | Finding fields | TODO | - | - |
-| R2 | Reviewer result fields | TODO | - | - |
-| R3 | Round and pair rows | TODO | - | - |
-| R4 | Validation | TODO | - | - |
-| R5 | Reprojection | TODO | - | - |
-| R6 | Measure 1 | TODO | - | - |
-| R7 | Measure 2 | TODO | - | - |
-| R8 | Measure 3 | TODO | - | - |
-| R9 | Measure 4 | TODO | - | - |
-| R10 | Per-reviewer table | TODO | - | - |
-| R11 | Not recorded is not zero | TODO | - | - |
-| R12 | CLI | TODO | - | - |
-| R13 | Desktop | TODO | - | - |
-| R14 | Documentation | TODO | - | - |
+| R1 | Finding fields | DONE | pending paired review | convergence-metrics.test.js R1 |
+| R2 | Reviewer result fields | DONE | pending paired review | R2 |
+| R3 | Round and pair rows | DONE | pending paired review | R3 (incl. unreadable result, retired status) |
+| R4 | Validation | DONE | pending paired review | R4 |
+| R5 | Reprojection | DONE | pending paired review | R5 (earlier rows unconverted, S4) |
+| R6 | Measure 1 | DONE | pending paired review | R6 |
+| R7 | Measure 2 | DONE | pending paired review | R7 |
+| R8 | Measure 3 | DONE | pending paired review | R8 |
+| R9 | Measure 4 | DONE | pending paired review | R9 |
+| R10 | Per-reviewer table | DONE | pending paired review | R10 |
+| R11 | Not recorded is not zero | DONE | pending paired review | R11 (incl. uncounted pairs) |
+| R12 | CLI | DONE | pending paired review | R12 (CLI, filters, dataset, reevaluation HTML, MCP) |
+| R13 | Desktop | DONE | pending paired review | desktop ipc.test.js, metrics-view.test.js |
+| R14 | Documentation | DONE | pending paired review | USER-GUIDE, PERFORMANCE, PROTOCOL, cli/README; mirror restaged |
 
 ## Review Log
 

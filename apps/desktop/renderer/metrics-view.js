@@ -13,6 +13,20 @@ export function renderMetrics(container, api) {
     enabled.checked=health.settings.enabled;diagnostics.checked=health.settings.diagnosticDetails;
   };
   button('Load metrics',load);
+  // Convergence measures for the selected project (issue #149): each measure's reading, coverage and denominator.
+  const measures=node('ul',{attributes:{'aria-label':'Convergence measures'}});
+  button('Load convergence measures',async()=>{
+    const {convergence:c}=await api.metrics({action:'convergence'});
+    const reading=met=>met===true?'met':met===false?'not met':'not measurable';
+    measures.replaceChildren(...[
+      `Rounds to PASS: ${reading(c.rounds.met)} · median ${c.rounds.medianRoundsToPass??'none'} over ${c.rounds.denominator.scopes} scopes (open ${c.rounds.denominator.open}) · coverage ${c.rounds.coverage}`,
+      `Demoted findings: ${reading(c.demoted.met)} · ${c.demoted.denominator.demoted} demoted of ${c.demoted.denominator.findings} findings · coverage ${c.demoted.coverage}`,
+      `Escaped defects traced to demoted findings: ${c.escapedFromDemoted.traced} of ${c.escapedFromDemoted.denominator.confirmed} confirmed (counted, no threshold)`,
+      `Second opinion: ${reading(c.secondOpinion.met)} · ${c.secondOpinion.providers.map(row=>`${row.provider} ${row.unavailable}/${row.rounds} UNAVAILABLE, ${row.findings} findings`).join('; ')||'no reviewer rounds'} · coverage ${c.secondOpinion.coverage}`,
+    ].map(text=>node('li',{text})));
+    result.textContent=JSON.stringify(c,null,2);
+    status.textContent='Convergence measures loaded for the selected project. Not recorded is never zero.';
+  });
   button('Open full report',async()=>{const {html}=await api.metrics({action:'html'});let frame=card.querySelector('iframe[title="Workflow performance report"]');if(!frame){frame=node('iframe',{attributes:{title:'Workflow performance report',sandbox:''}});frame.style.width='100%';frame.style.height='600px';card.append(frame);}frame.srcdoc=html;});
   const settings=node('details',{},[node('summary',{text:'Measurement settings (all projects)'})]);
   const enabled=node('input',{type:'checkbox'});settings.append(node('label',{},[enabled,node('span',{text:' Enable collection'})]));
@@ -54,5 +68,5 @@ export function renderMetrics(container, api) {
   const provider=node('select',{attributes:{'aria-label':'Analysis provider'}},['codex','claude-code'].map(value=>node('option',{attributes:{value},text:value})));
   const model=node('input',{attributes:{'aria-label':'Analysis model',placeholder:'Explicit model name'}});fleet.append(provider,model);
   fleetButton('Request model analysis',async()=>{status.textContent='Analyzing the selected fixed dataset…';const value=await api.metrics({action:'analyze',input:{...query(),provider:provider.value,model:model.value}});result.textContent=JSON.stringify(value,null,2);status.textContent=`Analysis ${value.status}; policy unchanged.`;});
-  card.append(heading,status,controls,fleet,settings,result);container.append(card);return card;
+  card.append(heading,status,controls,measures,fleet,settings,result);container.append(card);return card;
 }

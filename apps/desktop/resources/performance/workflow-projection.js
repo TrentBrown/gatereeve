@@ -3,9 +3,20 @@ import { basename } from 'node:path';
 import { sourceGit } from '../protocol/current/git-source.js';
 import { hostname } from 'node:os';
 import { MetricsStore } from './store.js';
-import { reportingDatabase, observation, DIAL_FIELDS, LINK_BASES, reportingDial } from './fleet.js';
+import { reportingDatabase, observation, DIAL_FIELDS, LINK_BASES, reportingDial, CONVERGENCE_FIELDS } from './fleet.js';
 import { DEFAULT_DIALS } from '../protocol/current/contracts.js';
 import { captureWarning } from './observe.js';
+import { scheduledBlocking, severityOf, band } from '../protocol/current/round-policy.js';
+import { outcomeStatus, OUTCOME_STATUSES } from '../protocol/current/boundary-review.js';
+import { UNAVAILABLE_REASONS } from '../protocol/current/execution.js';
+
+// Projection version 2 adds the convergence fields (issue #149). A workflow
+// last projected by an earlier version is replayed from its first event, but
+// its earlier rows are not converted: a replayed row keeps every stored field
+// and gains only the convergence fields (a new version of the same ID), rows
+// without convergence fields are left untouched, and only new convergence
+// rows (per-reviewer rows) are added.
+export const PROJECTION_VERSION = 2;
 
 const text = value => typeof value === 'string' && value ? value : undefined;
 const defined = value => Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined && item !== null));
@@ -29,6 +40,7 @@ function measured(type, value) {
     // A decision applied under a standing grant keeps the grant's original
     // authority kind; its basis distinguishes it from a per-decision human act.
     case 'DECIDED': return defined({ authorityKind: text(value.authority?.kind),
+      gates: (value.kind === 'waive' || value.actions?.includes('waive')) && Array.isArray(value.gates) && value.gates.length ? [...value.gates].filter(text).sort() : undefined,
       authorityBasis: text(value.authority?.basis) ?? (value.standingGrant ? 'standing-grant' : undefined),
       actions: Array.isArray(value.actions) && value.actions.length ? value.actions : undefined,
       count: value.kind === 'stay-light' && Array.isArray(value.hits) ? value.hits.length : undefined });
@@ -40,8 +52,44 @@ function measured(type, value) {
     case 'PLANNING_REVIEWED': return defined({ kind: 'artifact', check: `planning-review:${value.artifact}`, outcome: text(value.outcome),
       model: text(value.evaluator?.model), provider: text(value.evaluator?.provider), links: value.result?.hash ? [value.result.hash] : undefined });
     case 'MERGE_BLOCKED': return defined({ blocker: text(value.blocker), outcome: 'BLOCKED' });
+    case 'ROUND_COUNTED': return defined({ reviewScope: text(value.roundPolicy?.scope), round: Number.isSafeInteger(value.after) ? value.after + 1 : undefined });
     default: return {};
   }
+}
+
+// Convergence fields (issue #149): enumerated values, counts, flags and short
+// labels only. Failure scenarios, evidence and paths never leave the journal;
+// a class statement is kept only as one short line (design D7).
+const statement = value => typeof value === 'string' && value.length <= 200 && !/[\x00-\x1f]/u.test(value) && value.trim() ? value : undefined;
+const roundFields = policy => policy && text(policy.scope) ? defined({ reviewScope: policy.scope, round: Number.isSafeInteger(policy.round) ? policy.round : undefined,
+  band: Number.isSafeInteger(policy.round) ? band(policy.round) : undefined }) : {};
+// Whether a finding blocked when it was raised: the round schedule with the
+// result's recorded round and regression paths; with no recorded round, the
+// reviewer's flag where low never blocks (round-policy.js).
+function findingFields(finding, policy) {
+  const round = Number.isSafeInteger(policy?.round) ? policy.round : null;
+  const regression = Array.isArray(policy?.regressionPaths) && typeof finding.path === 'string' && policy.regressionPaths.includes(finding.path);
+  const blocking = scheduledBlocking(finding, { round, regression }), reviewerBlocking = Boolean(finding.blocking);
+  return defined({ severity: severityOf(finding), classId: text(finding.classId), classStatement: statement(finding.classStatement), criterion: text(finding.criterion),
+    reviewerBlocking, blocking, demoted: reviewerBlocking && !blocking, hasFailureScenario: Boolean(text(finding.failureScenario)?.trim()) });
+}
+// The #140 reviewer status of one retained result (boundary-review.js).
+// Values outside the current vocabularies (retained from earlier builds) are
+// omitted rather than failing the workflow's whole projection.
+const known = (values, value) => values.includes(value) ? value : undefined;
+const resultStatus = result => outcomeStatus({ status: 'fulfilled', value: {} }, result);
+function reviewerFields(result) {
+  return defined({ reviewerStatus: resultStatus(result),
+    unavailableReason: result.outcome === 'UNAVAILABLE' ? known(UNAVAILABLE_REASONS, result.unavailableReason) : undefined,
+    providerFailure: result.outcome === 'UNAVAILABLE' ? text(result.providerFailure?.category) : undefined });
+}
+async function readResult(core, ref) {
+  const result = await core.store.json(ref);
+  if (!result || typeof result !== 'object') throw new Error('Unreadable result');
+  let input = {}, receipt = {};
+  try { input = await core.store.json(result.input) ?? {}; } catch { /* lost input: no round fields */ }
+  try { receipt = await core.store.json(result.receipt) ?? {}; } catch { /* lost receipt: no evaluator identity */ }
+  return { result, input, receipt };
 }
 
 // Derived, replaceable reporting memory. Failure never changes workflow authority.
@@ -57,22 +105,31 @@ export async function projectWorkflow(core, store = new MetricsStore()) {
     const source = await store.identity(`source:${hostname()}`), workflow = await store.identity(`${core.store.home}:${state.runId}`);
     const db = await reportingDatabase(store);
     const previous = db.prepare('SELECT body FROM reporting_workflows WHERE id=?').get(workflow);
-    const old = previous ? JSON.parse(previous.body) : { sequence: 0 };
+    const stored = previous ? JSON.parse(previous.body) : null;
+    // An earlier projection version is replayed from the first event (D8).
+    const old = stored?.projection === PROJECTION_VERSION ? stored : { ...(stored ?? {}), sequence: 0 };
     const project = basename(core.context.workspaceRoot), platform = hostname();
     const projectId = await store.identity(core.context.workspaceRoot);
     const repository = core.context.repositories?.[0];
     const branch = old.branch ?? (repository ? await sourceGit(repository, ['symbolic-ref', '--quiet', '--short', 'HEAD']).then(value=>value.trim()).catch(()=>null) : null);
     const base = { source, project, projectKey: `${source}:${projectId}`, workflow, issue: core.context.featureId, branch, platform };
     const observations = [];
+    const replayed = stored && stored.projection !== PROJECTION_VERSION ? stored.sequence ?? 0 : 0;
+    let firstNew = null;
     // Dial values are replayed from the whole journal (projection is incremental),
     // so every observation carries the run's rigor and autonomy when its event
     // was recorded. A run whose STARTED has no dials reads as the defaults.
     const dials = { ...DEFAULT_DIALS };
+    // Counted rounds by scope and revision, replayed like the dials: a paired
+    // round's event names only its scope and revision (round-policy.js).
+    const counted = new Map();
     for (const [index, event] of events.entries()) {
       const value = event.payload ?? {};
       if (event.type === 'STARTED') for (const dial of Object.keys(DIAL_FIELDS)) dials[dial] = reportingDial(dial, value.dials?.[dial]?.value ?? DEFAULT_DIALS[dial]);
       if (event.type === 'DIAL_SET' && Object.hasOwn(DIAL_FIELDS, value.dial)) dials[value.dial] = reportingDial(value.dial, value.value);
+      if (event.type === 'ROUND_COUNTED' && text(value.roundPolicy?.scope) && Number.isSafeInteger(value.after)) counted.set(`${value.roundPolicy.scope}\u0000${value.roundPolicy.revision}`, value.after + 1);
       if (index < old.sequence) continue;
+      if (index >= replayed && firstNew === null) firstNew = observations.length;
       const common = { ...base, id: `${source}:${event.hash}`, observedAt: event.recordedAt, kind: 'event', check: event.type, reference: event.hash,
         ...Object.fromEntries(Object.keys(DIAL_FIELDS).map(dial => [dial, DIAL_FIELDS[dial].includes(dials[dial]) ? dials[dial] : null])) };
       if (event.type === 'OBSERVATION') observations.push(observation(noted(common, value)));
@@ -84,11 +141,13 @@ export async function projectWorkflow(core, store = new MetricsStore()) {
       }
       else if (event.type === 'JOB_FINISHED') {
         for (const ref of value.results) {
-          const result = await core.store.json(ref), input = await core.store.json(result.input), receipt = await core.store.json(result.receipt);
+          const { result, input, receipt } = await readResult(core, ref);
           const row = { ...common, id: `${source}:${ref.hash}`, kind: 'artifact', check: result.gate, outcome: result.outcome, model: receipt.evaluator?.model ?? null,
             provider: receipt.evaluator?.provider ?? null, strategy: result.mode, reference: ref.hash, links: [result.receipt.hash] };
-          observations.push(observation(row));
-          for (const finding of result.findings ?? []) observations.push(observation({ ...row, id: `${row.id}:finding:${finding.id}`, kind: 'finding', findingId: finding.id }));
+          const rounds = roundFields(input.roundPolicy);
+          observations.push(observation({ ...row, ...rounds, ...(result.gate === 'review' ? reviewerFields(result) : {}) }));
+          for (const finding of result.findings ?? []) observations.push(observation({ ...row, ...rounds, id: `${row.id}:finding:${finding.id}`, kind: 'finding', findingId: finding.id,
+            ...findingFields(finding, input.roundPolicy) }));
           for (const disposition of result.dispositions ?? []) observations.push(observation({ ...row, id: `${row.id}:disposition:${disposition.id}`, kind: 'disposition', findingId: disposition.id, outcome: disposition.status }));
           // Per-rule verdict normalization and rejection counts (issue #141).
           // Only the rule identifier and count are projected, never the text.
@@ -97,12 +156,52 @@ export async function projectWorkflow(core, store = new MetricsStore()) {
           for (const [rule, count] of rules) observations.push(observation({ ...row, id: `${row.id}:normalization:${rule}`, kind: 'event', check: 'verdict-normalization', rule, count }));
           if (text(result.rejectionRule)) observations.push(observation({ ...row, id: `${row.id}:rejection:${result.rejectionRule}`, kind: 'event', check: 'verdict-rejection', rule: result.rejectionRule, count: 1 }));
         }
+      } else if (event.type === 'BOUNDARY_REVIEWED') {
+        // One pair row per paired round and one row per reviewer with its
+        // final attempt's status, so retries in one round count once (D5, D6).
+        const members = [], reads = [];
+        for (const [slot, outcome] of (Array.isArray(value.outcomes) ? value.outcomes : []).entries()) {
+          let read = null;
+          if (outcome?.results?.[0]) try { read = await readResult(core, outcome.results[0]); } catch { /* unreadable: status only */ }
+          reads.push(read);
+        }
+        // The round the reviewers were given, else the counted round of this revision.
+        const given = reads.map(read => read?.input.roundPolicy?.round).find(Number.isSafeInteger);
+        const rounds = roundFields({ scope: value.roundPolicy?.scope, round: given ?? counted.get(`${value.roundPolicy?.scope}\u0000${value.roundPolicy?.revision}`) });
+        for (const [slot, outcome] of (Array.isArray(value.outcomes) ? value.outcomes : []).entries()) {
+          const read = reads[slot];
+          const status = read ? resultStatus(read.result) : known(OUTCOME_STATUSES, outcome?.status);
+          members.push({ status, outcome: read?.result.outcome ?? 'UNAVAILABLE' });
+          observations.push(observation({ ...common, ...rounds, id: `${common.id}:reviewer:${slot}`, kind: 'artifact', check: 'boundary-reviewer',
+            provider: text(outcome?.provider) ?? read?.receipt.evaluator?.provider ?? null, model: read?.receipt.evaluator?.model ?? null,
+            outcome: read?.result.outcome ?? 'UNAVAILABLE', reference: read ? outcome.results[0].hash : event.hash,
+            ...(read ? reviewerFields(read.result) : defined({ reviewerStatus: status })) }));
+        }
+        const completed = members.filter(row => row.status === 'completed');
+        const outcome = members.length && completed.length === members.length && completed.every(row => row.outcome === 'PASS') ? 'PASS'
+          : completed.some(row => row.outcome === 'FAIL') ? 'FAIL' : 'UNAVAILABLE';
+        observations.push(observation({ ...common, ...rounds, kind: 'event', check: event.type, outcome, count: members.length }));
+      } else if (event.type === 'REVIEW_ADJUDICATED') {
+        let rounds = {};
+        if (value.reviews?.[0]) try { rounds = roundFields((await readResult(core, value.reviews[0])).input.roundPolicy); } catch { /* unreadable: no round */ }
+        observations.push(observation({ ...common, ...rounds, kind: 'event', check: event.type, outcome: 'ADJUDICATED' }));
       } else observations.push(observation({ ...common, kind: event.type === 'DECIDED' ? 'decision' : event.type === 'MILESTONE' ? 'milestone' : 'event', check: event.type === 'DECISION_PENDING' && value.asked ? `asked:${value.decision.kind}` : value.kind ?? value.name ?? event.type, ...measured(event.type, value) }));
     }
-    const body = { ...base, home: core.store.home, sequence: events.length, projectId, featureId: await store.identity(core.context.featureId) };
+    const latestBody = db.prepare('SELECT o.body FROM reporting_latest l JOIN reporting_observations o ON o.id=l.id AND o.version=l.version WHERE l.id=?');
+    const kept = observations.slice(0, firstNew ?? observations.length).flatMap(row => {
+      const added = Object.fromEntries(Object.entries(row).filter(([key]) => CONVERGENCE_FIELDS.includes(key)
+        || (row.check === 'BOUNDARY_REVIEWED' && ['outcome', 'count'].includes(key))));
+      if (!Object.keys(added).length) return [];
+      const existing = latestBody.get(row.id);
+      if (!existing) return [row];
+      const merged = observation({ ...JSON.parse(existing.body), ...added });
+      return JSON.stringify(merged) === JSON.stringify(observation(JSON.parse(existing.body))) ? [] : [merged];
+    });
+    observations.splice(0, firstNew ?? observations.length, ...kept);
+    const body = { ...base, home: core.store.home, sequence: events.length, projection: PROJECTION_VERSION, projectId, featureId: await store.identity(core.context.featureId) };
     store.transaction(db, () => {
       const current = db.prepare('SELECT body FROM reporting_workflows WHERE id=?').get(workflow);
-      if (current && JSON.parse(current.body).sequence >= events.length) return;
+      if (current && JSON.parse(current.body).projection === PROJECTION_VERSION && JSON.parse(current.body).sequence >= events.length) return;
       for (const row of observations) {
         const serialized = JSON.stringify(row), version = createHash('sha256').update(serialized).digest('hex');
         db.prepare('INSERT OR IGNORE INTO reporting_observations VALUES (?,?,?,?)').run(row.id,version,row.observedAt,serialized);

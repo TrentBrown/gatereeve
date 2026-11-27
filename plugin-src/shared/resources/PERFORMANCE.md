@@ -94,7 +94,7 @@ The small tools-only adapter implements the [MCP 2025-06-18 stdio transport](htt
 
 ## Desktop
 
-In a selected project's overview, load Workflow metrics to inspect totals and capture health. Open the shared report for detail. Measurement settings are global across projects; cleanup preview/apply affect only eligible owned metrics. Opening the panel does not execute validation or refresh remote CI.
+In a selected project's overview, load Workflow metrics to inspect totals and capture health. Open the shared report for detail. Measurement settings are global across projects; cleanup preview/apply affect only eligible owned metrics. Opening the panel does not execute validation or refresh remote CI. **Load convergence measures** shows the four convergence measures for the selected project (see Convergence measures).
 
 ## MyLifeMap rollout and ordinary-use reconciliation
 
@@ -202,3 +202,50 @@ uses a disclosed bounded sample (failures first, then long observations), cites
 record IDs, and remains an inference. A project filter accepts a displayed label
 or the exact project group ID; equal display names do not merge identities.
 Unknown timing stays unknown in aggregate work and elapsed totals.
+
+## Convergence measures (current/8)
+
+The projection (version 2) records the review data behind the four
+convergence success measures, and `gatereeve metrics convergence` computes
+them from reporting rows alone. Reporting only: nothing here grants or
+changes workflow authority.
+
+| Source | Observation fields |
+|---|---|
+| Review result (`artifact`, check `review`) | `reviewScope`, `round`, `band` when its input recorded a round policy; `reviewerStatus` (`completed`, `refused`, `provider-failed`, `verdict-rejected`, `could-not-assess`); for UNAVAILABLE, `unavailableReason` and the `providerFailure` category |
+| Finding (`finding`) | `severity` (`high`/`medium`/`low`, `unrated` for earlier-contract findings), `classId`, `classStatement` (only one line of at most 200 characters), `criterion`, `reviewerBlocking` (the reviewer's flag), `blocking` (whether it blocked when raised under the round schedule), `demoted` (`reviewerBlocking` and not `blocking`), `hasFailureScenario`, `reviewScope`, `round`, and `reference` (the raising result's hash). `followUp` is accepted for follow-up records but not set by this version |
+| `ROUND_COUNTED` | `reviewScope`, `round` |
+| `BOUNDARY_REVIEWED` | one pair row (`outcome` PASS when every reviewer completed with PASS, FAIL when a completed reviewer FAILed, else UNAVAILABLE; `count` reviewers) and one `boundary-reviewer` row per reviewer with its final attempt's status, outcome, reason, provider, model and result `reference`. The round is the one the reviewers' inputs recorded, else the counted round of the reviewed revision; a pair with neither launched no reviewer on a counted revision and is reported as uncounted, not as a round |
+| `REVIEW_ADJUDICATED` | `reviewScope`, `round`, outcome `ADJUDICATED` |
+| `waive` decision | `gates` (gate IDs) |
+
+Failure scenarios, evidence, paths, summaries and reasons are never projected.
+A status or reason outside the current vocabulary (retained from an earlier
+build) is omitted rather than failing the workflow's projection.
+A workflow last projected by version 1 is replayed once: rows that gain
+convergence fields get a new version of the same ID with every stored field
+kept, other rows are left untouched (earlier rows are not converted), and only
+the new per-reviewer rows are added.
+
+`gatereeve metrics convergence [--dataset <id>] [--project <label>] [--since <date>]
+[--until <date>] [--format json|markdown]` reads this store's latest rows, or a
+fixed dataset. MCP `metrics_convergence`, `metrics reevaluate`
+(`measurement.convergence` and an HTML section) and the desktop metrics card
+("Load convergence measures", scoped to the selected project) show the same
+report.
+
+| Measure | Computed as | `met` |
+|---|---|---|
+| 1. Rounds to PASS | Per workflow and boundary scope (`slice`, `feature-final`): the round of the first PASS or adjudicated pair. Open scopes count their current round as a lower bound in the median; a scope with a later `review` waiver and no PASS is `waived` | false when the median exceeds 3 or a waive followed a FAIL; null while a scope is open or none passed; else true |
+| 2. Demoted findings | `recorded`: demoted findings by severity, and how many have a rated severity and a failure scenario. `decided`: demoted findings by `followUp` | null while either part is null (follow-up decisions are not recorded yet); else both parts |
+| 3. Escaped defects traced to demoted findings | Confirmed escaped defects whose links include `finding:<result-hash>:<finding-id>` naming a demoted finding | always null: counted, with no threshold |
+| 4. Second opinion | Per provider, from `boundary-reviewer` rows (retries in one round count once): rounds, UNAVAILABLE count and rate, findings it reported. `peerUnmatchedClasses` is a class-ID proxy only | true when every provider is below 10% UNAVAILABLE and reported a finding; null without rows |
+
+The report also lists, per provider and model, review results by status,
+UNAVAILABLE reasons, normalization and rejection rule counts and findings by
+severity. Every measure states its denominator. Rows projected before these
+fields are counted as not recorded, never as zero, PASS or non-demoted; a
+measure whose cohort contains them reports `coverage: incomplete` and
+`met: null`. Use `--since` to measure the runs after an upgrade. A `met`
+value is a reading of the recorded cohort, not proof that convergence
+improved.

@@ -7,6 +7,9 @@ import { resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { report, workerAccounting } from './report.js';
 import { validateRecord } from './store.js';
+import { OUTCOME_STATUSES } from '../protocol/current/boundary-review.js';
+import { UNAVAILABLE_REASONS } from '../protocol/current/execution.js';
+import { convergence } from './convergence.js';
 
 export const SNAPSHOT_FORMAT = 'gatereeve-metrics-snapshot/1';
 const compare = (a,b) => a < b ? -1 : a > b ? 1 : 0;
@@ -52,8 +55,17 @@ export function normalizedObservation(value) {
   return next;
 }
 // `rule`: a verdict normalization or rejection rule, counted per review result (issue #141).
-const MEASUREMENT = ['rigor','autonomy','authorityKind','authorityBasis','dial','dialValue','dialPrevious','dialSource','actor','trigger','blocker','linkBasis','stage','count','categories','actions','rule'];
-const LISTS = ['links','categories','actions'];
+// Convergence fields (issue #149): per finding, per reviewer result, per round.
+export const CONVERGENCE_FIELDS = Object.freeze(['severity','classId','classStatement','criterion','reviewerBlocking','blocking','demoted','hasFailureScenario','followUp',
+  'reviewScope','round','band','reviewerStatus','unavailableReason','providerFailure','gates']);
+const MEASUREMENT = ['rigor','autonomy','authorityKind','authorityBasis','dial','dialValue','dialPrevious','dialSource','actor','trigger','blocker','linkBasis','stage','count','categories','actions','rule',...CONVERGENCE_FIELDS];
+const LISTS = ['links','categories','actions','gates'];
+const FLAGS = ['reviewerBlocking','blocking','demoted','hasFailureScenario'];
+export const SEVERITIES = Object.freeze(['high','medium','low','unrated']);
+export const BANDS = Object.freeze(['legacy','all-non-low','high-and-medium-regressions','hand-back']);
+// Set by follow-up records (issue #148); accepted here so the measures count it.
+export const FOLLOW_UP_STATUSES = Object.freeze(['undecided','accepted-risk','new-work','fixed']);
+const ENUMS = { severity: () => SEVERITIES, band: () => BANDS, followUp: () => FOLLOW_UP_STATUSES, reviewerStatus: () => OUTCOME_STATUSES, unavailableReason: () => UNAVAILABLE_REASONS };
 export const LINK_BASES = Object.freeze(['human-stated','agent-proposed']);
 export function observation(input) {
   const value = normalizedObservation(input);
@@ -61,7 +73,11 @@ export function observation(input) {
   check(value && typeof value === 'object' && Object.keys(value).every(key => allowed.includes(key)), 'Unsupported reporting observation field');
   check(label(value.id) && value.id && label(value.source) && value.source && time(value.observedAt), 'Observation needs stable identity, source and observation time');
   check(['execution','finding','disposition','decision','milestone','strategy','friction','escaped-defect','artifact','event'].includes(value.kind), 'Unsupported observation kind');
-  for (const key of allowed.filter(key => !['metrics','observedAt','count',...LISTS].includes(key))) if (value[key] != null) check(label(value[key]), `Invalid reporting ${key}`);
+  for (const key of allowed.filter(key => !['metrics','observedAt','count','round',...FLAGS,...LISTS].includes(key))) if (value[key] != null) check(label(value[key]), `Invalid reporting ${key}`);
+  for (const key of FLAGS) if (value[key] != null) check(typeof value[key] === 'boolean', `Invalid reporting ${key}`);
+  for (const [key, values] of Object.entries(ENUMS)) if (value[key] != null) check(values().includes(value[key]), `Invalid reporting ${key}`);
+  if (value.round != null) check(Number.isSafeInteger(value.round) && value.round >= 0, 'Invalid reporting round');
+  if (value.classStatement != null) check(value.classStatement.length <= 200, 'Invalid reporting classStatement');
   for (const key of LISTS) if (value[key] != null) check(Array.isArray(value[key]) && value[key].length <= 32 && value[key].every(label), key === 'links' ? 'Invalid artifact references' : `Invalid reporting ${key}`);
   for (const dial of Object.keys(DIAL_FIELDS)) if (value[dial] != null) check(DIAL_FIELDS[dial].includes(value[dial]), `Invalid reporting ${dial}`);
   if (value.count != null) check(Number.isSafeInteger(value.count) && value.count >= 0, 'Invalid reporting count');
@@ -129,6 +145,13 @@ export async function exportSnapshot({ dataset } = {}, store) {
   check(found, 'Unknown report dataset');
   const records = db.prepare('SELECT o.body FROM reporting_members m JOIN reporting_observations o ON o.id=m.id AND o.version=m.version WHERE m.dataset=? ORDER BY o.id').all(dataset).map(row => normalizedObservation(JSON.parse(row.body)));
   return { format: SNAPSHOT_FORMAT, sources: JSON.parse(found.body).sources, records };
+}
+// Observation rows for a report: a fixed dataset's members, or this store's
+// own latest projected rows (as capture would snapshot them).
+export async function reportingObservations(store, dataset) {
+  if (dataset != null) return (await exportSnapshot({ dataset }, store)).records;
+  const db = await reportingDatabase(store, false);
+  return db ? db.prepare('SELECT o.body FROM reporting_local x JOIN reporting_latest l ON l.id=x.id JOIN reporting_observations o ON o.id=l.id AND o.version=l.version').all().map(row => normalizedObservation(JSON.parse(row.body))) : [];
 }
 export async function listDatasets(store) {
   const db = await reportingDatabase(store, false);
@@ -205,6 +228,7 @@ export function measurement(rows) {
     externalBlockers: rows.filter(row => row.check === 'MERGE_BLOCKED').length,
     escapedDefects: { records: defects.length, confirmedOriginLinks: confirmed.length, byBasis: tally(confirmed, 'linkBasis'), statement: escapedDefectStatement(defects.length, confirmed.length) },
     caveat: DIAL_COMPARISON_CAVEAT,
+    convergence: convergence(rows),
   };
 }
 // Spec AC2: the human's wait is from the recorded question (decision.ask) to
@@ -275,8 +299,11 @@ export function renderReevaluation(value, format = 'json') {
   const chart = `<h2>Observed operation time</h2><p>Exclusive recorded time; concurrent operations are not a critical path.</p>${costs.map(row=>`<div><span>${escape(row.label)} · ${Math.round(row.exclusiveMs/1000)}s</span><div role="img" aria-label="${escape(row.label)}: ${Math.round(row.exclusiveMs/1000)} seconds" style="width:${100*row.exclusiveMs/maxCost}%;height:12px;background:#307c69;margin:4px 0 12px"></div></div>`).join('')}`;
   const m = value.measurement, entries = counts => Object.entries(counts ?? {}).map(([name,n]) => `${escape(name)} ${n}`).join(', ') || 'none';
   const dials = m ? `<h2>Rigor, autonomy and decision authority</h2><p>${escape(m.caveat)}</p><ul><li>Runs started: ${m.runs.started} (rigor: ${entries(m.runs.byRigor)}; autonomy: ${entries(m.runs.byAutonomy)})</li><li>Dial changes: ${m.dialChanges} · delegations ${m.delegations} · escalations to full ${m.escalations.total} (${entries(m.escalations.byTrigger)}) · hand-backs ${m.handBacks.total} (${entries(m.handBacks.byTrigger)})</li><li>Decisions: ${m.decisions.total} (${entries(m.decisions.byAuthority)}; ${m.decisions.standingApplications} applied under a standing grant) · human touches ${m.humanTouches}</li><li>Tripwire evaluations: ${m.tripwires.evaluations} · with hits ${m.tripwires.withHits} · hits ${m.tripwires.hits} · stay-light decisions ${m.tripwires.stayLight}</li><li>Planning reviews: ${m.planningReviews} · external merge blockers ${m.externalBlockers}</li></ul>` : '';
+  // Convergence measures (issue #149): each measure's reading, coverage and denominator.
+  const c = m?.convergence, reading = met => met === true ? 'met' : met === false ? 'not met' : 'not measurable';
+  const conv = c ? `<h2>Convergence measures</h2><p>${escape(c.caveat)}</p><ul><li>Rounds to PASS: ${reading(c.rounds.met)} · median ${c.rounds.medianRoundsToPass ?? 'none'} over ${c.rounds.denominator.scopes} scopes (passed ${c.rounds.denominator.passed}, open ${c.rounds.denominator.open}, waived ${c.rounds.denominator.waived}) · waives after a FAIL streak ${c.rounds.waivesAfterFailStreak.length} · coverage ${c.rounds.coverage}</li><li>Demoted findings: ${reading(c.demoted.met)} · ${c.demoted.denominator.demoted} demoted of ${c.demoted.denominator.findings} (${entries(c.demoted.recorded.bySeverity)}) · ${c.demoted.recorded.withSeverityAndScenario} with severity and failure scenario · ${escape(c.demoted.decided.statement ?? `decided: ${entries(c.demoted.decided.byFollowUp)}`)} · coverage ${c.demoted.coverage}</li><li>Escaped defects traced to demoted findings: ${c.escapedFromDemoted.traced} of ${c.escapedFromDemoted.denominator.confirmed} confirmed · ${escape(c.escapedFromDemoted.threshold)}</li><li>Second opinion: ${reading(c.secondOpinion.met)} · ${c.secondOpinion.providers.map(row => `${escape(row.provider)} ${row.unavailable}/${row.rounds} UNAVAILABLE, ${row.findings} findings`).join('; ') || 'no reviewer rounds'} · coverage ${c.secondOpinion.coverage}</li></ul>` : '';
   const repeats = `<details><summary>Repeated work and recorded reasons (${value.repetitions.length} groups)</summary>${value.repetitions.map(row=>`<p>${row.executions} executions · ${escape(row.classification)}<br>${row.reasons.map(escape).join(', ')}<br>${escape(row.conclusion)}</p>`).join('')}<p>${value.detailListsTruncated?'Detail lists are bounded; inspect observations for the full dataset.':''}</p></details>`;
-  return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>GateReeve workflow reevaluation</title><style>body{font:16px system-ui;max-width:1100px;margin:2rem auto;padding:1rem;color:#17322c;background:#f6f8f7}table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:.6rem;border-bottom:1px solid #ccd8d3}pre{white-space:pre-wrap;overflow-wrap:anywhere}summary{cursor:pointer}a{overflow-wrap:anywhere}details{margin:.5rem 0}.stats{font-size:1.2rem}</style><h1>Workflow reevaluation</h1><p>Fixed dataset ${escape(value.dataset)}</p><p class="stats">${value.totals.records} timed observations · ${value.totals.workerMs == null ? 'Unknown' : Math.round(value.totals.workerMs/1000)+'s'} recorded worker time · ${value.totals.observedElapsedMs == null ? 'Unknown across clocks' : Math.round(value.totals.observedElapsedMs/1000)+'s'} observed elapsed</p><p>${escape(value.interpretation)}</p><p>Unattributed recorded operation time: ${value.coverage.operationAttribution?.unattributedFraction==null?'Unknown':(100*value.coverage.operationAttribution.unattributedFraction).toFixed(1)+'%'}. This is not a percentage of all developer time.</p><p>${value.outcomes.findings} findings · ${value.outcomes.dispositions} dispositions · ${value.outcomes.friction} friction notes.</p><h2>Escaped defects</h2><p>${escape(value.measurement?.escapedDefects.statement ?? escapedDefectStatement(value.outcomes.escapedDefects, 0))}</p>${dials}${chart}${repeats}<h2>Sources and coverage</h2>${value.sources.map(row=>`<p><b>${escape(row.platform)}</b> · ${escape(row.status)} · captured ${escape(row.capturedAt)} · covered ${escape(row.since)} to ${escape(row.until)}<br>${row.limitations.map(escape).join(' ')}</p>`).join('')}<details><summary>Accounting limitations</summary><ul>${value.coverage.gaps.map(gap=>`<li>${escape(gap)}</li>`).join('')}</ul></details>${table('Projects',value.projects)}${table('Validator types',value.validators ?? [])}${table('Workflows',value.workflows)}${table('Checks and reviewers',value.checks)}${table('Models',value.models)}${table('Platforms',value.platforms)}${table('Strategies',value.strategies)}${table('Rigor',value.rigors ?? [])}${table('Autonomy',value.autonomies ?? [])}${table('Decision authority',value.authorities ?? [])}<h2>Evidence drill down</h2>${value.observations.map(row=>`<details id="record-${hash(row.id)}"><summary>${escape(row.project)} · ${escape(row.check ?? row.kind)} · ${escape(row.outcome ?? row.kind)}</summary><pre>${escape(JSON.stringify(row,null,2))}</pre></details>`).join('')}</html>`;
+  return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>GateReeve workflow reevaluation</title><style>body{font:16px system-ui;max-width:1100px;margin:2rem auto;padding:1rem;color:#17322c;background:#f6f8f7}table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:.6rem;border-bottom:1px solid #ccd8d3}pre{white-space:pre-wrap;overflow-wrap:anywhere}summary{cursor:pointer}a{overflow-wrap:anywhere}details{margin:.5rem 0}.stats{font-size:1.2rem}</style><h1>Workflow reevaluation</h1><p>Fixed dataset ${escape(value.dataset)}</p><p class="stats">${value.totals.records} timed observations · ${value.totals.workerMs == null ? 'Unknown' : Math.round(value.totals.workerMs/1000)+'s'} recorded worker time · ${value.totals.observedElapsedMs == null ? 'Unknown across clocks' : Math.round(value.totals.observedElapsedMs/1000)+'s'} observed elapsed</p><p>${escape(value.interpretation)}</p><p>Unattributed recorded operation time: ${value.coverage.operationAttribution?.unattributedFraction==null?'Unknown':(100*value.coverage.operationAttribution.unattributedFraction).toFixed(1)+'%'}. This is not a percentage of all developer time.</p><p>${value.outcomes.findings} findings · ${value.outcomes.dispositions} dispositions · ${value.outcomes.friction} friction notes.</p><h2>Escaped defects</h2><p>${escape(value.measurement?.escapedDefects.statement ?? escapedDefectStatement(value.outcomes.escapedDefects, 0))}</p>${dials}${conv}${chart}${repeats}<h2>Sources and coverage</h2>${value.sources.map(row=>`<p><b>${escape(row.platform)}</b> · ${escape(row.status)} · captured ${escape(row.capturedAt)} · covered ${escape(row.since)} to ${escape(row.until)}<br>${row.limitations.map(escape).join(' ')}</p>`).join('')}<details><summary>Accounting limitations</summary><ul>${value.coverage.gaps.map(gap=>`<li>${escape(gap)}</li>`).join('')}</ul></details>${table('Projects',value.projects)}${table('Validator types',value.validators ?? [])}${table('Workflows',value.workflows)}${table('Checks and reviewers',value.checks)}${table('Models',value.models)}${table('Platforms',value.platforms)}${table('Strategies',value.strategies)}${table('Rigor',value.rigors ?? [])}${table('Autonomy',value.autonomies ?? [])}${table('Decision authority',value.authorities ?? [])}<h2>Evidence drill down</h2>${value.observations.map(row=>`<details id="record-${hash(row.id)}"><summary>${escape(row.project)} · ${escape(row.check ?? row.kind)} · ${escape(row.outcome ?? row.kind)}</summary><pre>${escape(JSON.stringify(row,null,2))}</pre></details>`).join('')}</html>`;
 }
 
 export async function combineSnapshots({ datasets }, store) {
