@@ -128,3 +128,20 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
   CommonMark. Local Verification gains a receipt that runs the changed CI
   record lints exactly as CI invokes them.
 - **Reversibility:** high.
+
+## S10. Boundary round 4: repeated sections linted; indented fence opening kept
+
+- **Answered by:** agent
+- **Decision:** Codex round 4 F2: a repeated `## Acceptance Criteria` (or
+  `## Rubric`) section is now linted too; every matching section is read.
+  Codex round 4 F1 (a four-space-indented fence line opens a fence, so an
+  indented literal fence line can leave extraction "unclosed"): not changed.
+  The base extractor opens fences at any indentation (`^\s*` in `planningFacts`
+  before this change), so this is pre-existing behaviour, and restricting the
+  opening to three spaces would stop recognising fences inside list items,
+  which spec authors use. The scenario needs an unusual layout, and the
+  failure is a reported refusal with a clear diagnostic, not a wrong pass.
+  Claude round 4 low (setext headings do not end a section) is a follow-up.
+- **Alternatives:** CommonMark's three-space limit (breaks fences nested in
+  list items); full list-aware Markdown parsing (out of scope for a lint).
+- **Reversibility:** high.

@@ -79,6 +79,7 @@ test('criteria with unbounded wording need a same-line bound (AC4)', () => {
   assert.deepEqual(rules(spec(MODEL, '- **AC1.** Export the value. Many companies anyway.')), [], 'whole words only');
   // Nested criterion lines are linted; text outside the two sections is not.
   assert.equal(rules(spec(MODEL, '- **AC1.** Export the value.\n  - It is always right.')).length, 1);
+  assert.equal(rules(`# Spec\n${MODEL}## Acceptance Criteria\n- **AC1.** Export.\n## Acceptance Criteria\n- **AC2.** Import.\n  - It is always correct.\n## Rubric\n| R1 | AC1 | right | other | test |\n| R2 | AC2 | right | other | test |\n`).length, 1, 'every repeated criteria section is linted');
   assert.equal(rules(` # Spec\n${MODEL} ## Acceptance Criteria\n- **AC1.** Export the value.\n  - It is always right.\n ## Rubric\n| R1 | AC1 | right | other | test |\n`).length, 1, 'indented section headings are linted');
   assert.deepEqual(rules(`# Spec\n## Summary\nAlways robust, any case.\n${MODEL}## Acceptance Criteria\n- **AC1.** Export.\n## Rubric\n| R1 | AC1 | 42 | other | test |\n`), []);
   // One diagnostic lists every offending line.

@@ -80,16 +80,20 @@ const UNBOUNDED = Object.freeze([['always', /\balways\b/iu], ['any', /\bany\b/iu
 // phrase. Requirement identifiers (AC1, R2, I-3, D4, P5) are not numerals.
 const BOUND = /failure model|\b(?:at most|at least|up to|no more than|within)\b|\b\d+\b/iu;
 const IDENTIFIER = /\b(?:AC|R|D|P|I-)\d+\b/gu;
-function sectionLines(lines, prose, pattern) {
-  const start = lines.findIndex((line, i) => prose[i] && pattern.test(line));
-  if (start < 0) return null;
-  let end = start + 1;
-  while (end < lines.length && !(prose[end] && SECTION_END.test(lines[end]))) end++;
-  return { heading: start, body: Array.from({ length: end - start - 1 }, (_, k) => start + 1 + k) };
+// Every section whose heading matches, in order (a spec may repeat a heading).
+function sections(lines, prose, pattern) {
+  const found = [];
+  for (let start = 0; start < lines.length; start++) {
+    if (!prose[start] || !pattern.test(lines[start])) continue;
+    let end = start + 1;
+    while (end < lines.length && !(prose[end] && SECTION_END.test(lines[end]))) end++;
+    found.push({ heading: start, body: Array.from({ length: end - start - 1 }, (_, k) => start + 1 + k) });
+  }
+  return found;
 }
 export function specificationRules(body, facts) {
   const lines = body.split(/\r?\n/u), prose = outsideFences(lines), problems = [];
-  const model = sectionLines(lines, prose, /^ {0,3}##\s+failure model\s*#*\s*$/iu);
+  const model = sections(lines, prose, /^ {0,3}##\s+failure model\s*#*\s*$/iu)[0];
   if (!model) problems.push('Specification needs a "## Failure model" section naming the handled conditions and the detect-and-refuse behaviour outside them');
   else {
     const content = model.body.filter(i => prose[i] && lines[i].trim());
@@ -98,7 +102,7 @@ export function specificationRules(body, facts) {
   }
   const linted = new Set([...facts.acceptance, ...facts.criteria].map(item => item.line - 1));
   for (const pattern of [/^ {0,3}##\s+acceptance criteria\s*#*\s*$/iu, /^ {0,3}##\s+rubric\s*#*\s*$/iu]) {
-    for (const i of sectionLines(lines, prose, pattern)?.body ?? []) linted.add(i);
+    for (const section of sections(lines, prose, pattern)) for (const i of section.body) linted.add(i);
   }
   const unbounded = [];
   for (const i of [...linted].sort((a, b) => a - b)) {
