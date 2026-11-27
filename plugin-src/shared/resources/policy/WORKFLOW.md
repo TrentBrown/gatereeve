@@ -19,7 +19,10 @@ guidance, not enforcement.
 Interview the user on material design decisions, one question at a time where
 needed. Maintain `interview.md`; synthesize `design.md` when the interview ends.
 Obtain explicit design approval before drafting `spec.md`. Derive observable AC
-and a binary rubric. Review semantic consistency and feasible evidence boundaries,
+and a binary rubric. The global Definition of Done that specs incorporate is
+`resources/protocol/DEFINITION-OF-DONE.md`; a rubric row that can only be
+checked after merge starts its criterion with `After merge:` and is left out
+of boundary review. Review semantic consistency and feasible evidence boundaries,
 then validate its extracted identities and references. Produce useful `plan.md` steps
 and `issues.md` work/status records. Trace coverage at feature level; supporting
 tasks do not each need artificial rubric mappings. Existing independent reviews

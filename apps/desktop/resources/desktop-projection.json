@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:fd5e9a6ceef76948a0dfe3737cd1b131b1b2817c80f8c613ee3ada48a39e8463",
+  "protocolHash": "sha256:421e69eba496b7c1bd608d2cc2e8d39d968e18ca253b7514b8a48f4c936eb495",
   "contract": "gatereeve/current/8",
   "contractSha256": "1df0afc21301595b72a5f9bdad3ab2aade7452ad1c5a4f97455bde354bf1120a",
   "files": [
     {
       "path": "agent-workflow.js",
-      "size": 7863,
-      "sha256": "dd9e35e7234199e34e437ec1ae8523e1a2ab8cdc0e388f923578971cfe5b96a1"
+      "size": 8150,
+      "sha256": "5976b85ce319839d3fb4d5426457bcfa939e3bf467b07502ae33ded954341e64"
     },
     {
       "path": "constants.js",
@@ -42,8 +42,8 @@
     },
     {
       "path": "current/boundary-review.js",
-      "size": 27264,
-      "sha256": "e50070deb0799fb756ff6269017ed0b5f7e838f1deda7461663c13111ed2c66a"
+      "size": 28587,
+      "sha256": "4103fe0f7292db9e0e347d80fe8dcd5bbc207580844a0cf847d53075803959f5"
     },
     {
       "path": "current/ci-qualification.js",
@@ -97,13 +97,13 @@
     },
     {
       "path": "current/evidence.js",
-      "size": 17886,
-      "sha256": "4b8c47b1bf83cd6d41540bb9f81858d2c996f30e3a911d403985f2781be186da"
+      "size": 18560,
+      "sha256": "737c59efc64f4b897be79ddb3349c588b5f1f88a43d1ec22051f7b79fd669cda"
     },
     {
       "path": "current/execution.js",
-      "size": 113457,
-      "sha256": "b52842349849d44611aea5bde680f51965cd54ba6afe85b90c5fe712a0b2d990"
+      "size": 125765,
+      "sha256": "82f874643489b2a325a56708fb6dbc47e96c765663f68147b3f5f8c81e513c0d"
     },
     {
       "path": "current/final-handoff.js",
@@ -166,6 +166,11 @@
       "sha256": "e0f63ca54a61b67806833045b3c12b49d73c3d488bae9a06c5ce7d241053cb45"
     },
     {
+      "path": "current/review-packet.js",
+      "size": 7321,
+      "sha256": "b6267f59225b4835ffce5f65a5012d40c152821b1e6ff2b623c910ece7b09c05"
+    },
+    {
       "path": "current/reviewer-selection.js",
       "size": 4890,
       "sha256": "b5e721bf0aff67e0cb7a555579c6cc999dae883d87a8f470ec5e1027749c0e3c"
@@ -211,6 +216,11 @@
       "sha256": "301024d66650765069b5462fe4ccbc24994adf476970038b145059ff0bc03c87"
     },
     {
+      "path": "current/verdict-check-server.js",
+      "size": 5922,
+      "sha256": "ec14e99460d557f136839cb1c4b63ad77e2738406f38fc763da046c66fa6956a"
+    },
+    {
       "path": "current/workflow-database.js",
       "size": 7713,
       "sha256": "31f384f92fcea12c0cde0b884674995ab4846e3598ac3c5a6000e4b53f3525be"
@@ -219,6 +229,11 @@
       "path": "current/workspace.js",
       "size": 20010,
       "sha256": "74b5426c54f18aa3bf8859ab05b101af478587cfae1b3127373c0fe670829a92"
+    },
+    {
+      "path": "DEFINITION-OF-DONE.md",
+      "size": 2268,
+      "sha256": "16c27065a694f23550a6fd212a754e8b61d3363165d34babcd7a9d0be106c925"
     },
     {
       "path": "errors.js",
@@ -237,8 +252,8 @@
     },
     {
       "path": "local-agent-adapters.js",
-      "size": 27248,
-      "sha256": "427a48b091c2b30e7834b90a26ca62d08cb1721c1f077793ce36ebb822d78233"
+      "size": 29876,
+      "sha256": "073efa0019941b9635c075b58018346ae0c306b5e3576315fd3f9600a5dfc11f"
     },
     {
       "path": "module-runtime.js",

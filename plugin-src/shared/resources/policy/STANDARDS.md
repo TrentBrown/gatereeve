@@ -7,7 +7,8 @@ home-level CLAUDE.md monolith during the 2026-06-10 canonicalization.
 
 Before any implementation plan is produced from a specification, confirm:
 
-- [ ] Definition of Done requirements are understood and will apply
+- [ ] Definition of Done requirements are understood and will apply (the
+  global Definition of Done is `resources/protocol/DEFINITION-OF-DONE.md`)
 - [ ] Acceptance Criteria are written, feature-specific, and unambiguous
 - [ ] Rubric is derived from the AC and every criterion is binary
 - [ ] All three layers are internally consistent - no gaps or contradictions
