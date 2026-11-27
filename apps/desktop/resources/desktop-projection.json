@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:58a4fe7c285de96517e352b587532662debbbd80be8e856c94713a210e6c6eaf",
+  "protocolHash": "sha256:421e69eba496b7c1bd608d2cc2e8d39d968e18ca253b7514b8a48f4c936eb495",
   "contract": "gatereeve/current/8",
   "contractSha256": "1df0afc21301595b72a5f9bdad3ab2aade7452ad1c5a4f97455bde354bf1120a",
   "files": [
@@ -72,8 +72,8 @@
     },
     {
       "path": "current/delegation.js",
-      "size": 45727,
-      "sha256": "7d0ae6a71d93d1b2c8b83332e573ec20d7c6899e95fb3d84bb89c7739e3e4e94"
+      "size": 49930,
+      "sha256": "a49b2b686c5d1a0c94e1c04168d79a12b3294160fc64843f78e1cc86212fea97"
     },
     {
       "path": "current/delivery.js",

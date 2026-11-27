@@ -130,6 +130,72 @@ test('brief comparison follows Markdown whitespace: indentation and code count, 
   assert.equal(briefScope(Buffer.from(brief.replace('Export 42.\n\n', 'Export 42.\n\n\n'))), same, 'extra blank lines between blocks');
 });
 
+test('brief comparison keeps raw HTML <pre> content and hard line breaks (#157)', () => {
+  const scope = body => briefScope(Buffer.from(`# Brief\n\n## Goal\nExport 42.\n\n## Scope\n${body}\n\n## Findings log\n- none\n`));
+  const pre = '- app.js\n\n<pre>\na  b\n\nc   d\n</pre>\n\nAfter  the block.';
+  const same = scope(pre);
+  assert.notEqual(scope(pre.replace('a  b', 'a b')), same, 'spaces inside a <pre> block are content');
+  assert.notEqual(scope(pre.replace('a  b\n\nc', 'a  b\nc')), same, 'blank lines inside a <pre> block are content');
+  assert.notEqual(scope(pre.replace('a  b', 'a  b  ')), same, 'trailing spaces inside a <pre> block are content');
+  assert.equal(scope(pre.replace('After  the', 'After the')), same, 'prose after the closing tag collapses again');
+  for (const tag of ['PRE class="x"', 'textarea', 'script', 'style']) {
+    const name = tag.split(' ')[0];
+    const block = `<${tag}>\nx  =  1\n</${name.toLowerCase()}>`;
+    assert.notEqual(scope(block.replace('x  =  1', 'x = 1')), scope(block), `<${tag}> content`);
+  }
+  const inline = 'Keep <pre>a  b</pre> as is, then  prose.';
+  assert.notEqual(scope(inline.replace('a  b', 'a b')), scope(inline), 'an inline <pre> fails closed');
+  const unclosed = '<pre>\na  b\n\nNo  close.';
+  assert.notEqual(scope(unclosed.replace('No  close', 'No close')), scope(unclosed), 'an unclosed <pre> runs to the end');
+  const shown = 'Mention `<pre>` here.\n\nThen  prose.';
+  assert.equal(scope(shown.replace('Then  prose', 'Then prose')), scope(shown), 'a tag inside an inline code span is not markup');
+  assert.equal(scope('<preview>\na  b'), scope('<preview>\na b'), 'only the exact tag names open raw content');
+  // An unclosed <pre> in the findings log never moves where the log ends.
+  // Raw content is tracked over the scope-bearing lines only: a findings-log
+  // entry neither changes how a later section compares nor moves where the log ends.
+  const withLog = (log, notes) => briefScope(Buffer.from(`# Brief\n\n## Goal\nExport 42.\n\n## Scope\n- app.js\n\n## Findings log\n${log}\n\n## Notes\n${notes}\n`));
+  assert.equal(withLog('- <pre>', 'Keep the name.'), withLog('- none', 'Keep  the name.'), 'a findings-log <pre> leaves later sections as prose');
+  assert.notEqual(withLog('- <pre>', 'Drop the name.'), withLog('- <pre>', 'Keep the name.'), 'a section after the log still counts');
+  // Indented code shows a tag; it opens nothing (review round 1).
+  const shownIndented = 'Example:\n\n    <pre>\n\nAfter  prose.';
+  assert.equal(scope(shownIndented.replace('After  prose', 'After prose')), scope(shownIndented), 'a tag inside indented code is not markup');
+  const indentedClose = '<pre>\na  b\n    </pre>\n\nAfter  prose.';
+  assert.equal(scope(indentedClose.replace('After  prose', 'After prose')), scope(indentedClose), 'an indented line still closes an open tag');
+  // Review round 2: a fenced line still closes an open tag, and a tag inside
+  // an HTML comment opens nothing.
+  const fencedClose = '<pre>\n```\n</pre>\n```\n\nAfter  prose.';
+  assert.equal(scope(fencedClose.replace('After  prose', 'After prose')), scope(fencedClose), 'a fenced line closes an open tag');
+  const fencedOpen = '```\n<pre>\n```\n\nAfter  prose.';
+  assert.equal(scope(fencedOpen.replace('After  prose', 'After prose')), scope(fencedOpen), 'a tag inside fenced code opens nothing');
+  for (const comment of ['<!-- <pre> -->\n\nAfter  prose.', '<!--\n<pre>\n-->\n\nAfter  prose.']) {
+    assert.equal(scope(comment.replace('After  prose', 'After prose')), scope(comment), `a tag inside a comment: ${JSON.stringify(comment)}`);
+  }
+  const afterComment = '<!-- note --> <pre>\na  b\n</pre>';
+  assert.notEqual(scope(afterComment.replace('a  b', 'a b')), scope(afterComment), 'a tag after a closed comment still opens');
+  // Review round 3: an escaped tag is text, an indented line continuing a
+  // paragraph still opens, and an inline comment left open hides nothing.
+  const escapedTag = 'Show \\<pre> literally.\n\nAfter  prose.';
+  assert.equal(scope(escapedTag.replace('After  prose', 'After prose')), scope(escapedTag), 'an escaped tag opens nothing');
+  const doubled = 'Show \\\\<pre>\nx  y\n</pre>';
+  assert.notEqual(scope(doubled.replace('x  y', 'x y')), scope(doubled), 'an escaped backslash leaves the tag open');
+  const continued = 'A paragraph\n    <pre>\nx  y\n</pre>';
+  assert.notEqual(scope(continued.replace('x  y', 'x y')), scope(continued), 'an indented tag continuing a paragraph opens');
+  const openComment = 'write <!-- to start\n\n<pre>\nx  y\n</pre>';
+  assert.notEqual(scope(openComment.replace('x  y', 'x y')), scope(openComment), 'an inline comment left open hides nothing');
+  // A case-fold that changes string length never misplaces a close and reopen.
+  const folded = '<pre>\n\u0130</pre><pre>\na  b\n</pre>';
+  assert.notEqual(scope(folded.replace('a  b', 'a b')), scope(folded), 'a reopen after a length-changing character');
+
+  const lines = 'Line one\nLine two';
+  const broken = scope('Line one  \nLine two');
+  assert.notEqual(broken, scope(lines), 'adding a hard break changes the scope');
+  assert.equal(scope('Line one   \nLine two'), broken, 'the number of trailing spaces does not matter');
+  assert.equal(scope('Line one  \n\nLine two'), scope('Line one\n\nLine two'), 'trailing spaces before a blank line are not a break');
+  assert.equal(scope('Line one  \n## Later\nx'), scope('Line one\n## Later\nx'), 'trailing spaces before a heading are not a break');
+  assert.equal(scope('Line one  '), scope('Line one'), 'trailing spaces at the end of the scope are not a break');
+  assert.notEqual(scope('Line one  \n    more'), scope('Line one\n    more'), 'a break before an indented continuation counts');
+});
+
 test('without a verification waiver the uncovered coverage still blocks, and the refusal names it', async t => {
   const f = await reusedCoverageWithUnavailableReviewer(t, 'light');
   const subject = (await f.core.state()).state.candidate.hash;
