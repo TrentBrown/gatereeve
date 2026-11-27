@@ -17,9 +17,25 @@ const BODY_LIMIT = 65536; // GitHub's PR description limit in characters.
 
 const occurrences = (text, marker) => text.split(marker).length - 1;
 const normalize = text => String(text ?? '').replace(/\r\n/gu, '\n');
+// Text that does not survive the write and read-back unchanged (#155).
+// Observed 2026-11-26 with gh 2.97.0: GitHub stores the description bytes
+// exactly, except that it drops a raw NUL. gh's control-character sanitizer
+// then rewrites what it reads, before `--json` sees it: a JSON-style escape
+// for most C0 and all C1 controls (backslash, `u00`, two hex digits), with
+// any number of backslashes before it, becomes caret notation (`^@`), and so
+// do most raw C0 and C1 control characters. All of C0, DEL and C1 (a small
+// superset) is neutralized in the rendered section, so the exact read-back
+// comparison still holds:
+// - the backslash before such an escape becomes the entity `&#92;`, which
+//   GitHub's Markdown renders as the same backslash (a code span shows the
+//   entity itself);
+// - a raw control character other than tab and line feed becomes U+FFFD.
+const ESCAPED_CONTROL = /\\(?=u00(?:[01][0-9a-fA-F]|7[fF]|[89][0-9a-fA-F]))/gu;
+const RAW_CONTROL = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/gu;
+const neutralize = text => text.replace(ESCAPED_CONTROL, '&#92;').replace(RAW_CONTROL, '\uFFFD');
 // Model-authored text cannot forge or close the delimited section.
-const inline = value => normalize(value).replace(/<!--/gu, '&lt;!--').replace(/-->/gu, '--&gt;').replace(/\s+/gu, ' ').trim();
-const block = value => normalize(value).replace(/<!--/gu, '&lt;!--').replace(/-->/gu, '--&gt;').trim();
+const inline = value => neutralize(normalize(value).replace(/<!--/gu, '&lt;!--').replace(/-->/gu, '--&gt;').replace(/\s+/gu, ' ').trim());
+const block = value => neutralize(normalize(value).replace(/<!--/gu, '&lt;!--').replace(/-->/gu, '--&gt;').trim());
 
 // The latest review result that qualifies for the current candidate, whatever
 // its outcome: the same selection the acceptance gate makes. A newer

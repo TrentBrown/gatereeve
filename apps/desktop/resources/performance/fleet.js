@@ -55,10 +55,14 @@ export function normalizedObservation(value) {
   return next;
 }
 // `rule`: a verdict normalization or rejection rule, counted per review result (issue #141).
+// `attempt`, `durationMs`, `tokens`: which attempt of a review round a result
+// came from, with its execution time and provider usage (issue #142).
 // Convergence fields (issue #149): per finding, per reviewer result, per round.
 export const CONVERGENCE_FIELDS = Object.freeze(['severity','classId','classStatement','criterion','reviewerBlocking','blocking','demoted','hasFailureScenario','followUp',
   'reviewScope','round','band','reviewerStatus','unavailableReason','providerFailure','gates']);
-const MEASUREMENT = ['rigor','autonomy','authorityKind','authorityBasis','dial','dialValue','dialPrevious','dialSource','actor','trigger','blocker','linkBasis','stage','count','categories','actions','rule',...CONVERGENCE_FIELDS];
+const MEASUREMENT = ['rigor','autonomy','authorityKind','authorityBasis','dial','dialValue','dialPrevious','dialSource','actor','trigger','blocker','linkBasis','stage','count','categories','actions','rule','attempt','durationMs','tokens',...CONVERGENCE_FIELDS];
+export const REVIEW_ATTEMPTS = Object.freeze(['initial', 'transient-retry', 'repair']);
+const TOKEN_FIELDS = ['input', 'output', 'cachedInput', 'cacheCreation'];
 const LISTS = ['links','categories','actions','gates'];
 const FLAGS = ['reviewerBlocking','blocking','demoted','hasFailureScenario'];
 export const SEVERITIES = Object.freeze(['high','medium','low','unrated']);
@@ -73,11 +77,16 @@ export function observation(input) {
   check(value && typeof value === 'object' && Object.keys(value).every(key => allowed.includes(key)), 'Unsupported reporting observation field');
   check(label(value.id) && value.id && label(value.source) && value.source && time(value.observedAt), 'Observation needs stable identity, source and observation time');
   check(['execution','finding','disposition','decision','milestone','strategy','friction','escaped-defect','artifact','event'].includes(value.kind), 'Unsupported observation kind');
-  for (const key of allowed.filter(key => !['metrics','observedAt','count','round',...FLAGS,...LISTS].includes(key))) if (value[key] != null) check(label(value[key]), `Invalid reporting ${key}`);
+  for (const key of allowed.filter(key => !['metrics','observedAt','count','round','durationMs','tokens',...FLAGS,...LISTS].includes(key))) if (value[key] != null) check(label(value[key]), `Invalid reporting ${key}`);
   for (const key of FLAGS) if (value[key] != null) check(typeof value[key] === 'boolean', `Invalid reporting ${key}`);
   for (const [key, values] of Object.entries(ENUMS)) if (value[key] != null) check(values().includes(value[key]), `Invalid reporting ${key}`);
   if (value.round != null) check(Number.isSafeInteger(value.round) && value.round >= 0, 'Invalid reporting round');
   if (value.classStatement != null) check(value.classStatement.length <= 200, 'Invalid reporting classStatement');
+  if (value.attempt != null) check(REVIEW_ATTEMPTS.includes(value.attempt), 'Invalid reporting attempt');
+  if (value.durationMs != null) check(Number.isFinite(value.durationMs) && value.durationMs >= 0, 'Invalid reporting duration');
+  // Unknown usage stays null, never zero.
+  if (value.tokens != null) check(typeof value.tokens === 'object' && !Array.isArray(value.tokens) && Object.keys(value.tokens).every(key => TOKEN_FIELDS.includes(key))
+    && Object.values(value.tokens).every(item => item === null || (Number.isFinite(item) && item >= 0)), 'Invalid reporting tokens');
   for (const key of LISTS) if (value[key] != null) check(Array.isArray(value[key]) && value[key].length <= 32 && value[key].every(label), key === 'links' ? 'Invalid artifact references' : `Invalid reporting ${key}`);
   for (const dial of Object.keys(DIAL_FIELDS)) if (value[dial] != null) check(DIAL_FIELDS[dial].includes(value[dial]), `Invalid reporting ${dial}`);
   if (value.count != null) check(Number.isSafeInteger(value.count) && value.count >= 0, 'Invalid reporting count');

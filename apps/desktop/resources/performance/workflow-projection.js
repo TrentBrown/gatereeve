@@ -57,6 +57,13 @@ function measured(type, value) {
   }
 }
 
+// Attempt kind, duration and tokens of one evaluator execution receipt. A
+// receipt from before attempts were recorded reads as unknown.
+function attemptMeasures(receipt) {
+  const started = Date.parse(receipt.startedAt), completed = Date.parse(receipt.completedAt);
+  return defined({ attempt: text(receipt.attempt), durationMs: Number.isFinite(started) && Number.isFinite(completed) && completed >= started ? completed - started : undefined,
+    tokens: receipt.metrics?.tokens ?? undefined });
+}
 // Convergence fields (issue #149): enumerated values, counts, flags and short
 // labels only. Failure scenarios, evidence and paths never leave the journal;
 // a class statement is kept only as one short line (design D7).
@@ -145,7 +152,11 @@ export async function projectWorkflow(core, store = new MetricsStore()) {
           const row = { ...common, id: `${source}:${ref.hash}`, kind: 'artifact', check: result.gate, outcome: result.outcome, model: receipt.evaluator?.model ?? null,
             provider: receipt.evaluator?.provider ?? null, strategy: result.mode, reference: ref.hash, links: [result.receipt.hash] };
           const rounds = roundFields(input.roundPolicy);
-          observations.push(observation({ ...row, ...rounds, ...(result.gate === 'review' ? reviewerFields(result) : {}) }));
+          // Each evaluator attempt's execution time and provider usage, so a
+          // repair turn or transient retry is attributed (issue #142). Only
+          // the result row carries them; finding and disposition rows do not.
+          const evaluated = receipt.evaluator ? attemptMeasures(receipt) : {};
+          observations.push(observation({ ...row, ...evaluated, ...rounds, ...(result.gate === 'review' ? reviewerFields(result) : {}) }));
           for (const finding of result.findings ?? []) observations.push(observation({ ...row, ...rounds, id: `${row.id}:finding:${finding.id}`, kind: 'finding', findingId: finding.id,
             ...findingFields(finding, input.roundPolicy) }));
           for (const disposition of result.dispositions ?? []) observations.push(observation({ ...row, id: `${row.id}:disposition:${disposition.id}`, kind: 'disposition', findingId: disposition.id, outcome: disposition.status }));
