@@ -90,9 +90,9 @@ that is neither blank nor a heading; the number of spaces does not matter); fenc
 code, lines indented four or more columns (tabs advance to the
 next multiple of four; indented code, including blank lines between such lines),
 raw HTML `<pre>`, `<textarea>`, `<script>` and `<style>` content (from the line
-that opens the tag, outside inline code, to the line that closes it, or to the end
-when unclosed; headings are still found there) and inline code spans compare
-verbatim. The same
+that opens the tag, outside inline and indented code, to the line that closes it,
+or to the end when unclosed; tracked outside the findings log only, and headings
+are still found there) and inline code spans compare verbatim. The same
 comparison decides a delegated hand-back. Any other change
 (goal, scope, preamble or another section) no longer matches the authorized
 subject, so implementation, candidates and gates stop until the changed brief is

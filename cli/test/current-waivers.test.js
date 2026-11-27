@@ -151,8 +151,19 @@ test('brief comparison keeps raw HTML <pre> content and hard line breaks (#157)'
   assert.equal(scope(shown.replace('Then  prose', 'Then prose')), scope(shown), 'a tag inside an inline code span is not markup');
   assert.equal(scope('<preview>\na  b'), scope('<preview>\na b'), 'only the exact tag names open raw content');
   // An unclosed <pre> in the findings log never moves where the log ends.
-  const withNotes = notes => briefScope(Buffer.from(`# Brief\n\n## Goal\nExport 42.\n\n## Scope\n- app.js\n\n## Findings log\n- <pre>\n\n## Notes\n${notes}\n`));
-  assert.notEqual(withNotes('Drop the name.'), withNotes('Keep the name.'), 'a section after the log still counts');
+  // Raw content is tracked over the scope-bearing lines only: a findings-log
+  // entry neither changes how a later section compares nor moves where the log ends.
+  const withLog = (log, notes) => briefScope(Buffer.from(`# Brief\n\n## Goal\nExport 42.\n\n## Scope\n- app.js\n\n## Findings log\n${log}\n\n## Notes\n${notes}\n`));
+  assert.equal(withLog('- <pre>', 'Keep the name.'), withLog('- none', 'Keep  the name.'), 'a findings-log <pre> leaves later sections as prose');
+  assert.notEqual(withLog('- <pre>', 'Drop the name.'), withLog('- <pre>', 'Keep the name.'), 'a section after the log still counts');
+  // Indented code shows a tag; it opens nothing (review round 1).
+  const shownIndented = 'Example:\n\n    <pre>\n\nAfter  prose.';
+  assert.equal(scope(shownIndented.replace('After  prose', 'After prose')), scope(shownIndented), 'a tag inside indented code is not markup');
+  const indentedClose = '<pre>\na  b\n    </pre>\n\nAfter  prose.';
+  assert.equal(scope(indentedClose.replace('After  prose', 'After prose')), scope(indentedClose), 'an indented line still closes an open tag');
+  // A case-fold that changes string length never misplaces a close and reopen.
+  const folded = '<pre>\n\u0130</pre><pre>\na  b\n</pre>';
+  assert.notEqual(scope(folded.replace('a  b', 'a b')), scope(folded), 'a reopen after a length-changing character');
 
   const lines = 'Line one\nLine two';
   const broken = scope('Line one  \nLine two');

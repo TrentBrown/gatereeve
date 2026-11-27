@@ -322,35 +322,37 @@ export async function reviewPlanning(core, input, operation) {
 // content, and inline code spans are compared verbatim, because whitespace
 // there is content.
 const FENCE = /^ {0,3}(`{3,}|~{3,})/u;
-// The CommonMark HTML blocks that end only at their closing tag and keep their
-// inner whitespace. An opening tag is found anywhere in a prose line, so an
-// inline one fails closed too.
-const RAW_HTML_OPEN = /<(pre|script|style|textarea)(?=[\s>]|$)/giu;
 export function briefLines(bytes) {
-  const lines = []; let fence = null; let raw = null;
+  const lines = []; let fence = null;
   for (const line of bytes.toString('utf8').split(/\r?\n/u)) {
     const marker = FENCE.exec(line)?.[1];
     if (fence) { if (marker && marker[0] === fence[0] && marker.length >= fence.length && !line.slice(line.indexOf(marker) + marker.length).trim()) fence = null; lines.push({ line, code: true }); continue; }
     if (marker) { fence = marker; lines.push({ line, code: true }); continue; }
-    // Raw HTML only makes lines verbatim. Headings and fences are found as
-    // before, so an unclosed tag can never move where the findings log ends.
-    const html = rawHtml(line, raw); raw = html.open;
     const heading = /^(#{1,6})\s+(.+)$/u.exec(line);
-    lines.push({ line, ...(html.touched ? { code: true } : {}), ...(heading ? { level: heading[1].length, title: heading[2].trim().toLowerCase() } : {}) });
+    lines.push({ line, ...(heading ? { level: heading[1].length, title: heading[2].trim().toLowerCase() } : {}) });
   }
   return lines;
 }
+// The CommonMark HTML blocks that end only at their closing tag and keep their
+// inner whitespace. An opening tag is found anywhere in a prose line, so an
+// inline one fails closed too.
+const RAW_HTML_OPEN = /<(pre|script|style|textarea)(?=[\s>]|$)/giu;
+const RAW_HTML_CLOSE = /<\/(pre|script|style|textarea)>/giu;
 // Whether a line is inside or opens raw HTML content (`open` is the tag still
-// open from earlier lines), and which tag remains open after it.
-function rawHtml(line, open) {
-  const masked = maskCodeSpans(line), lower = line.toLowerCase();
+// open from earlier lines), and which tag remains open after it. A line of
+// indented code (`opens` false) can close an open tag but never opens one.
+function rawHtml(line, open, opens) {
+  const masked = maskCodeSpans(line);
   let touched = Boolean(open), at = 0;
   for (;;) {
     if (open) {
-      const close = lower.indexOf(`</${open}>`, at);
-      if (close === -1) return { open, touched };
-      at = close + open.length + 3; open = null;
+      let close = null;
+      RAW_HTML_CLOSE.lastIndex = at;
+      for (let found; (found = RAW_HTML_CLOSE.exec(line));) if (found[1].toLowerCase() === open) { close = found; break; }
+      if (!close) return { open, touched };
+      at = close.index + close[0].length; open = null;
     }
+    if (!opens) return { open: null, touched };
     RAW_HTML_OPEN.lastIndex = at;
     const found = RAW_HTML_OPEN.exec(masked);
     if (!found) return { open: null, touched };
@@ -396,7 +398,9 @@ export function briefScope(bytes) {
   const outside = lines.filter((_, index) => start === -1 || index < start || index >= end);
   // Each kept line is a typed entry, so no sentinel text can collide with a
   // line's content. Verbatim ("code"): fenced code (blank lines included), raw
-  // HTML content (see briefLines), any line indented four or more columns (tabs
+  // HTML content (see rawHtml; tracked over these scope-bearing lines only, so
+  // a findings-log entry never changes how later sections compare, and never
+  // inside fenced code), any line indented four or more columns (tabs
   // expand to the next multiple of four), which may be an indented code block or
   // a fence nested in a list item, and a blank line between two such lines. This
   // fails closed: such prose only becomes stricter. Elsewhere a blank line's
@@ -406,7 +410,13 @@ export function briefScope(bytes) {
   // in two or more spaces before a line that is neither blank nor a heading
   // keeps a "break" entry: that is a hard line break wherever it renders one, and
   // only stricter elsewhere (before a list item or a fence).
-  const verbatim = outside.map(({ line, code }) => Boolean(code) || indentColumns(line) >= 4 && Boolean(line.trim()));
+  let raw = null;
+  const html = outside.map(({ line, code }) => {
+    if (code) return false;
+    const found = rawHtml(line, raw, indentColumns(line) < 4); raw = found.open;
+    return found.touched;
+  });
+  const verbatim = outside.map(({ line, code }, index) => Boolean(code) || html[index] || indentColumns(line) >= 4 && Boolean(line.trim()));
   const kept = [];
   outside.forEach(({ line }, index) => {
     if (verbatim[index]) { kept.push(['code', line]); return; }
