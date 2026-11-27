@@ -123,6 +123,26 @@ test('R1: finding rows carry severity, class, criterion, effective and reviewer 
   for (const hidden of ['SECRET-SCENARIO', 'SECRET-EVIDENCE', 'app/M1.js', 'app/M2.js', 'SECRET-INSTRUCTION', 'SECRET-REASON']) assert.ok(!serialized.includes(hidden), hidden);
 });
 
+test('a finding of a class swept by an earlier fixed claim is recorded as blocking, as qualification judges it (#144)', async t => {
+  const rowsWith = async records => {
+    const objectStore = objects();
+    // The round-4 codex review input (H(61)) carries the open scope's sweep records.
+    objectStore.set(H(61), { ...objectStore.get(H(61)), sweepRecords: { format: 'sweep-record/1', guide: 'g', records } });
+    const store = await metricsStore(t);
+    await projectWorkflow(syntheticCore(journal(), '/runs/feature', objectStore), store);
+    return Object.fromEntries((await localRows(store)).filter(row => row.kind === 'finding').map(row => [row.findingId, row]));
+  };
+  const record = (findingId, classId, round) => ({ findingId, classId, round, class: 'c', search: 's', sites: [{ path: 'app/x.js', line: 1 }], fix: 'f', test: 't', dependents: 'd' });
+  // M1 (class-M1, not on a regression path) is a missed site of a swept class: it blocks.
+  let findings = await rowsWith([record('Z9', 'class-M1', 3)]);
+  assert.deepEqual(pick(findings.M1, ['blocking', 'demoted']), { blocking: true, demoted: false });
+  // The claimed finding itself, a later round's record and a record without a round are not class regressions.
+  for (const records of [[record('M1', 'class-M1', 3)], [record('Z9', 'class-M1', 5)], [record('Z9', 'class-M1', null)]]) {
+    findings = await rowsWith(records);
+    assert.deepEqual(pick(findings.M1, ['blocking', 'demoted']), { blocking: false, demoted: true }, JSON.stringify(records[0]));
+  }
+});
+
 test('R2: review result rows carry scope, round, band, reviewer status, UNAVAILABLE reason and failure category', async t => {
   const { rows } = await projected(t);
   const result = n => rows.find(row => row.kind === 'artifact' && row.check === 'review' && row.reference === H(n));

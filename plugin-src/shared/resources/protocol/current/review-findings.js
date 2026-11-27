@@ -31,17 +31,40 @@ export async function findingObligations(core, state, candidate, inputs, result,
   const position = ({ reference, report }) => state.results.findIndex(ref => ref.hash === (report.originalResultHash ?? reference.hash));
   history.sort((a, b) => position(a) - position(b));
   // Peer reviews of one round are judged together: a finding counts as
-  // resolved only when no reviewer of that round still marks it present, so a
-  // disagreement keeps the finding and its original regression status (AC6).
-  const roundKey = new Map(), presentInRound = new Map();
+  // resolved only when no other reviewer of that round still marks it present,
+  // so a disagreement keeps the finding and its original regression status
+  // (AC6). A round is the round policy's scope epoch, round and revision, so
+  // individual selection-tagged reviews of one revision are judged together;
+  // inputs without one keep the paired round or stand alone. Within a round,
+  // each provider's latest report is its perspective: a same-revision
+  // re-review supersedes that provider's earlier report. A finding counts as
+  // present when a disposition says so or when the report re-reports an ID an
+  // earlier report raised (issue #134); a report's own first raise does not.
+  const roundOf = new Map(), latest = new Map(), raisedBy = new Map();
   for (const { reference, report } of history) {
-    let key = reference.hash;
-    try { if (report.input) key = (await core.store.json(report.input)).reviewRound ?? key; } catch { /* lost input: its own round */ }
-    roundKey.set(reference.hash, key);
-    const present = presentInRound.get(key) ?? new Set();
-    for (const row of report.dispositions ?? []) if (row.status === 'present') present.add(row.id);
-    presentInRound.set(key, present);
+    let key = reference.hash, provider = null;
+    try {
+      if (report.input) {
+        const input = await core.store.json(report.input), policy = input.roundPolicy;
+        key = policy?.revision ? `round:${policy.scope}:${policy.epoch ?? 0}:${policy.round}:${policy.revision}` : input.reviewRound ?? key;
+        provider = input.configuration?.provider ?? null;
+      }
+    } catch { /* lost input: its own round */ }
+    provider ??= reference.hash;
+    roundOf.set(reference.hash, { key, provider });
+    const present = new Set((report.dispositions ?? []).filter(row => row.status === 'present').map(row => row.id));
+    for (const finding of report.findings ?? []) {
+      if (!raisedBy.has(finding.id)) raisedBy.set(finding.id, reference.hash);
+      else if (raisedBy.get(finding.id) !== reference.hash) present.add(finding.id);
+    }
+    const perspectives = latest.get(key) ?? new Map();
+    perspectives.set(provider, present);
+    latest.set(key, perspectives);
   }
+  const peerPresent = (hash, id) => {
+    const { key, provider } = roundOf.get(hash) ?? {};
+    return [...(latest.get(key) ?? new Map())].some(([peer, present]) => peer !== provider && present.has(id));
+  };
   for (const { reference, report } of history) {
     if (report.gate !== 'review') continue;
     if ((inputs.history ?? []).some(ref => ref.hash === reference.hash)) {
@@ -60,9 +83,8 @@ export async function findingObligations(core, state, candidate, inputs, result,
       const first = known.get(finding.id)?.resolved ? origin : known.get(finding.id)?.origin ?? origin;
       known.set(finding.id, { finding, origin: first, open: blocks(finding, true, first) });
     }
-    const peersPresent = presentInRound.get(roundKey.get(reference.hash)) ?? new Set();
     for (const disposition of report.dispositions ?? []) if (known.has(disposition.id)) {
-      if (['resolved', 'unsupported'].includes(disposition.status) && peersPresent.has(disposition.id)) continue;
+      if (['resolved', 'unsupported'].includes(disposition.status) && peerPresent(reference.hash, disposition.id)) continue;
       if (['resolved', 'unsupported', 'present-low'].includes(disposition.status)) known.get(disposition.id).open = false;
       // A resolved finding that is raised again later is judged afresh.
       if (['resolved', 'unsupported'].includes(disposition.status)) Object.assign(known.get(disposition.id), { origin: null, resolved: true });

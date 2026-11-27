@@ -435,6 +435,71 @@ test('a resolved boundary finding reintroduced by the fix is judged afresh as a 
   assert.equal(reviewed.outcome, 'FAIL', reviewed.summary);
 });
 
+test('a reintroduced boundary finding stays a regression in the round after its reintroduction', async t => {
+  // Raised in round 1 (no regression paths), resolved by both peers in round 2,
+  // reintroduced by the round-4 change and still present in round 5: the
+  // round-2 resolution must stay in history so round 5 judges it from round 4.
+  const f = await lightRun(t);
+  const finding = [{ path: 'app/app.js', evidence: '[medium] The export contract is broken.' }];
+  reviewers(f, { findings: { codex: finding } });
+  await f.request('review.execute', {}, 'round-1');
+  await revise(f, { 'other.js': 'export const other = 2;\n' }, 'r2');
+  const resolve = (verdict, request) => {
+    const prior = (request.input.dispositionsRequired ?? []).find(row => row.id.endsWith('codex-finding-0'));
+    verdict.dispositions = [{ id: prior.id, status: 'resolved', evidence: 'The contract is restored.' }];
+  };
+  reviewers(f, { patch: { codex: resolve, 'claude-code': resolve } });
+  await f.request('review.execute', {}, 'round-2');
+  assert.equal((await pair(f)).outcome, 'PASS');
+  await revise(f, { 'other.js': 'export const other = 3;\n' }, 'r3');
+  reviewers(f);
+  await f.request('review.execute', {}, 'round-3');
+  const passRows = verdict => { verdict.dimensions.forEach(row => { row.outcome = 'PASS'; }); verdict.criteria.forEach(row => { row.outcome = 'PASS'; }); };
+  await revise(f, { 'app.js': 'export const answer = 42; // r4\n' }, 'r4');
+  reviewers(f, { findings: { codex: finding }, patch: { codex: passRows } });
+  await f.request('review.execute', {}, 'round-4');
+  assert.equal((await pair(f)).outcome, 'FAIL');
+  // Round 5's incomplete fix leaves the reintroduced finding present.
+  await revise(f, { 'app.js': 'export const answer = 42; // r5\n' }, 'r5');
+  reviewers(f, { findings: { codex: finding }, patch: { codex: passRows } });
+  await f.request('review.execute', {}, 'round-5');
+  const reviewed = await pair(f);
+  assert.equal(reviewed.round.round, 5);
+  assert.equal(reviewed.outcome, 'FAIL', reviewed.summary);
+});
+
+test('a reintroduced boundary finding keeps its reintroducing round through later present dispositions', async t => {
+  // Raised in round 1, resolved in round 2, reintroduced by the round-3 change
+  // to app.js, then marked present in rounds 4 and 5 whose fixes touch only
+  // other.js: the round-3 re-report stays in history, so it stays a regression.
+  const f = await lightRun(t);
+  const finding = [{ path: 'app/app.js', evidence: '[medium] The export contract is broken.' }];
+  reviewers(f, { findings: { codex: finding } });
+  await f.request('review.execute', {}, 'round-1');
+  await revise(f, { 'other.js': 'export const other = 2;\n' }, 'r2');
+  const mark = status => (verdict, request) => {
+    const prior = (request.input.dispositionsRequired ?? []).find(row => row.id.endsWith('codex-finding-0'));
+    verdict.dispositions = [{ id: prior.id, status, evidence: `The finding is ${status}.` }];
+  };
+  reviewers(f, { patch: { codex: mark('resolved'), 'claude-code': mark('resolved') } });
+  await f.request('review.execute', {}, 'round-2');
+  assert.equal((await pair(f)).outcome, 'PASS');
+  const passRows = verdict => { verdict.dimensions.forEach(row => { row.outcome = 'PASS'; }); verdict.criteria.forEach(row => { row.outcome = 'PASS'; }); };
+  await revise(f, { 'app.js': 'export const answer = 42; // r3\n' }, 'r3');
+  reviewers(f, { findings: { codex: finding }, patch: { codex: passRows } });
+  await f.request('review.execute', {}, 'round-3');
+  assert.equal((await pair(f)).outcome, 'FAIL');
+  const present = (verdict, request) => { passRows(verdict); mark('present')(verdict, request); verdict.outcome = 'FAIL'; };
+  for (const [round, value] of [[4, 3], [5, 4]]) {
+    await revise(f, { 'other.js': `export const other = ${value + 1};\n` }, `r${round}`);
+    reviewers(f, { patch: { codex: present } });
+    await f.request('review.execute', {}, `round-${round}`);
+    const reviewed = await pair(f);
+    assert.equal(reviewed.round.round, round);
+    assert.equal(reviewed.outcome, 'FAIL', `round ${round}: ${reviewed.summary}`);
+  }
+});
+
 test('a planning review of a new revision past round 6 is refused before any provider launch', async t => {
   const f = await fixture(t, { rigor: 'light', authorize: false });
   await delegate(f);
@@ -495,6 +560,154 @@ test('when peers disagree whether a regression was resolved, it keeps blocking',
   // Round 5 changes another file again; codex reports the same finding with passing rows.
   await revise(f, { 'other.js': 'export const other = 3;\n' }, 'r5');
   reviewers(f, { findings: { codex: regression }, patch: { codex: passRows, 'claude-code': dispose('resolved') } });
+  await f.request('review.execute', {}, 'round-5');
+  const reviewed = await pair(f);
+  assert.equal(reviewed.round.round, 5);
+  assert.equal(reviewed.outcome, 'FAIL', reviewed.summary);
+});
+
+// Issue #134: a peer that re-reports a regression as a finding (not through a
+// `present` disposition) keeps it present for its round, so the other peer's
+// `resolved` or `unsupported` cannot clear its origin, in either processing
+// order; and two individual selection-tagged reviews of one revision are one round.
+const peerReReport = [
+  { name: 'codex re-reports, claude resolves (paired)', reReporter: 'codex', closer: 'claude-code', status: 'resolved' },
+  { name: 'claude re-reports, codex resolves (paired)', reReporter: 'claude-code', closer: 'codex', status: 'resolved' },
+  { name: 'codex re-reports, claude calls it unsupported (paired)', reReporter: 'codex', closer: 'claude-code', status: 'unsupported' },
+  { name: 'individual reviews: the resolving peer first', reReporter: 'codex', closer: 'claude-code', status: 'resolved', individual: ['claude-code', 'codex'] },
+  { name: 'individual reviews: the re-reporting peer first', reReporter: 'codex', closer: 'claude-code', status: 'resolved', individual: ['codex', 'claude-code'] },
+];
+for (const variant of peerReReport) test(`a peer's re-report keeps a regression's origin (#134): ${variant.name}`, async t => {
+  const f = await lightRun(t);
+  await seedRounds(f, 2);
+  const F = 'codex/codex-finding-0';
+  const regression = [{ path: 'app/app.js', evidence: '[medium] The fix broke the export contract.' }];
+  const passRows = verdict => { verdict.dimensions.forEach(row => { row.outcome = 'PASS'; }); verdict.criteria.forEach(row => { row.outcome = 'PASS'; }); };
+  const close = status => (verdict, request) => {
+    verdict.dispositions = [{ id: F, status, evidence: `Reviewer says ${status}.` }];
+    if ((request.input.dispositionsRequired ?? []).some(row => row.id === F && row.reason === 'reconsider')) verdict.historyAssessment = { affected: [F], carryForwardReason: 'No other closures.' };
+  };
+  // Round 3 raises the regression on app.js, which the round-3 fix changed.
+  await revise(f, { 'app.js': 'export const answer = 42; // r3\n' }, 'r3');
+  reviewers(f, { findings: { codex: regression } });
+  await f.request('review.execute', {}, 'round-3');
+  // Round 4 changes another file; one peer re-reports F as a finding, the other closes it.
+  await revise(f, { 'other.js': 'export const other = 2;\n' }, 'r4');
+  reviewers(f, { findings: { [variant.reReporter]: regression.map(row => ({ ...row, id: F })) }, patch: { [variant.closer]: close(variant.status) } });
+  if (variant.individual) {
+    const { state } = await f.core.state();
+    for (const provider of variant.individual) {
+      const reviewer = state.reviewerSelection.selection.reviewers.find(row => row.provider === provider);
+      await f.request('gate.execute', { gates: ['review'], configuration: { provider: reviewer.provider, model: reviewer.model,
+        reasoningEffort: reviewer.reasoningEffort, reviewerSelection: state.reviewerSelection.event } }, `round-4-${provider}`);
+    }
+    assert.equal((await f.request('status')).rounds.scopes[0].round, 4, 'two individual reviews of one revision are one round');
+  } else await f.request('review.execute', {}, 'round-4');
+  // Round 5 changes another file again; codex FAILs on F with every row passing.
+  await revise(f, { 'other.js': 'export const other = 3;\n' }, 'r5');
+  reviewers(f, { findings: { codex: regression.map(row => ({ ...row, id: F })) }, patch: { codex: passRows, 'claude-code': close('resolved') } });
+  await f.request('review.execute', {}, 'round-5');
+  const reviewed = await pair(f);
+  assert.equal(reviewed.round.round, 5);
+  assert.equal(reviewed.outcome, 'FAIL', reviewed.summary);
+});
+
+// Review round 1 finding CR-1: the round that first raised a finding can still
+// close it. A re-review of the same revision is the same round, so the first
+// raise must not count as a peer's re-report.
+test('a same-revision re-review can close a finding its round raised', async t => {
+  const f = await lightRun(t);
+  const F = 'codex/codex-finding-0';
+  reviewers(f, { findings: { codex: [{ path: 'app/app.js', evidence: '[medium] The export is wrong.' }] } });
+  await f.request('review.execute', {}, 'round-1');
+  assert.equal((await pair(f)).outcome, 'FAIL');
+  const unsupported = (verdict, request) => {
+    if (!(request.input.dispositionsRequired ?? []).some(row => row.id === F)) return;
+    verdict.dispositions = [{ id: F, status: 'unsupported', evidence: 'The rebuttal holds: the export is intended.' }];
+  };
+  reviewers(f, { patch: { codex: unsupported, 'claude-code': unsupported } });
+  await f.request('review.execute', {}, 'round-1-rereview');
+  const reviewed = await pair(f);
+  assert.equal(reviewed.round.round, 1, 'the same revision is the same round');
+  assert.equal(reviewed.outcome, 'PASS', reviewed.summary);
+  // The next round's reviewers owe nothing for the closed finding, and its
+  // history (the raise and both closures) does not reopen it.
+  await revise(f, { 'other.js': 'export const other = 2;\n' }, 'r2');
+  // The reviewers carry the closure forward: the change does not affect F.
+  const reconsider = (verdict, request) => {
+    if ((request.input.dispositionsRequired ?? []).some(row => row.id === F && row.reason === 'reconsider')) verdict.historyAssessment = { affected: [], carryForwardReason: 'other.js does not touch the rebutted export.' };
+  };
+  reviewers(f, { patch: { codex: reconsider, 'claude-code': reconsider } });
+  await f.request('review.execute', {}, 'round-2');
+  const next = await pair(f);
+  assert.equal(next.round.round, 2);
+  assert.equal(next.outcome, 'PASS', next.summary);
+  assert.ok(next.members.every(member => !member.qualification), next.members.map(member => member.qualification).join('; '));
+});
+
+// Review round 2 findings CR2-1 and CR2-2: within one round (one revision),
+// each provider's latest report is its perspective, so a same-revision
+// dispute re-review supersedes the earlier execution, and a re-report in a
+// re-review counts as present in either processing order.
+test('a same-revision dispute re-review closes a finding an earlier execution of the round kept present', async t => {
+  const f = await lightRun(t);
+  const F = 'codex/codex-finding-0';
+  const finding = [{ path: 'app/app.js', evidence: '[medium] The export is wrong.' }];
+  reviewers(f, { findings: { codex: finding } });
+  await f.request('review.execute', {}, 'round-1');
+  // Round 2: codex re-reports F and claude marks it present.
+  await revise(f, { 'other.js': 'export const other = 2;\n' }, 'r2');
+  const present = verdict => { verdict.outcome = 'FAIL'; verdict.dimensions.find(row => row.name === 'code').outcome = 'FAIL';
+    verdict.dispositions = [{ id: F, status: 'present', evidence: 'Still wrong.' }]; };
+  reviewers(f, { findings: { codex: finding.map(row => ({ ...row, id: F })) }, patch: { 'claude-code': present } });
+  await f.request('review.execute', {}, 'round-2');
+  assert.equal((await pair(f)).outcome, 'FAIL');
+  // The implementer disputes F; both reviewers accept the rebuttal on the same revision.
+  const unsupported = (verdict, request) => {
+    if ((request.input.dispositionsRequired ?? []).some(row => row.id === F)) verdict.dispositions = [{ id: F, status: 'unsupported', evidence: 'The rebuttal holds.' }];
+  };
+  reviewers(f, { patch: { codex: unsupported, 'claude-code': unsupported } });
+  await f.request('review.execute', {}, 'round-2-dispute');
+  const disputed = await pair(f);
+  assert.equal(disputed.round.round, 2);
+  assert.equal(disputed.outcome, 'PASS', disputed.summary);
+  // Round 3 carries the closure forward without reopening it.
+  await revise(f, { 'other.js': 'export const other = 3;\n' }, 'r3');
+  const carry = (verdict, request) => {
+    if ((request.input.dispositionsRequired ?? []).some(row => row.id === F && row.reason === 'reconsider')) verdict.historyAssessment = { affected: [], carryForwardReason: 'other.js does not touch the export.' };
+  };
+  reviewers(f, { patch: { codex: carry, 'claude-code': carry } });
+  await f.request('review.execute', {}, 'round-3');
+  const next = await pair(f);
+  assert.equal(next.outcome, 'PASS', next.summary);
+  assert.ok(next.members.every(member => !member.qualification), next.members.map(member => member.qualification).join('; '));
+});
+
+for (const order of [['claude-code', 'codex'], ['codex', 'claude-code']]) test(`a re-report in a same-revision re-review keeps a regression open (${order.join(' then ')})`, async t => {
+  const f = await lightRun(t);
+  await seedRounds(f, 3);
+  const F = 'codex/codex-finding-0';
+  const regression = [{ path: 'app/app.js', evidence: '[medium] The fix broke the export contract.' }];
+  await revise(f, { 'app.js': 'export const answer = 42; // r4\n' }, 'r4');
+  reviewers(f, { findings: { codex: regression } });
+  await f.request('review.execute', {}, 'round-4');
+  // Same revision: codex re-reports F, claude calls it unsupported, as individual reviews in this order.
+  const unsupported = verdict => { verdict.dispositions = [{ id: F, status: 'unsupported', evidence: 'Reviewer says unsupported.' }]; };
+  reviewers(f, { findings: { codex: regression.map(row => ({ ...row, id: F })) }, patch: { 'claude-code': unsupported } });
+  const { state } = await f.core.state();
+  for (const provider of order) {
+    const reviewer = state.reviewerSelection.selection.reviewers.find(row => row.provider === provider);
+    await f.request('gate.execute', { gates: ['review'], configuration: { provider: reviewer.provider, model: reviewer.model,
+      reasoningEffort: reviewer.reasoningEffort, reviewerSelection: state.reviewerSelection.event } }, `round-4-rereview-${provider}`);
+  }
+  // Round 5 changes another file; codex FAILs on F with every row passing.
+  await revise(f, { 'other.js': 'export const other = 2;\n' }, 'r5');
+  const passRows = verdict => { verdict.dimensions.forEach(row => { row.outcome = 'PASS'; }); verdict.criteria.forEach(row => { row.outcome = 'PASS'; }); };
+  const close = (verdict, request) => {
+    verdict.dispositions = [{ id: F, status: 'resolved', evidence: 'Reviewer says resolved.' }];
+    if ((request.input.dispositionsRequired ?? []).some(row => row.id === F && row.reason === 'reconsider')) verdict.historyAssessment = { affected: [F], carryForwardReason: 'No other closures.' };
+  };
+  reviewers(f, { findings: { codex: regression.map(row => ({ ...row, id: F })) }, patch: { codex: passRows, 'claude-code': close } });
   await f.request('review.execute', {}, 'round-5');
   const reviewed = await pair(f);
   assert.equal(reviewed.round.round, 5);

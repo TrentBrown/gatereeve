@@ -172,7 +172,7 @@ export function currentCommands() {
       throw new Error('--checks has been retired. Use --configuration with checks and an acceptance validation scope when applicable.');
     }))
     .option('--consume <file>', 'JSON list of retained evidence references')
-    .option('--claims <file>', 'JSON list of findingId and implementer claim pairs')
+    .option('--claims <file>', 'JSON list of claims: findingId, claim, disposition (fixed or disputed) and, for fixed, a sweep record')
     .option('--history <file>', 'JSON list of prior review references')
     .option('--prior <file>', 'Retained earlier result for a delta assessment')
     .option('--coverage-claims <file>', 'Replacement coverage for assessment within this review')

@@ -7,6 +7,7 @@ import { reportingDatabase, observation, DIAL_FIELDS, LINK_BASES, reportingDial,
 import { DEFAULT_DIALS, GATES } from '../protocol/current/contracts.js';
 import { captureWarning } from './observe.js';
 import { scheduledBlocking, severityOf, band } from '../protocol/current/round-policy.js';
+import { sweptClassRegression } from '../protocol/current/sweep-records.js';
 import { outcomeStatus, OUTCOME_STATUSES } from '../protocol/current/boundary-review.js';
 import { UNAVAILABLE_REASONS } from '../protocol/current/execution.js';
 
@@ -71,11 +72,14 @@ const statement = value => typeof value === 'string' && value.length <= 200 && !
 const roundFields = policy => policy && text(policy.scope) ? defined({ reviewScope: policy.scope, round: Number.isSafeInteger(policy.round) ? policy.round : undefined,
   band: Number.isSafeInteger(policy.round) ? band(policy.round) : undefined }) : {};
 // Whether a finding blocked when it was raised: the round schedule with the
-// result's recorded round and regression paths; with no recorded round, the
-// reviewer's flag where low never blocks (round-policy.js).
-function findingFields(finding, policy) {
+// result's recorded round, regression paths and sweep records (a missed site
+// of a swept class, issue #144); with no recorded round, the reviewer's flag
+// where low never blocks (round-policy.js).
+function findingFields(finding, policy, sweepRecords) {
   const round = Number.isSafeInteger(policy?.round) ? policy.round : null;
-  const regression = Array.isArray(policy?.regressionPaths) && typeof finding.path === 'string' && policy.regressionPaths.includes(finding.path);
+  const records = Array.isArray(sweepRecords?.records) ? sweepRecords.records : [];
+  const regression = (Array.isArray(policy?.regressionPaths) && typeof finding.path === 'string' && policy.regressionPaths.includes(finding.path))
+    || (round !== null && sweptClassRegression(records, finding, round));
   const blocking = scheduledBlocking(finding, { round, regression }), reviewerBlocking = Boolean(finding.blocking);
   return defined({ severity: severityOf(finding), classId: text(finding.classId), classStatement: statement(finding.classStatement), criterion: text(finding.criterion),
     reviewerBlocking, blocking, demoted: reviewerBlocking && !blocking, hasFailureScenario: Boolean(text(finding.failureScenario)?.trim()) });
@@ -158,7 +162,7 @@ export async function projectWorkflow(core, store = new MetricsStore()) {
           const evaluated = receipt.evaluator ? attemptMeasures(receipt) : {};
           observations.push(observation({ ...row, ...evaluated, ...rounds, ...(result.gate === 'review' ? reviewerFields(result) : {}) }));
           for (const finding of result.findings ?? []) observations.push(observation({ ...row, ...rounds, id: `${row.id}:finding:${finding.id}`, kind: 'finding', findingId: finding.id,
-            ...findingFields(finding, input.roundPolicy) }));
+            ...findingFields(finding, input.roundPolicy, input.sweepRecords) }));
           for (const disposition of result.dispositions ?? []) observations.push(observation({ ...row, id: `${row.id}:disposition:${disposition.id}`, kind: 'disposition', findingId: disposition.id, outcome: disposition.status }));
           // Per-rule verdict normalization and rejection counts (issue #141).
           // Only the rule identifier and count are projected, never the text.

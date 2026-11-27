@@ -8,6 +8,7 @@ import { sha256Digest } from '../../plugin-src/shared/resources/protocol/agent-w
 
 import { selection, prepared, pairedAdapters } from './helpers/paired-review-fixture.js';
 import { branchWith, candidate, fixture, evaluator } from './helpers/lightweight-fixture.js';
+import { fixed } from './helpers/sweep-fixture.js';
 
 for (const rigor of ['light', 'full']) test(`two complete ${rigor} boundary reviews run concurrently and retain both receipts`, async t => {
   const f = await prepared(t, rigor);
@@ -643,7 +644,7 @@ test('a claim naming a finding GateReeve no longer holds is dropped and recorded
     const run = adapter.runStage.bind(adapter);
     adapter.runStage = async (request, hooks) => { packets.push(request.input); return run(request, hooks); };
   }
-  const done = await f.request('review.execute', { claims: [{ findingId: 'codex/stale-id', claim: 'Fixed in this revision.' }] }, 'stale-claim');
+  const done = await f.request('review.execute', { claims: [fixed('codex/stale-id')] }, 'stale-claim');
   assert.equal(launches(), 4, 'Both reviewers launched for the claimed revision (issue #141)');
   assert.equal(packets.length, 2);
   for (const packet of packets) assert.deepEqual(packet.claims, [], 'The stale claim is not in the packet');
@@ -840,7 +841,7 @@ test('an individual review with a stale claim runs without it and records the dr
   const packets = [];
   const adapter = f.core.runtime.evaluators.codex, run = adapter.runStage.bind(adapter);
   adapter.runStage = async (request, hooks) => { packets.push(request.input); return run(request, hooks); };
-  const done = await f.request('gate.execute', { gates: ['review'], claims: [{ findingId: 'codex/stale-id', claim: 'Fixed.' }],
+  const done = await f.request('gate.execute', { gates: ['review'], claims: [fixed('codex/stale-id', 'Fixed.')],
     configuration: { provider: 'codex', model: 'fixture', reviewerSelection: selected.event } }, 'individual-stale-claim');
   assert.equal(packets.length, 1, 'The reviewer ran');
   assert.deepEqual(packets[0].claims, []);
@@ -861,7 +862,7 @@ test('a stale claim on an otherwise reusable review runs the reviewer and record
   const same = await f.request('gate.execute', { gates: ['review'], configuration }, 'reused-pass');
   assert.equal(launches, 1, 'Unchanged inputs reuse the PASS');
   assert.equal(same.reused, true);
-  const done = await f.request('gate.execute', { gates: ['review'], claims: [{ findingId: 'codex/stale-id', claim: 'Fixed.' }], configuration }, 'stale-claim-after-pass');
+  const done = await f.request('gate.execute', { gates: ['review'], claims: [fixed('codex/stale-id', 'Fixed.')], configuration }, 'stale-claim-after-pass');
   assert.equal(launches, 2, 'The stale claim is a recorded correction, so the reviewer runs (review round 2, Codex)');
   assert.deepEqual((await f.core.store.json(done.event.payload.results[0])).normalized, [{ rule: 'claim-not-retained', field: 'claims[0]', id: 'codex/stale-id' }]);
 });

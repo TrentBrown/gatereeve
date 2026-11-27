@@ -291,6 +291,7 @@
       "current/source-views.js",
       "current/stop.js",
       "current/store.js",
+      "current/sweep-records.js",
       "current/tripwires.js",
       "current/workflow-database.js",
       "current/workspace.js",
