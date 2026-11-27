@@ -1,0 +1,112 @@
+// Fixture repositories and fake Habit Hooks executables for code-health tests.
+// The fake `habit-sensors` reads the generated config's `files` list and emits
+// one issue per `SMELL:<smell>:<source>` marker. Like the real tools it honors
+// inline suppressions, so neutralization is observable.
+import { execFileSync } from 'node:child_process';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+
+const FAKE_SENSORS = `#!/usr/bin/env node
+const fs = require('node:fs');
+const args = process.argv.slice(2);
+if (args[0] === '--version') { console.log('habit-sensors 9.9.9-fake'); process.exit(0); }
+const mode = process.env.FAKE_SENSORS_MODE || '';
+const configPath = args[args.indexOf('--config') + 1];
+const config = fs.readFileSync(configPath, 'utf8');
+const files = JSON.parse((config.match(/^files = (\\[.*\\])$/m) || [, '[]'])[1]);
+if (process.env.FAKE_SENSORS_LOG) {
+  let probe = null;
+  try { probe = fs.readFileSync('eslint.config.js', 'utf8').trim(); } catch {}
+  fs.appendFileSync(process.env.FAKE_SENSORS_LOG, JSON.stringify({ cwd: process.cwd(), files, probe }) + '\\n');
+}
+if (mode === 'crash') { console.error('sensor exploded'); process.exit(3); }
+if (mode === 'badjson') { console.log('not json'); process.exit(0); }
+if (mode === 'notarray') { console.log('{"smell":"x"}'); process.exit(0); }
+const bySmell = new Map();
+const add = (smell, issue) => { if (!bySmell.has(smell)) bySmell.set(smell, []); bySmell.get(smell).push(issue); };
+if (mode === 'incomplete') add('incomplete-run', { key: "sensor 'ruff' needs the 'ruff' command", details: { content: "sensor 'ruff' needs the 'ruff' command" } });
+for (const file of files) {
+  let text; try { text = fs.readFileSync(file, 'utf8'); } catch { continue; }
+  if (mode === 'parse' && text.includes('PARSE_ERROR')) { add('parse-error', { key: file, details: { file, line: 1, message: 'bad syntax', source: 'fake:parse' } }); continue; }
+  const lines = text.split('\\n');
+  let disabled = false;
+  lines.forEach((line, index) => {
+    if (/\\/\\*\\s*eslint-disable\\s*\\*\\//.test(line)) disabled = true;
+    if (/\\/\\*\\s*eslint-enable\\s*\\*\\//.test(line)) disabled = false;
+    const marker = line.match(/SMELL:([^:\\s]+):(\\S+)/);
+    if (!marker || disabled) return;
+    if (/eslint-disable-line|#\\s*noqa/.test(line)) return;
+    if (index > 0 && /eslint-disable-next-line/.test(lines[index - 1])) return;
+    add(marker[1], { key: file, details: { file, line: index + 1, column: 1, message: line.trim(), source: marker[2] } });
+  });
+}
+console.log(JSON.stringify([...bySmell].map(([smell, issues]) => ({ smell, details: {}, issues, language: 'javascript' }))));
+`;
+
+const FAKE_MAPPER = `#!/usr/bin/env node
+const input = require('node:fs').readFileSync(0, 'utf8');
+const findings = JSON.parse(input);
+console.log(findings.map(f => '── ' + f.smell + ' (' + f.issues.length + ' issue) ── COACH ' + f.smell).join('\\n'));
+process.exit(findings.length ? 1 : 0);
+`;
+
+export const BASE_CONFIG = `plugins = ["generic", "gatereeve"]
+files = ["src/**/*.js", "src/**/*.py", "!**/test/**", "!**/*.test.*"]
+
+[smells."@typescript-eslint/no-floating-promises"]
+severity = "enforced"
+
+[smells."@typescript-eslint/no-misused-promises"]
+severity = "enforced"
+
+[smells.swallowed-exception]
+severity = "enforced"
+`;
+
+export function fakeTools() {
+  const directory = mkdtempSync(join(tmpdir(), 'gatereeve-code-health-tools-'));
+  const sensors = join(directory, 'habit-sensors');
+  const mapper = join(directory, 'habit-mapper');
+  writeFileSync(sensors, FAKE_SENSORS);
+  writeFileSync(mapper, FAKE_MAPPER);
+  chmodSync(sensors, 0o755);
+  chmodSync(mapper, 0o755);
+  return { directory, sensors, mapper };
+}
+
+export function gitIn(root, ...args) {
+  return execFileSync('git', args, { cwd: root, encoding: 'utf8', env: { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@example.invalid', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@example.invalid' } });
+}
+
+export function write(root, files) {
+  for (const [path, content] of Object.entries(files)) {
+    mkdirSync(dirname(join(root, path)), { recursive: true });
+    writeFileSync(join(root, path), content);
+  }
+}
+
+export function read(root, path) {
+  return readFileSync(join(root, path), 'utf8');
+}
+
+export function commit(root, message) {
+  gitIn(root, 'add', '-A');
+  gitIn(root, 'commit', '-q', '--allow-empty', '-m', message);
+  return gitIn(root, 'rev-parse', 'HEAD').trim();
+}
+
+// A repository with a committed code-health setup on `main` and a `feature`
+// branch checked out at the same commit.
+export function fixtureRepository({ config = BASE_CONFIG, files = {} } = {}) {
+  const root = mkdtempSync(join(tmpdir(), 'gatereeve-code-health-repo-'));
+  gitIn(root, 'init', '-q', '-b', 'main');
+  write(root, {
+    ...(config === null ? {} : { '.habit-hooks/config.toml': config, '.habit-hooks/gatereeve/config.toml': 'sensors = []\n' }),
+    'eslint.config.js': 'export default [];\n',
+    ...files,
+  });
+  commit(root, 'base');
+  gitIn(root, 'checkout', '-q', '-b', 'feature');
+  return root;
+}

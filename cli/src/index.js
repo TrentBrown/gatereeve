@@ -1,4 +1,5 @@
 import { metricsCommands } from './commands/metrics.js';
+import { codeHealthCommands } from './commands/code-health.js';
 import { Command } from 'commander';
 
 import { pluginCommands } from './commands/plugin.js';
@@ -17,6 +18,7 @@ export function createProgram() {
     .showHelpAfterError();
 
   program.addCommand(metricsCommands());
+  program.addCommand(codeHealthCommands());
   for (const command of currentCommands()) program.addCommand(command);
   program.addCommand(pluginCommands());
   for (const command of cleanupCommands()) program.addCommand(command);
