@@ -75,20 +75,20 @@ test('the metrics card loads the selected project\'s convergence measures and sh
   const {document,Event}=parseHTML('<html><body><main></main></body></html>').window;globalThis.document=document;t.after(()=>delete globalThis.document);
   const {convergence}=await import('../resources/performance/convergence.js');
   const at=n=>`2026-11-27T00:00:0${n}Z`;
-  const rows=[
-    {id:'p1',source:'s',observedAt:at(1),workflow:'w',kind:'event',check:'BOUNDARY_REVIEWED',reviewScope:'slice',round:1,outcome:'PASS'},
-    {id:'p1:reviewer:0',source:'s',observedAt:at(1),workflow:'w',kind:'artifact',check:'boundary-reviewer',reviewScope:'slice',round:1,provider:'codex',outcome:'PASS',reference:'r0'},
-    {id:'p1:reviewer:1',source:'s',observedAt:at(1),workflow:'w',kind:'artifact',check:'boundary-reviewer',reviewScope:'slice',round:1,provider:'claude-code',outcome:'UNAVAILABLE',reference:'r1'},
-  ];
+  const pair=(n,claude)=>[
+    {id:`p${n}`,source:'s',observedAt:at(n),workflow:'w',kind:'event',check:'BOUNDARY_REVIEWED',reviewScope:'slice',round:n,outcome:claude==='PASS'?'PASS':'UNAVAILABLE'},
+    {id:`p${n}:reviewer:0`,source:'s',observedAt:at(n),workflow:'w',kind:'artifact',check:'boundary-reviewer',reviewScope:'slice',round:n,provider:'codex',reviewerStatus:'completed',outcome:'PASS',reference:`a${n}`},
+    {id:`p${n}:reviewer:1`,source:'s',observedAt:at(n),workflow:'w',kind:'artifact',check:'boundary-reviewer',reviewScope:'slice',round:n,provider:'claude-code',reviewerStatus:claude==='PASS'?'completed':'provider-failed',outcome:claude,reference:`b${n}`}];
+  const rows=[...pair(1,'UNAVAILABLE'),...pair(2,'PASS')];
   const calls=[];const api={metrics:async request=>{calls.push(request);return {format:'gatereeve-convergence/1',cohort:{source:'local',observations:rows.length},convergence:convergence(rows)};}};
   const card=renderMetrics(document.querySelector('main'),api);assert.equal(calls.length,0);
   [...card.querySelectorAll('button')].find(b=>b.textContent==='Load convergence measures').dispatchEvent(new Event('click'));await new Promise(r=>setTimeout(r,0));
   assert.deepEqual(calls,[{action:'convergence'}]);
   const items=[...card.querySelectorAll('[aria-label="Convergence measures"] li')].map(li=>li.textContent);
   assert.equal(items.length,4);
-  assert.match(items[0],/^Rounds to PASS: met · median 1 over 1 scopes/);
+  assert.match(items[0],/^Rounds to PASS: met · median 2 over 1 scopes/);
   assert.match(items[1],/^Demoted findings: not measurable · 0 demoted of 0 findings/);
   assert.match(items[2],/^Escaped defects traced to demoted findings: 0 of 0 confirmed/);
-  assert.match(items[3],/^Second opinion: not met · claude-code 1\/1 UNAVAILABLE, 0 findings; codex 0\/1 UNAVAILABLE, 0 findings/);
+  assert.match(items[3],/^Second opinion: not met · claude-code 1\/2 UNAVAILABLE, 0 findings; codex 0\/2 UNAVAILABLE, 0 findings/);
   assert.match(card.querySelector('pre').textContent,/secondOpinion/);
 });
