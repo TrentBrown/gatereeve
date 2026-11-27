@@ -24,10 +24,10 @@ const identity = stat => ({ dev: stat.dev, ino: stat.ino });
 // saw. A root record matches its directory by inode, and by device too unless
 // the record file was last written before this boot: a device change against a
 // record written in this boot is refused, and a copied, restored or recreated
-// root, or another volume mounted at its path, has a different inode. A record inside a
-// verified root (a run, an installer entry or its file) matches by inode and
-// must sit on the root's current device. Checks within one process (`same`)
-// always compare both.
+// root, or another volume mounted at its path, has a different inode. A record
+// inside a verified root (a run, an installer entry or its file) matches by
+// inode and must sit on the root's current device. Checks within one process
+// (`same`) always compare both.
 const inode = (record, stat) => Number.isSafeInteger(record?.dev) && Number.isSafeInteger(record?.ino) && record.ino === stat.ino;
 // os.uptime() includes sleep on macOS and Linux, so this is the boot's wall-clock start.
 const bootStartedAt = () => Date.now() - uptime() * 1000;
@@ -58,14 +58,13 @@ async function regularJson(path) {
 // A root record with the time it was last written, read through one handle so
 // the content and its modification time belong to the same file.
 async function rootRecord(path) {
-  const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+  let handle;
+  try { handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK); }
+  catch (error) { if (error.code === 'ELOOP') throw new Error(`Unsafe scratch record: ${path}`); throw error; }
   try {
     const stat = await handle.stat();
     assert(stat.isFile() && stat.uid === uid() && !(stat.mode & 0o077) && stat.size < 32768, `Unsafe scratch record: ${path}`);
     return { record: JSON.parse(await handle.readFile('utf8')), written: stat.mtimeMs };
-  } catch (error) {
-    if (error.code === 'ELOOP') throw new Error(`Unsafe scratch record: ${path}`);
-    throw error;
   } finally { await handle.close(); }
 }
 

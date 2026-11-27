@@ -364,4 +364,8 @@ test('a device renumbered in an earlier boot keeps the scratch root and its runs
   assert.notEqual((await lstat(root)).ino, actual.ino);
   assert.match((await cleanupScratch({ root, apply: true, ...inactive })).error, /Scratch root ownership changed/u);
   assert.match((await inspectScratch({ root, quick: true })).error, /Scratch root ownership changed/u);
+  // A symlinked root record is refused as unsafe, not followed.
+  await rename(rootOwner, join(parent, 'owner.json'));
+  await symlink(join(parent, 'owner.json'), rootOwner);
+  assert.match((await inspectScratch({ root, quick: true })).error, /Unsafe scratch record/u);
 });
