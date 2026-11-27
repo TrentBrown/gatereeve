@@ -161,6 +161,14 @@ test('R3: round, pair, per-reviewer, adjudication and waiver rows', async t => {
   assert.deepEqual(pick(lost.find(row => row.check === 'BOUNDARY_REVIEWED'), ['outcome', 'reviewScope', 'round']), { outcome: 'UNAVAILABLE', reviewScope: 'slice', round: 3 });
   assert.deepEqual(lost.filter(row => row.check === 'boundary-reviewer').map(row => [row.provider, row.reviewerStatus ?? null, row.outcome, row.round]).sort(),
     [['claude-code', null, 'UNAVAILABLE', 3], ['codex', 'provider-failed', 'UNAVAILABLE', 3]]);
+  // A reused retained result keeps the recorded `refused` status (no reviewer launched).
+  const reusedStore = await metricsStore(t);
+  await projectWorkflow(syntheticCore([journal()[0], { sequence: 2, hash: 'reuse', recordedAt: '2026-11-27T02:00:00Z', type: 'BOUNDARY_REVIEWED',
+    payload: { roundPolicy: { scope: 'slice', revision: H(3) }, outcomes: [{ provider: 'codex', status: 'refused', reused: true, results: [{ hash: H(30) }] }, { provider: 'claude-code', status: 'completed', results: [{ hash: H(50) }] }] } }], '/runs/reuse'), reusedStore);
+  const reusedRows = await localRows(reusedStore);
+  assert.deepEqual(reusedRows.filter(row => row.check === 'boundary-reviewer').map(row => [row.provider, row.reviewerStatus, row.outcome, row.round]).sort(),
+    [['claude-code', 'completed', 'PASS', 2], ['codex', 'refused', 'PASS', 2]]);
+  assert.equal(reusedRows.find(row => row.check === 'BOUNDARY_REVIEWED').outcome, 'UNAVAILABLE', 'a pair with a reused member is not a completed PASS');
 });
 
 test('R4: the observation schema accepts valid convergence fields and rejects invalid ones', () => {
@@ -170,7 +178,8 @@ test('R4: the observation schema accepts valid convergence fields and rejects in
   assert.deepEqual(pick(observation({ ...base, ...valid }), Object.keys(valid)), valid);
   for (const [key, value] of [['severity', 'critical'], ['reviewerStatus', 'unknown'], ['band', 'wide'], ['unavailableReason', 'nope'], ['followUp', 'later'],
     ['round', -1], ['round', 1.5], ['round', '4'], ['blocking', 'true'], ['demoted', 1], ['reviewerBlocking', null === 0], ['hasFailureScenario', 'yes'],
-    ['classStatement', 'x'.repeat(201)], ['classId', 'a\nb'], ['gates', 'review'], ['gates', ['a\nb']]]) {
+    ['classStatement', 'x'.repeat(201)], ['classId', 'a\nb'], ['criterion', 'R1\nR2'], ['criterion', 'x'.repeat(1025)], ['reviewScope', 'slice\n'], ['reviewScope', 7],
+    ['providerFailure', 'time\tout'], ['providerFailure', { category: 'timeout' }], ['gates', 'review'], ['gates', ['a\nb']]]) {
     if (key === 'reviewerBlocking') { assert.throws(() => observation({ ...base, [key]: 'false' }), /Invalid reporting reviewerBlocking/u); continue; }
     assert.throws(() => observation({ ...base, [key]: value }), /Invalid reporting|Unsupported/u, `${key}=${JSON.stringify(value)}`);
   }
@@ -224,33 +233,68 @@ test('R5: an earlier-version workflow is replayed with the new fields; earlier r
 let serial = 0;
 const at = minutes => new Date(Date.parse('2026-11-27T00:00:00Z') + minutes * 60000).toISOString();
 const row = fields => ({ id: `row-${serial++}`, source: 's', observedAt: at(serial), project: 'p', projectKey: 's:p', workflow: 'w1', ...fields });
-const pairRow = (workflow, scope, round, outcome, minute) => row({ workflow, kind: 'event', check: 'BOUNDARY_REVIEWED', reviewScope: scope, round, outcome, observedAt: at(minute) });
+// One reviewed round as the projection writes it: the pair row and one row per
+// reviewer. PASS: both completed PASS; FAIL: codex FAILed; UNAVAILABLE: claude's provider failed.
+const reviewerRow = (pair, slot, provider, fields) => row({ ...pair, id: `${pair.id}:reviewer:${slot}`, kind: 'artifact', check: 'boundary-reviewer', provider, reference: H(1000 + serial), ...fields });
+const pairRow = (workflow, scope, round, outcome, minute) => {
+  const pair = row({ workflow, kind: 'event', check: 'BOUNDARY_REVIEWED', reviewScope: scope, round, outcome, observedAt: at(minute) });
+  return [pair, reviewerRow(pair, 0, 'codex', { reviewerStatus: 'completed', outcome: outcome === 'FAIL' ? 'FAIL' : 'PASS' }),
+    reviewerRow(pair, 1, 'claude-code', outcome === 'UNAVAILABLE' ? { reviewerStatus: 'provider-failed', outcome: 'UNAVAILABLE' } : { reviewerStatus: 'completed', outcome: 'PASS' })];
+};
+const counter = (workflow, scope, round, minute) => row({ workflow, kind: 'event', check: 'ROUND_COUNTED', reviewScope: scope, round, observedAt: at(minute) });
 const waiver = (workflow, minute, gates = ['review']) => row({ workflow, kind: 'decision', check: 'waive', gates, observedAt: at(minute) });
 
 test('R6: rounds to PASS, adjudicated passes, open scopes as lower bounds, waived scopes and waives after a FAIL streak', () => {
+  const measure = (...items) => roundsMeasure(items.flat(Infinity));
   // Passes at round 2 and (adjudicated) at round 3; met.
   const passing = [pairRow('w1', 'slice', 1, 'FAIL', 1), pairRow('w1', 'slice', 2, 'PASS', 2),
     pairRow('w2', 'feature-final', 3, 'FAIL', 3), row({ workflow: 'w2', kind: 'event', check: 'REVIEW_ADJUDICATED', reviewScope: 'feature-final', round: 3, observedAt: at(4) })];
-  const met = roundsMeasure(passing);
+  const met = measure(passing);
   assert.deepEqual([met.medianRoundsToPass, met.denominator, met.met, met.coverage], [2.5, { scopes: 2, passed: 2, open: 0, waived: 0 }, true, 'complete']);
   assert.deepEqual(met.scopes.map(scope => [scope.workflow, scope.scope, scope.status, scope.roundsToPass]), [['w1', 'slice', 'passed', 2], ['w2', 'feature-final', 'passed', 3]]);
   // A waiver without a FAIL streak closes its scope, leaves the median, and does not fail the measure.
-  const waived = roundsMeasure([...passing, pairRow('w3', 'slice', 1, 'UNAVAILABLE', 5), waiver('w3', 6)]);
+  const waived = measure(passing, pairRow('w3', 'slice', 1, 'UNAVAILABLE', 5), waiver('w3', 6));
   assert.deepEqual([waived.denominator.waived, waived.waivesAfterFailStreak.length, waived.medianRoundsToPass, waived.met], [1, 0, 2.5, true]);
   // An open scope counts its current round and makes the measure in progress.
-  const open = roundsMeasure([...passing, row({ workflow: 'w4', kind: 'event', check: 'ROUND_COUNTED', reviewScope: 'slice', round: 2 })]);
+  const open = measure(passing, counter('w4', 'slice', 2, 5));
   assert.deepEqual([open.denominator.open, open.medianRoundsToPass, open.medianIncludesOpenScopes, open.met, open.progress], [1, 2, true, null, 'in-progress']);
   // Open scopes can only raise the median: past 3 the measure fails even while open.
-  const slow = roundsMeasure([pairRow('w1', 'slice', 1, 'PASS', 1), row({ workflow: 'w5', kind: 'event', check: 'ROUND_COUNTED', reviewScope: 'slice', round: 5 }),
-    row({ workflow: 'w6', kind: 'event', check: 'ROUND_COUNTED', reviewScope: 'feature-final', round: 6 })]);
+  const slow = measure(pairRow('w1', 'slice', 1, 'PASS', 1), counter('w5', 'slice', 5, 2), counter('w6', 'feature-final', 6, 3));
   assert.deepEqual([slow.medianRoundsToPass, slow.met], [5, false]);
   // A waive after a FAIL streak fails the measure.
-  const streak = roundsMeasure([...passing, pairRow('w7', 'slice', 1, 'FAIL', 7), pairRow('w7', 'slice', 2, 'FAIL', 8), waiver('w7', 9)]);
+  const streak = measure(passing, pairRow('w7', 'slice', 1, 'FAIL', 7), pairRow('w7', 'slice', 2, 'FAIL', 8), waiver('w7', 9));
   assert.deepEqual([streak.waivesAfterFailStreak.map(item => [item.workflow, item.scope, item.round]), streak.met], [[['w7', 'slice', 2]], false]);
   assert.equal(streak.scopes.find(scope => scope.workflow === 'w7').waivedAfterFailStreak, true);
   // No passed scope: not measurable. Planning scopes are not boundary scopes.
-  assert.equal(roundsMeasure([pairRow('w1', 'planning:design', 1, 'PASS', 1)]).met, null);
-  assert.equal(roundsMeasure([]).met, null);
+  assert.equal(measure(pairRow('w1', 'planning:design', 1, 'PASS', 1)).met, null);
+  assert.equal(measure([]).met, null);
+});
+
+test('R6: scope instances, one waiver per latest scope, re-reviews and reused results', () => {
+  const measure = (...items) => roundsMeasure(items.flat(Infinity));
+  // Two slices of one feature: slice 1 passes at round 1; slice 2 FAILs rounds 1-5 and is waived.
+  const slices = measure(counter('w1', 'slice', 1, 1), pairRow('w1', 'slice', 1, 'PASS', 2),
+    ...[1, 2, 3, 4, 5].flatMap(n => [counter('w1', 'slice', n, 10 + 2 * n), pairRow('w1', 'slice', n, 'FAIL', 11 + 2 * n)]), waiver('w1', 30));
+  assert.deepEqual(slices.scopes.map(scope => [scope.scope, scope.instance, scope.status, scope.roundsToPass, scope.currentRound, scope.waivedAfterFailStreak]),
+    [['slice', 1, 'passed', 1, 1, false], ['slice', 2, 'waived', null, 5, true]]);
+  assert.deepEqual([slices.waivesAfterFailStreak.map(item => [item.scope, item.instance, item.round]), slices.met], [[['slice', 2, 5]], false]);
+  // A waiver closes only the latest reviewed scope: an earlier open scope stays open.
+  const later = measure(counter('w2', 'slice', 1, 1), pairRow('w2', 'slice', 1, 'FAIL', 2), counter('w2', 'feature-final', 1, 3), pairRow('w2', 'feature-final', 1, 'FAIL', 4), waiver('w2', 5));
+  assert.deepEqual(later.scopes.map(scope => [scope.scope, scope.status]), [['feature-final', 'waived'], ['slice', 'open']]);
+  // A scope with no reviewed round is never waived, whatever the order.
+  const unreviewed = measure(waiver('w3', 1), counter('w3', 'slice', 1, 2));
+  assert.deepEqual(unreviewed.scopes.map(scope => scope.status), ['open']);
+  // A re-review of the same round's revision counts once; its PASS passes that round.
+  const rereview = measure(counter('w4', 'slice', 1, 1), pairRow('w4', 'slice', 1, 'UNAVAILABLE', 2), pairRow('w4', 'slice', 1, 'PASS', 3));
+  assert.deepEqual(rereview.scopes.map(scope => [scope.status, scope.roundsToPass, scope.reviewedRounds]), [['passed', 1, 1]]);
+  // A later reused (refused) attempt never hides the attempt that ran.
+  const [pair, codex, claude] = pairRow('w5', 'slice', 1, 'FAIL', 2);
+  const reused = measure(counter('w5', 'slice', 1, 1), pair, codex, claude, reviewerRow(row({ ...pair, observedAt: at(3) }), 0, 'codex', { reviewerStatus: 'refused', outcome: 'PASS' }));
+  assert.deepEqual(reused.scopes.map(scope => [scope.status, scope.roundsToPass]), [['open', null]]);
+  // A round where a reviewer only reused a retained result is not a completed pair.
+  const [onlyPair, onlyCodex] = pairRow('w6', 'slice', 1, 'PASS', 2);
+  const refused = measure(counter('w6', 'slice', 1, 1), onlyPair, onlyCodex, reviewerRow(onlyPair, 1, 'claude-code', { reviewerStatus: 'refused', outcome: 'PASS' }));
+  assert.deepEqual(refused.scopes.map(scope => [scope.status, scope.roundsToPass]), [['open', null]]);
 });
 
 const findingRow = fields => row({ kind: 'finding', check: 'review', reference: H(1), findingId: `F${serial}`, severity: 'medium', reviewerBlocking: true, blocking: false, demoted: true, hasFailureScenario: true, ...fields });
@@ -286,6 +330,7 @@ test('R8: escaped defects traced to demoted findings, with follow-up counts and 
   assert.match(value.statement, /neither a defect rate nor evidence of safety/u);
   const none = escapedMeasure([demoted]);
   assert.deepEqual([none.traced, none.tracedWithFollowUp, none.met], [0, 0, null]);
+  assert.match(none.threshold, /no threshold/u);
   assert.match(none.statement, /not evidence that no defects escaped/u);
 });
 
@@ -298,12 +343,20 @@ test('R9: second opinion per provider over final per-round outcomes; the class p
   assert.equal(value.providers[0].unavailableRate, 1 / 3);
   assert.equal(value.met, false);
   assert.match(value.proxy, /does not establish distinct defects/u);
-  const reviewer = (provider, outcome, reference, pair) => row({ kind: 'artifact', check: 'boundary-reviewer', provider, outcome, reference, reviewScope: 'slice', round: 1, id: `${pair}:reviewer:${provider === 'codex' ? 0 : 1}` });
-  const pairs = n => Array.from({ length: n }, (_, i) => [reviewer('codex', 'PASS', H(200 + i), `p${i}`), reviewer('claude-code', 'PASS', H(300 + i), `p${i}`)]).flat();
-  const own = [findingRow({ reference: H(200), classId: 'same' }), findingRow({ reference: H(300), classId: 'same' })];
-  const good = secondOpinionMeasure([...pairs(11), ...own]);
-  assert.deepEqual([good.providers.map(row => [row.findings, row.peerUnmatchedClasses]), good.met], [[[1, 0], [1, 0]], true]);
-  assert.equal(secondOpinionMeasure(pairs(11)).met, false, 'no findings of its own');
+  const rounds = n => Array.from({ length: n }, (_, i) => pairRow('w1', 'slice', i + 1, 'PASS', i + 1)).flat();
+  const eleven = rounds(11), refs = eleven.filter(item => item.check === 'boundary-reviewer' && item.round === 1).map(item => item.reference);
+  const own = [findingRow({ reference: refs[0], classId: 'same' }), findingRow({ reference: refs[1], classId: 'same' })];
+  const good = secondOpinionMeasure([...eleven, ...own]);
+  assert.deepEqual([good.providers.map(item => [item.rounds, item.findings, item.peerUnmatchedClasses]), good.met], [[[11, 1, 0], [11, 1, 0]], true]);
+  assert.equal(secondOpinionMeasure(eleven).met, false, 'no findings of its own');
+  // A re-review of one round's revision counts once per provider: its last launched attempt.
+  const rereview = secondOpinionMeasure([...eleven, ...own, ...pairRow('w1', 'slice', 1, 'UNAVAILABLE', 0.5)]);
+  assert.deepEqual(rereview.providers.map(item => [item.provider, item.rounds, item.unavailable]), [['claude-code', 11, 0], ['codex', 11, 0]]);
+  assert.equal(rereview.met, true);
+  // A provider that only reused a retained result in a round did not complete it.
+  const [pair, codex] = pairRow('w2', 'slice', 1, 'PASS', 1);
+  const reused = secondOpinionMeasure([pair, codex, reviewerRow(pair, 1, 'claude-code', { reviewerStatus: 'refused', outcome: 'PASS' })]);
+  assert.deepEqual(reused.providers.map(item => [item.provider, item.rounds, item.unavailable]), [['claude-code', 1, 1], ['codex', 1, 0]]);
   assert.equal(secondOpinionMeasure([]).met, null);
 });
 
@@ -321,20 +374,20 @@ test('R10: per provider and model: statuses, UNAVAILABLE reasons, rule counts an
 
 test('R11: rows without the new fields are not recorded, never zero, and make the measure incomplete', () => {
   const legacy = [row({ kind: 'event', check: 'BOUNDARY_REVIEWED' }), row({ kind: 'finding', check: 'review', reference: H(1), findingId: 'old' })];
-  const value = convergence([...legacy, pairRow('w1', 'slice', 1, 'PASS', 1), findingRow({})]);
+  const value = convergence([...legacy, pairRow('w1', 'slice', 1, 'PASS', 1), findingRow({})].flat());
   assert.deepEqual([value.rounds.notRecorded, value.rounds.coverage, value.rounds.met, value.rounds.medianRoundsToPass], [1, 'incomplete', null, 1]);
   assert.deepEqual([value.demoted.notRecorded, value.demoted.coverage, value.demoted.met, value.demoted.denominator.demoted], [1, 'incomplete', null, 1]);
   assert.deepEqual([value.secondOpinion.coverage, value.secondOpinion.met], ['incomplete', null]);
   // A pair with a scope but no round is not a round: excluded, not "not recorded".
   const uncounted = convergence([pairRow('w1', 'slice', 1, 'PASS', 1), row({ kind: 'event', check: 'BOUNDARY_REVIEWED', reviewScope: 'slice', outcome: 'UNAVAILABLE' }),
-    row({ kind: 'artifact', check: 'boundary-reviewer', provider: 'codex', outcome: 'UNAVAILABLE', reviewScope: 'slice', id: 'u:reviewer:0' })]);
+    row({ kind: 'artifact', check: 'boundary-reviewer', provider: 'codex', outcome: 'UNAVAILABLE', reviewScope: 'slice', id: 'u:reviewer:0' })].flat());
   assert.deepEqual([uncounted.rounds.uncountedPairs, uncounted.rounds.coverage, uncounted.rounds.met], [1, 'complete', true]);
-  assert.deepEqual([uncounted.secondOpinion.uncountedReviewerRows, uncounted.secondOpinion.denominator.reviewerRounds, uncounted.secondOpinion.coverage], [1, 0, 'complete']);
+  assert.deepEqual([uncounted.secondOpinion.uncountedReviewerRows, uncounted.secondOpinion.denominator.reviewerRounds, uncounted.secondOpinion.coverage], [1, 2, 'complete']);
   // Every measure states its denominator.
   for (const key of ['rounds', 'demoted', 'escapedFromDemoted', 'secondOpinion']) assert.ok(value[key].denominator && Object.keys(value[key].denominator).length, key);
   assert.deepEqual(value.rounds.denominator, { scopes: 1, passed: 1, open: 0, waived: 0 });
   assert.deepEqual(value.escapedFromDemoted.denominator, { escapedDefects: 0, confirmed: 0 });
-  assert.deepEqual(value.secondOpinion.denominator, { reviewerRounds: 0, providers: 0 });
+  assert.deepEqual(value.secondOpinion.denominator, { reviewerRounds: 2, providers: 2 });
 });
 
 function cli(args, env) {
@@ -367,6 +420,10 @@ test('R12: metrics convergence over the local store and a dataset, filters, Mark
   const { dataset } = await metricsRequest('capture', {}, store);
   const fromDataset = JSON.parse(await run('--dataset', dataset));
   assert.deepEqual(fromDataset.convergence, local.convergence);
+  const datasetMarkdown = await run('--dataset', dataset, '--format', 'markdown');
+  assert.equal(datasetMarkdown, `${renderConvergenceMarkdown(fromDataset)}\n`);
+  assert.match(datasetMarkdown, /^Cohort: dataset /mu);
+  assert.equal(datasetMarkdown.split('\n').slice(3).join('\n'), markdown.split('\n').slice(3).join('\n'), 'same measures as the local store');
   const reevaluation = await metricsRequest('reevaluate', { dataset }, store);
   assert.deepEqual(reevaluation.measurement.convergence, local.convergence);
   const html = renderReevaluation(reevaluation, 'html');

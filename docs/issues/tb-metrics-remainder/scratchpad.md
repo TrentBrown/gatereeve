@@ -100,3 +100,24 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
   `delegation.js`; `metrics purge-test-data --workflows-file` already exists,
   and the parked item is an operation on a live remote store, which this run
   must not touch.
+
+## S8. Boundary review round 1 fixes
+
+- **Answered by:** agent
+- **Decision:** Fixed every round-1 finding except the #148 dependency:
+  - the recorded reviewer status wins, so a reused result is `refused`;
+  - scope instances split at each round-1 count (successive slices,
+    amendments);
+  - each provider's final outcome per round counts once (re-reviews);
+  - a review waiver closes only the scope instance of the workflow's latest
+    reviewed round;
+  - added the missing validation, threshold and dataset Markdown tests;
+  - added receipts for `metrics-repair.test.js` and the desktop reevaluation
+    test, which pass with a realpath `TMPDIR` on this host.
+
+  The waiver change narrows DEC-3. Both reviewers rated AC6's literal reading
+  high, and the narrower rule matches design D6 ("attributed to the latest
+  pair's scope"). An earlier abandoned scope now stays open, so measure 1
+  reads "not measurable" rather than "met".
+- **Alternatives:** keep AC6's literal reading (both reviewers block on it).
+- **Reversibility:** high.

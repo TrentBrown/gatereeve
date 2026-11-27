@@ -236,10 +236,10 @@ report.
 
 | Measure | Computed as | `met` |
 |---|---|---|
-| 1. Rounds to PASS | Per workflow and boundary scope (`slice`, `feature-final`): the round of the first PASS or adjudicated pair. Open scopes count their current round as a lower bound in the median; a scope with a later `review` waiver and no PASS is `waived` | false when the median exceeds 3 or a waive followed a FAIL; null while a scope is open or none passed; else true |
+| 1. Rounds to PASS | Per workflow and boundary scope instance (`slice`, `feature-final`; a new instance starts at each round-1 count: the next slice PR, a split part, the rounds after an amendment): the first round whose providers' final outcomes all completed with PASS, or an adjudicated round. Open scopes count their current round as a lower bound in the median; a `review` waiver closes only the scope instance of the workflow's latest reviewed round before it, when that instance never passed | false when the median exceeds 3 or a waive followed a FAIL; null while a scope is open or none passed; else true |
 | 2. Demoted findings | `recorded`: demoted findings by severity, and how many have a rated severity and a failure scenario. `decided`: demoted findings by `followUp` | null while either part is null (follow-up decisions are not recorded yet); else both parts |
 | 3. Escaped defects traced to demoted findings | Confirmed escaped defects whose links include `finding:<result-hash>:<finding-id>` naming a demoted finding | always null: counted, with no threshold |
-| 4. Second opinion | Per provider, from `boundary-reviewer` rows (retries in one round count once): rounds, UNAVAILABLE count and rate, findings it reported. `peerUnmatchedClasses` is a class-ID proxy only | true when every provider is below 10% UNAVAILABLE and reported a finding; null without rows |
+| 4. Second opinion | Per provider and reviewed round, its final outcome: the latest attempt that launched a reviewer (retries and re-reviews of one revision share the round and count once; a reused retained result is `refused` and never hides an attempt that ran). Rounds, rounds not completed (UNAVAILABLE), rate, and findings from completed final results. `peerUnmatchedClasses` is a class-ID proxy only | true when every provider is below 10% UNAVAILABLE and reported a finding; null without rows |
 
 The report also lists, per provider and model, review results by status,
 UNAVAILABLE reasons, normalization and rejection rule counts and findings by

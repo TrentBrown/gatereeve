@@ -26,16 +26,19 @@ are in `interview.md`.
 - **Reversibility:** high.
 - **Source:** scratchpad S2, interview D3 and D4.
 
-## DEC-3. AC6 waiver wording accepted as residual risk at the spec gate
+## DEC-3. A review waiver closes only the latest reviewed scope
 
 - **Answered by:** agent
-- **Decision:** A review waiver closes every unpassed boundary scope whose
-  latest pair precedes it, as AC6 is written; a waive after a FAIL streak is
-  attributed to the workflow's latest pair. An abandoned earlier scope in the
-  same workflow reads as waived rather than open.
+- **Decision:** At the spec gate, AC6's waiver wording (closing every
+  unpassed scope whose latest pair precedes the waiver) was accepted as
+  residual risk. Boundary review round 1 rated that reading high in both
+  reviews, so the implementation narrows it (scratchpad S8): a waiver closes
+  only the scope instance of the workflow's latest reviewed round, which is
+  also where a waive after a FAIL streak is attributed (design D6). An
+  earlier abandoned scope stays open.
 - **Alternatives:** amend the spec (round-6 hand-back).
 - **Reversibility:** high.
-- **Source:** scratchpad S3.
+- **Source:** scratchpad S3 and S8.
 
 ## DEC-4. "Second reviewer" read as every reviewer provider
 

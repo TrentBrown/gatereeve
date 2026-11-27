@@ -28,7 +28,54 @@ export function median(values) {
 const coverage = notRecorded => notRecorded ? 'incomplete' : 'complete';
 const waives = row => row.kind === 'decision' && Array.isArray(row.gates) && row.gates.includes('review');
 
-// Measure 1 (AC6): rounds to PASS per workflow and boundary scope.
+// Review-scope instances (AC6). A scope name is reused: the next slice PR, a
+// split part or the rounds after an amendment start a new instance whose
+// counter restarts at round 1 (round-policy.js). Rows of one workflow and
+// scope are split at each `ROUND_COUNTED` of round 1.
+const boundaryRow = row => BOUNDARY_SCOPES.includes(row.reviewScope) && Number.isSafeInteger(row.round);
+const ORDER = { ROUND_COUNTED: 0, 'boundary-reviewer': 1, BOUNDARY_REVIEWED: 1, REVIEW_ADJUDICATED: 2 };
+export function scopeInstances(rows) {
+  const groups = new Map();
+  for (const row of rows.filter(row => ORDER[row.check] !== undefined && boundaryRow(row))) {
+    const key = `${row.workflow ?? ''}\u0000${row.reviewScope}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(row);
+  }
+  const instances = [];
+  for (const group of groups.values()) {
+    group.sort((a, b) => time(a) - time(b) || ORDER[a.check] - ORDER[b.check]);
+    let current = null;
+    for (const row of group) {
+      if (!current || (row.check === 'ROUND_COUNTED' && row.round === 1 && current.rows.length)) {
+        current = { workflow: row.workflow ?? null, issue: row.issue ?? null, scope: row.reviewScope, instance: instances.filter(item => item.workflow === (row.workflow ?? null) && item.scope === row.reviewScope).length + 1, rows: [] };
+        instances.push(current);
+      }
+      current.rows.push(row);
+    }
+  }
+  for (const instance of instances) instance.rounds = roundOutcomes(instance.rows);
+  return instances;
+}
+// Each provider's final reviewer row per round: the latest attempt that
+// launched a reviewer (a reused or refused attempt never hides one that ran),
+// as boundary-review.js chooses an outcome row; re-reviews of one revision
+// share the round, so they count once.
+function roundOutcomes(rows) {
+  const rounds = new Map();
+  for (const row of rows.filter(row => row.check === 'boundary-reviewer')) {
+    if (!rounds.has(row.round)) rounds.set(row.round, new Map());
+    const providers = rounds.get(row.round), provider = row.provider ?? NOT_RECORDED, previous = providers.get(provider);
+    if (!previous || row.reviewerStatus !== 'refused' || previous.reviewerStatus === 'refused') providers.set(provider, row);
+  }
+  return new Map([...rounds].map(([round, providers]) => {
+    const finals = [...providers.values()], completed = finals.filter(row => row.reviewerStatus === 'completed');
+    const outcome = finals.length && completed.length === finals.length && completed.every(row => row.outcome === 'PASS') ? 'PASS'
+      : completed.some(row => row.outcome === 'FAIL') ? 'FAIL' : 'UNAVAILABLE';
+    return [round, { outcome, finals, at: Math.max(...rows.filter(row => row.round === round && row.check === 'boundary-reviewer').map(time)) }];
+  }));
+}
+
+// Measure 1 (AC6): rounds to PASS per workflow and boundary scope instance.
 export function roundsMeasure(rows) {
   const pairs = rows.filter(row => row.check === 'BOUNDARY_REVIEWED');
   const counted = rows.filter(row => row.check === 'ROUND_COUNTED');
@@ -38,37 +85,30 @@ export function roundsMeasure(rows) {
   // were projected before these fields.
   const notRecorded = [...pairs, ...counted].filter(row => row.reviewScope == null).length + adjudicated.filter(row => row.reviewScope == null || row.round == null).length;
   const uncountedPairs = pairs.filter(row => row.reviewScope != null && row.round == null).length;
-  const boundary = row => BOUNDARY_SCOPES.includes(row.reviewScope) && Number.isSafeInteger(row.round);
-  const scopes = new Map();
-  const entry = row => {
-    const key = `${row.workflow ?? ''}\u0000${row.reviewScope}`;
-    if (!scopes.has(key)) scopes.set(key, { workflow: row.workflow ?? null, issue: row.issue ?? null, scope: row.reviewScope, round: 0, pairs: [], passedRound: null });
-    return scopes.get(key);
-  };
-  for (const row of counted.filter(boundary)) { const scope = entry(row); scope.round = Math.max(scope.round, row.round); }
-  for (const row of pairs.filter(boundary)) { const scope = entry(row); scope.round = Math.max(scope.round, row.round); scope.pairs.push(row); }
-  for (const row of [...pairs.filter(boundary).filter(row => row.outcome === 'PASS'), ...adjudicated.filter(boundary)]) {
-    const scope = entry(row); scope.passedRound = scope.passedRound == null ? row.round : Math.min(scope.passedRound, row.round);
+  const instances = scopeInstances(rows);
+  for (const instance of instances) {
+    const passes = [...instance.rounds].filter(([, round]) => round.outcome === 'PASS').map(([n]) => n);
+    const adjudications = instance.rows.filter(row => row.check === 'REVIEW_ADJUDICATED').map(row => row.round);
+    instance.passedRound = passes.length || adjudications.length ? Math.min(...passes, ...adjudications) : null;
+    instance.currentRound = Math.max(0, ...instance.rows.map(row => row.round));
   }
-  const waivers = rows.filter(waives);
-  const latestPairBefore = (workflow, at, scope = null) => pairs.filter(boundary)
-    .filter(row => row.workflow === workflow && time(row) <= at && (scope === null || row.reviewScope === scope))
-    .sort((a, b) => time(a) - time(b) || a.round - b.round).at(-1) ?? null;
-  // A waive after a FAIL streak: the workflow's latest pair before the waiver
-  // FAILed, in a scope that never passed (attributed to that pair's scope).
-  const afterFail = [];
-  for (const waiver of waivers) {
-    const latest = latestPairBefore(waiver.workflow, time(waiver));
-    if (latest?.outcome === 'FAIL' && entry(latest).passedRound == null) afterFail.push({ workflow: waiver.workflow ?? null, scope: latest.reviewScope, round: latest.round, at: waiver.observedAt });
+  // A review waiver closes the scope instance of the workflow's latest
+  // reviewed round before it, and only when that instance never passed; it is
+  // a waive after a FAIL streak when that round FAILed.
+  const afterFail = [], waived = new Set();
+  for (const waiver of rows.filter(waives)) {
+    let latest = null;
+    for (const instance of instances.filter(item => item.workflow === (waiver.workflow ?? null)))
+      for (const [round, value] of instance.rounds) if (value.at <= time(waiver) && (!latest || value.at > latest.value.at)) latest = { instance, round, value };
+    if (!latest || latest.instance.passedRound != null) continue;
+    waived.add(latest.instance);
+    if (latest.value.outcome === 'FAIL') afterFail.push({ workflow: waiver.workflow ?? null, scope: latest.instance.scope, instance: latest.instance.instance, round: latest.round, at: waiver.observedAt });
   }
-  const list = [...scopes.values()].map(scope => {
-    const latest = scope.pairs.length ? scope.pairs.reduce((a, b) => time(a) >= time(b) ? a : b) : null;
-    const waived = scope.passedRound == null && waivers.some(waiver => waiver.workflow === scope.workflow && (!latest || time(waiver) >= time(latest)));
-    const status = scope.passedRound != null ? 'passed' : waived ? 'waived' : 'open';
-    return { workflow: scope.workflow, issue: scope.issue, scope: scope.scope, status, roundsToPass: scope.passedRound, currentRound: scope.round, pairs: scope.pairs.length,
-      waivedAfterFailStreak: afterFail.some(row => row.workflow === scope.workflow && row.scope === scope.scope) };
-  }).sort((a, b) => compare(`${a.workflow}${a.scope}`, `${b.workflow}${b.scope}`));
-  const passed = list.filter(row => row.status === 'passed'), open = list.filter(row => row.status === 'open'), waived = list.filter(row => row.status === 'waived');
+  const list = instances.map(instance => ({ workflow: instance.workflow, issue: instance.issue, scope: instance.scope, instance: instance.instance,
+    status: instance.passedRound != null ? 'passed' : waived.has(instance) ? 'waived' : 'open', roundsToPass: instance.passedRound, currentRound: instance.currentRound,
+    reviewedRounds: instance.rounds.size, waivedAfterFailStreak: afterFail.some(row => row.workflow === instance.workflow && row.scope === instance.scope && row.instance === instance.instance) }))
+    .sort((a, b) => compare(`${a.workflow}${a.scope}${a.instance}`, `${b.workflow}${b.scope}${b.instance}`));
+  const passed = list.filter(row => row.status === 'passed'), open = list.filter(row => row.status === 'open'), closed = list.filter(row => row.status === 'waived');
   // Open scopes count their current round as a lower bound; they can only raise the median.
   const value = median([...passed.map(row => row.roundsToPass), ...open.map(row => row.currentRound)]);
   let met;
@@ -76,7 +116,7 @@ export function roundsMeasure(rows) {
   else if ((value != null && value > ROUNDS_TARGET) || afterFail.length) met = false;
   else if (open.length || !passed.length) met = null;
   else met = true;
-  return { target: `median rounds to PASS <= ${ROUNDS_TARGET} and no waive after a FAIL streak`, denominator: { scopes: list.length, passed: passed.length, open: open.length, waived: waived.length },
+  return { target: `median rounds to PASS <= ${ROUNDS_TARGET} and no waive after a FAIL streak`, denominator: { scopes: list.length, passed: passed.length, open: open.length, waived: closed.length },
     medianRoundsToPass: value, medianIncludesOpenScopes: open.length > 0, waivesAfterFailStreak: afterFail, scopes: list, uncountedPairs, notRecorded, coverage: coverage(notRecorded),
     ...(open.length && !notRecorded && met === null ? { progress: 'in-progress' } : {}), met };
 }
@@ -121,27 +161,29 @@ export function escapedMeasure(rows) {
     notRecorded, coverage: coverage(notRecorded), met: null };
 }
 
-// Measure 4 (AC9): each provider's final per-round outcome in paired rounds.
+// Measure 4 (AC9): each provider's final outcome per reviewed round (re-reviews
+// of one revision and retries share the round and count once).
 export function secondOpinionMeasure(rows) {
-  // Only reviewers of counted rounds: an uncounted pair launched no reviewer.
-  const all = rows.filter(row => row.check === 'boundary-reviewer'), reviewers = all.filter(row => Number.isSafeInteger(row.round));
+  const all = rows.filter(row => row.check === 'boundary-reviewer');
   const notRecorded = rows.filter(row => row.check === 'BOUNDARY_REVIEWED' && row.reviewScope == null).length;
-  const findings = reviewFindings(rows);
   const byResult = new Map();
-  for (const row of findings) byResult.set(row.reference, [...(byResult.get(row.reference) ?? []), row]);
-  const pairOf = row => row.id.replace(/:reviewer:\d+$/u, '');
+  for (const row of reviewFindings(rows)) byResult.set(row.reference, [...(byResult.get(row.reference) ?? []), row]);
   const providers = new Map();
-  for (const row of reviewers) {
-    const provider = row.provider ?? NOT_RECORDED;
-    if (!providers.has(provider)) providers.set(provider, { provider, rounds: 0, unavailable: 0, findings: 0, peerUnmatchedClasses: 0, models: new Set() });
-    const entry = providers.get(provider);
-    entry.rounds++; if (row.model) entry.models.add(row.model);
-    if (row.outcome === 'UNAVAILABLE') entry.unavailable++;
-    const own = row.outcome === 'UNAVAILABLE' ? [] : byResult.get(row.reference) ?? [];
-    entry.findings += own.length;
-    const peers = reviewers.filter(peer => peer !== row && pairOf(peer) === pairOf(row));
-    const peerClasses = new Set(peers.flatMap(peer => (byResult.get(peer.reference) ?? []).map(finding => finding.classId)).filter(Boolean));
-    entry.peerUnmatchedClasses += new Set(own.map(finding => finding.classId).filter(id => id && !peerClasses.has(id))).size;
+  let reviewerRounds = 0;
+  for (const instance of scopeInstances(rows)) for (const { finals } of instance.rounds.values()) {
+    const own = row => row.reviewerStatus === 'completed' ? byResult.get(row.reference) ?? [] : [];
+    for (const row of finals) {
+      const provider = row.provider ?? NOT_RECORDED;
+      if (!providers.has(provider)) providers.set(provider, { provider, rounds: 0, unavailable: 0, findings: 0, peerUnmatchedClasses: 0, models: new Set() });
+      const entry = providers.get(provider);
+      entry.rounds++; reviewerRounds++; if (row.model) entry.models.add(row.model);
+      // A provider that did not complete its round (failed, rejected, unable to
+      // assess or never launched) was unavailable for that round.
+      if (row.reviewerStatus !== 'completed' || row.outcome === 'UNAVAILABLE') entry.unavailable++;
+      entry.findings += own(row).length;
+      const peerClasses = new Set(finals.filter(peer => peer !== row).flatMap(peer => own(peer).map(finding => finding.classId)).filter(Boolean));
+      entry.peerUnmatchedClasses += new Set(own(row).map(finding => finding.classId).filter(id => id && !peerClasses.has(id))).size;
+    }
   }
   const list = [...providers.values()].sort((a, b) => compare(a.provider, b.provider))
     .map(({ models, ...row }) => ({ ...row, models: [...models].sort(), unavailableRate: row.rounds ? row.unavailable / row.rounds : null }));
@@ -149,8 +191,8 @@ export function secondOpinionMeasure(rows) {
   if (notRecorded || !list.length) met = null;
   else met = list.every(row => row.unavailableRate < UNAVAILABLE_TARGET && row.findings > 0);
   return { target: `every reviewer provider's UNAVAILABLE rate < ${UNAVAILABLE_TARGET * 100}% and it reports findings of its own`,
-    denominator: { reviewerRounds: reviewers.length, providers: list.length }, uncountedReviewerRows: all.length - reviewers.length, providers: list,
-    proxy: 'peerUnmatchedClasses counts class IDs the peer did not use in the same pair. Class IDs are reviewer slugs, so this does not establish distinct defects and never affects met.',
+    denominator: { reviewerRounds, providers: list.length }, uncountedReviewerRows: all.filter(row => !Number.isSafeInteger(row.round)).length, providers: list,
+    proxy: 'peerUnmatchedClasses counts class IDs the peer did not use in the same round. Class IDs are reviewer slugs, so this does not establish distinct defects and never affects met.',
     notRecorded, coverage: coverage(notRecorded), met };
 }
 
@@ -198,7 +240,7 @@ export function renderConvergenceMarkdown(value) {
     `Scopes: ${rounds.denominator.scopes} (passed ${rounds.denominator.passed}, open ${rounds.denominator.open}, waived ${rounds.denominator.waived}). Median: ${rounds.medianRoundsToPass ?? 'none'}${rounds.medianIncludesOpenScopes ? ' (open scopes counted at their current round)' : ''}. Waives after a FAIL streak: ${rounds.waivesAfterFailStreak.length}. Uncounted pairs (no reviewer launched on a counted revision): ${rounds.uncountedPairs}.`, '');
   if (rounds.scopes.length) {
     lines.push('| Run | Scope | Status | Rounds to PASS | Current round |', '| --- | --- | --- | --- | --- |');
-    for (const row of rounds.scopes) lines.push(`| ${cell(row.issue ?? row.workflow)} | ${cell(row.scope)} | ${row.status}${row.waivedAfterFailStreak ? ' (after FAIL streak)' : ''} | ${row.roundsToPass ?? '-'} | ${row.currentRound} |`);
+    for (const row of rounds.scopes) lines.push(`| ${cell(row.issue ?? row.workflow)} | ${cell(row.scope)}${row.instance > 1 ? ` #${row.instance}` : ''} | ${row.status}${row.waivedAfterFailStreak ? ' (after FAIL streak)' : ''} | ${row.roundsToPass ?? '-'} | ${row.currentRound} |`);
     lines.push('');
   }
   lines.push(`## 2. Demoted findings: ${met(demoted.met)}`, '', `Target: ${demoted.target}. Coverage: ${demoted.coverage} (${demoted.notRecorded} findings not recorded).`,

@@ -170,12 +170,14 @@ export async function projectWorkflow(core, store = new MetricsStore()) {
         const rounds = roundFields({ scope: value.roundPolicy?.scope, round: given ?? counted.get(`${value.roundPolicy?.scope}\u0000${value.roundPolicy?.revision}`) });
         for (const [slot, outcome] of (Array.isArray(value.outcomes) ? value.outcomes : []).entries()) {
           const read = reads[slot];
-          const status = read ? resultStatus(read.result) : known(OUTCOME_STATUSES, outcome?.status);
+          // The recorded final status wins: a reused retained result is
+          // `refused` (no reviewer launched) although the result completed.
+          const status = known(OUTCOME_STATUSES, outcome?.status) ?? (read ? resultStatus(read.result) : undefined);
           members.push({ status, outcome: read?.result.outcome ?? 'UNAVAILABLE' });
           observations.push(observation({ ...common, ...rounds, id: `${common.id}:reviewer:${slot}`, kind: 'artifact', check: 'boundary-reviewer',
             provider: text(outcome?.provider) ?? read?.receipt.evaluator?.provider ?? null, model: read?.receipt.evaluator?.model ?? null,
             outcome: read?.result.outcome ?? 'UNAVAILABLE', reference: read ? outcome.results[0].hash : event.hash,
-            ...(read ? reviewerFields(read.result) : defined({ reviewerStatus: status })) }));
+            ...(read ? reviewerFields(read.result) : {}), ...defined({ reviewerStatus: status }) }));
         }
         const completed = members.filter(row => row.status === 'completed');
         const outcome = members.length && completed.length === members.length && completed.every(row => row.outcome === 'PASS') ? 'PASS'
