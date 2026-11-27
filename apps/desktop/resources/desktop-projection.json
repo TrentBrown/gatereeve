@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:21c9a3c35071bad19d45187e8030c018d64ce6da8d242e21985e870bf0c112b5",
+  "protocolHash": "sha256:a3d1d68945fc737244bef97b07174882d221b8a82cb0448a81a890bec3c2da7e",
   "contract": "gatereeve/current/8",
   "contractSha256": "1df0afc21301595b72a5f9bdad3ab2aade7452ad1c5a4f97455bde354bf1120a",
   "files": [
@@ -62,8 +62,8 @@
     },
     {
       "path": "current/core.js",
-      "size": 116166,
-      "sha256": "09ffdcf4b0a5131147ef3d95d2921386737dbda560f2598928d0b56795e47a79"
+      "size": 116335,
+      "sha256": "019d5242da4b5361bc9e65e6e24515a08db1f5afe4294b5400be76a521cb01fc"
     },
     {
       "path": "current/coverage.js",
@@ -137,13 +137,13 @@
     },
     {
       "path": "current/planning-lint.js",
-      "size": 1482,
-      "sha256": "63e9cb692e1febe3ebf6991f8d879bf557746d90ff1d7744669922887bb4d0c7"
+      "size": 1989,
+      "sha256": "53a30dfd96b98958e4e9de51d4e1d411a120fc283d27a6d348d062bcdfc17f5b"
     },
     {
       "path": "current/planning.js",
-      "size": 9727,
-      "sha256": "f7fe7c7d89678328f228b2d512136da3162b458d95dcbedd3f6874918c88f1a5"
+      "size": 9724,
+      "sha256": "6c1fb7b7c1402e224365cf098070bef255d8ea27f75b164cef42850920703b61"
     },
     {
       "path": "current/pre-tool-use.js",

@@ -13,8 +13,10 @@ Use before planning from a spec.
      `robust` without a same-line bound: a failure-model reference, a number,
      or `at most`, `at least`, `up to`, `no more than` or `within`.
    A spec already validated under the earlier planning policy (the same bytes)
-   gets them as warnings, as does the spec a `run.resume-current` with an
-   observed implementation approval validates; a changed spec is held to them.
+   gets them as warnings, as does the spec a `run.resume-current` of an active
+   run or retained activation validates with an observed implementation
+   approval; a changed spec is held to them. `lint_spec.py` applies them as
+   failures (`--specification-rules=warn` only reports them).
    Fix a false positive by stating the bound, not by rewording around the lint.
 4. Confirm acceptance criteria exist and are observable, unambiguous, and
    independently verifiable.

@@ -220,9 +220,13 @@ every offending line. A grandfathered spec gets both rules as warnings instead
 (returned by `spec.validate` and retained in its proof with
 `grandfathered: true`): its exact bytes were validated in this run under an
 earlier policy or already grandfathered, or `run.resume-current` validated it
-with an observed `planning.implementation` approval of the current commitments.
-Every other spec, including a changed spec in an old run, is held to them. The
-portable `lint_spec.py` always applies them. Light briefs may carry an optional
+while resuming an active run or a retained activation with an observed
+`planning.implementation` approval of the current commitments. Every other spec,
+including a changed spec in an old run and a fresh start through
+`run.resume-current`, is held to them. The portable `lint_spec.py` applies them
+as failures; `--specification-rules=warn` reports them as warnings instead, for
+record checks of feature homes that may hold a grandfathered spec (CI's
+review-artifact validation). Light briefs may carry an optional
 `## Failure model` section and are not linted.
 Python remains a leaf provider for Git integration/context checks; it does not
 control semantic planning acceptance.

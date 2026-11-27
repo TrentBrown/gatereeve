@@ -2775,12 +2775,12 @@ test('a spec already validated under the earlier policy warns; a changed spec is
   await assert.rejects(f.request('spec.validate', {}, 'rewritten'), /validation failed/);
 });
 test('a resumption with observed approvals grandfathers its unchanged spec', async t => {
+  // An in-flight run whose spec predates the rules resumes (the active run is kept).
   const f = await fixture(t);
   await writeFile(join(f.home, 'spec.md'), UNMODELED);
-  await rm(join(f.home, '.gatereeve-current'), { recursive: true });
   const commitments = await f.core.commitments();
   const base = { authority: human, reason: 'Observed earlier approval', consequences: 'Proceed within approved scope' };
-  const resumed = await f.request('run.resume-current', { runId: 'resumed-old-spec', implementers: ['implementer-one'], planning: {
+  const resumed = await f.request('run.resume-current', { implementers: ['implementer-one'], planning: {
     design: { ...base, subject: commitments.docs['design.md'].hash }, implementation: { ...base, subject: commitments.subject } } }, 'resume-old-spec');
   assert.equal(resumed.phase, 'IMPLEMENTING');
   const proof = await f.core.store.json((await f.core.state()).state.specValidation.proof);
@@ -2789,10 +2789,13 @@ test('a resumption with observed approvals grandfathers its unchanged spec', asy
   // A design approval alone does not vouch for the spec bytes.
   const g = await fixture(t);
   await writeFile(join(g.home, 'spec.md'), UNMODELED);
-  await rm(join(g.home, '.gatereeve-current'), { recursive: true });
   const design = (await g.core.commitments()).docs['design.md'].hash;
-  await assert.rejects(g.request('run.resume-current', { runId: 'resumed-design-only', implementers: ['implementer-one'], planning: { design: { ...base, subject: design } } }, 'resume-design-only'), /validation failed/);
-  // A direct validation after the resumption is held to the rules for changed bytes.
-  await writeFile(join(f.home, 'spec.md'), UNMODELED + '\nChanged later.\n');
-  await assert.rejects(f.request('spec.validate', {}, 'after-resume'), /validation failed|not available/);
+  await assert.rejects(g.request('run.resume-current', { implementers: ['implementer-one'], planning: { design: { ...base, subject: design } } }, 'resume-design-only'), /validation failed/);
+  // A fresh start through run.resume-current has nothing to resume, so its spec is held to the rules.
+  const h = await fixture(t);
+  await writeFile(join(h.home, 'spec.md'), UNMODELED);
+  await rm(join(h.home, '.gatereeve-current'), { recursive: true });
+  const fresh = await h.core.commitments();
+  await assert.rejects(h.request('run.resume-current', { runId: 'fresh-start', implementers: ['implementer-one'], planning: {
+    design: { ...base, subject: fresh.docs['design.md'].hash }, implementation: { ...base, subject: fresh.subject } } }, 'resume-fresh'), /validation failed/);
 });

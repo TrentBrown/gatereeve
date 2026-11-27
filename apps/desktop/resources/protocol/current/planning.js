@@ -86,7 +86,7 @@ export function specificationRules(body, facts) {
   else {
     const content = model.body.filter(i => prose[i] && lines[i].trim());
     if (!content.length) problems.push(`Failure model section at line ${model.heading + 1} is empty`);
-    else if (model.body.some(i => /\bTODO\b/u.test(lines[i]))) problems.push(`Failure model section at line ${model.heading + 1} is unresolved (TODO)`);
+    else if (content.some(i => /\bTODO\b/u.test(lines[i]))) problems.push(`Failure model section at line ${model.heading + 1} is unresolved (TODO)`);
   }
   const linted = new Set([...facts.acceptance, ...facts.criteria].map(item => item.line - 1));
   for (const pattern of [/^##\s+acceptance criteria\s*$/iu, /^##\s+rubric\s*$/iu]) {

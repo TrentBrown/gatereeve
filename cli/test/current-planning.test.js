@@ -45,6 +45,7 @@ test('a spec needs a nonempty, resolved Failure model section (AC3)', async () =
   assert.match(rules(spec('## Failure model\n\n   \n')).join(), /Failure model section at line 2 is empty/u);
   assert.match(rules(spec('## Failure model\n```\nonly code\n```\n')).join(), /line 2 is empty/u, 'fenced content alone is empty');
   assert.match(rules(spec('## Failure model\nTODO: name the handled conditions.\n')).join(), /line 2 is unresolved \(TODO\)/u);
+  assert.deepEqual(rules(spec('## Failure model\nOne writer.\n```\nTODO example in a fence\n```\n')), [], 'a TODO inside a fence is example text');
   // The section ends at the next level-1 or level-2 heading, not a level-3 one.
   assert.deepEqual(rules(spec('## Failure model\n### Handled\n- one writer\n')), []);
   const failed = await validatePlanning(spec(''));
@@ -102,4 +103,26 @@ test('grandfathering follows exact spec bytes validated under an earlier policy 
   assert.equal(await grandfatheredSpecification([started, validated('A', 'new')], 'A', read), false, 'a current-policy validation grandfathers nothing');
   assert.equal(await grandfatheredSpecification([started, validated('A', 'gone')], 'A', read), false, 'an unreadable proof grandfathers nothing');
   assert.equal(await grandfatheredSpecification([started], 'A', read), false, 'a resumed run without a record of its old spec is held to the rules');
+});
+
+test('the portable lint applies the rules as failures, or reports them on request (AC5)', async t => {
+  const { mkdtemp, writeFile, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { spawnSync } = await import('node:child_process');
+  const root = await mkdtemp(join(tmpdir(), 'gatereeve-portable-lint-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const script = new URL('../../plugin-src/shared/resources/scripts/lint_spec.py', import.meta.url).pathname;
+  const run = (...args) => spawnSync('python3', [script, root, ...args], { encoding: 'utf8', env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' } });
+  await writeFile(join(root, 'spec.md'), spec(''));
+  const strict = run();
+  assert.equal(strict.status, 1); assert.match(strict.stderr, /FAIL: Specification needs a "## Failure model" section/u);
+  const warned = run('--specification-rules=warn');
+  assert.equal(warned.status, 0, warned.stderr); assert.match(warned.stdout, /Warning: Specification rule \(reported, not enforced\): Specification needs/u);
+  assert.equal(run('--unknown').status, 1, 'an unsupported option is refused');
+  await writeFile(join(root, 'spec.md'), spec(MODEL));
+  assert.equal(run().status, 0);
+  // A parse failure still fails in warn mode.
+  await writeFile(join(root, 'spec.md'), '# Nothing to test\n');
+  assert.equal(run('--specification-rules=warn').status, 1);
 });

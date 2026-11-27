@@ -338,10 +338,13 @@ export class CurrentCore {
     if (planning.design) await this.execute({ operation: 'human.decide', operationId: childId('design'), input: { ...planning.design, kind: 'approve-design' } });
     const light = lightRun((await this.state()).state);
     if (!light && (planning.design || planning.implementation)) {
-      // An observed implementation approval binds the exact spec bytes, so it
-      // vouches for the unchanged spec on disk: that validation is
-      // grandfathered (spec AC5, design D5). A design approval alone does not.
-      this.resumingSpecification = Boolean(planning.implementation) && (await this.commitments()).subject === planning.implementation.subject;
+      // Resuming an active run or a retained activation with an observed
+      // implementation approval (which binds the exact spec bytes) vouches for
+      // the unchanged spec on disk: that validation is grandfathered (spec AC5,
+      // design D5). A design approval alone does not, and neither does a fresh
+      // start with nothing to resume.
+      this.resumingSpecification = Boolean(active || replacement) && Boolean(planning.implementation)
+        && (await this.commitments()).subject === planning.implementation.subject;
       try { await this.execute({ operation: 'spec.validate', operationId: childId('spec') }); }
       finally { this.resumingSpecification = false; }
     }

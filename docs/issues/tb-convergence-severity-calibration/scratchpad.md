@@ -72,3 +72,33 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
 - **Alternatives:** assert through a fake reviewer request only (kept for the
   light path in `current-light.test.js`; the unit test is more direct).
 - **Reversibility:** high.
+
+## S6. Boundary round 1 fixes
+
+- **Answered by:** agent
+- **Decision:** Paired review round 1 (Codex, Claude) findings, all fixed:
+  - A fresh start through `run.resume-current` (nothing to resume) no longer
+    grandfathers; only resuming an active run or a retained activation with an
+    implementation approval does (Codex F1).
+  - `TODO` inside a fenced example no longer marks the Failure model section
+    unresolved (Codex F2).
+  - Local Verification now also runs the desktop contract check and the
+    smoke fixture (Codex F3).
+  - The portable lint has a test (Claude F1).
+- **Reversibility:** high.
+
+## S7. The portable lint gets a warn mode for CI record checks
+
+- **Answered by:** agent
+- **Decision:** `lint_spec.py` keeps applying the failure-model rules as
+  failures (spec AC5). A `--specification-rules=warn` option reports them as
+  warnings instead. CI's review-artifact validation and the
+  portable-acceptance check of `workflow-state-machine-cli` pass it: they
+  check records of feature homes that may hold a spec `spec.validate`
+  grandfathered (an in-flight run's evidence-only push), and enforcing there
+  would fail CI for specs the protocol accepted with warnings (Claude F1 and
+  F2). Rule enforcement stays with `spec.validate`.
+- **Alternatives:** enforce in CI (breaks in-flight runs such as #142 and #144
+  once this merges); add failure models to every old feature home (rewrites
+  dozens of historical records); no portable enforcement (contradicts AC5).
+- **Reversibility:** high; two CI lines.
