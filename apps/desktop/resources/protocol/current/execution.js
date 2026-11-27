@@ -382,7 +382,7 @@ export const SELF_VALIDATION_CONTEXT_PATH = 'validation/context.json';
 const SELF_VALIDATION_SERVER_PATH = fileURLToPath(new URL('./verdict-check-server.js', import.meta.url));
 // The resources root the server's modules load from (protocol, performance,
 // release, storage): its only readable tree besides the context file.
-const SELF_VALIDATION_READ_ROOT = fileURLToPath(new URL('../../', import.meta.url));
+const SELF_VALIDATION_READ_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 // The exact launch GateReeve gives an adapter. Under Node's permission model
 // the server may read only its modules and its context file; it has no
 // file-write, child-process, worker, addon or WASI permission, so a write or

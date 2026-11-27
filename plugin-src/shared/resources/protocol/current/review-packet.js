@@ -46,7 +46,7 @@ export function linkedPath(target) {
   try { decoded = decodeURIComponent(value); } catch { return { reason: 'the link is not a valid path' }; }
   if (decoded.startsWith('/') || decoded.includes('\\') || decoded.includes('\0')) return { reason: 'the link is not a relative path in the feature home' };
   const path = posix.normalize(decoded);
-  if (path === '.' || path.startsWith('../') || path === '..') return { reason: 'the link points outside the feature home' };
+  if (path === '.' || /^\.\.(?:\/|$)/u.test(path)) return { reason: 'the link points outside the feature home' };
   // Dot entries hold run stores, checkpoints and handoffs, never requirements.
   if (path.split('/').some(part => part.startsWith('.'))) return { reason: 'the link names a hidden or workflow-record path' };
   return { path };
