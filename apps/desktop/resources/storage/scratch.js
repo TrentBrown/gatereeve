@@ -3,8 +3,9 @@ import { execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
 import { StringDecoder } from 'node:string_decoder';
 import { setTimeout as delay } from 'node:timers/promises';
-import { chmod, cp, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, rmdir, unlink, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { chmod, cp, lstat, mkdir, mkdtemp, open, readFile, readdir, realpath, rename, rm, rmdir, unlink, writeFile } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { tmpdir, uptime } from 'node:os';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -16,13 +17,31 @@ const ID = /^[a-z0-9][a-z0-9-]{0,47}-[a-f0-9-]{36}$/u;
 const uid = () => process.getuid?.();
 const same = (a, b) => a.dev === b.dev && a.ino === b.ino;
 const identity = stat => ({ dev: stat.dev, ino: stat.ino });
+
+// Persistent identity (#159). macOS APFS can renumber a volume's device across
+// a reboot or an OS update while a directory's inode, owner and mode stay the
+// same, so a record written in an earlier boot cannot require the device it
+// saw. A root record matches its directory by inode, and by device too unless
+// the record file was last written before this boot and the root still shares
+// its parent directory's device: a device change against a record written in
+// this boot, or a filesystem mounted at the root path itself, is refused, and a
+// copied, restored or recreated root has a different inode. A record inside a
+// verified root (a run, an installer entry or its file) matches by inode and
+// must sit on the root's current device. Checks within one process (`same`)
+// always compare both.
+const inode = (record, stat) => Number.isSafeInteger(record?.dev) && Number.isSafeInteger(record?.ino) && record.ino === stat.ino;
+// os.uptime() includes sleep on macOS and Linux, so this is the boot's wall-clock start.
+const bootStartedAt = () => Date.now() - uptime() * 1000;
+const rootMatches = (owner, written, stat, parent) => inode(owner, stat)
+  && (owner.dev === stat.dev || (written < bootStartedAt() && parent.dev === stat.dev));
 const json = async path => JSON.parse(await readFile(path, 'utf8'));
 const absent = error => error.code === 'ENOENT';
 const contains = (parent, child) => child === parent || child.startsWith(`${parent}${sep}`);
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
 
 // Shared private-directory and cooperative-lock rules for persistent installer storage.
-export { directory as privateStorageDirectory, regularJson as readStorageJson, lock as withStorageLock };
+export { directory as privateStorageDirectory, regularJson as readStorageJson, lock as withStorageLock,
+  rootRecord as readRootRecord, inode as matchesRecordedInode, rootMatches as matchesRootRecord };
 
 export function scratchRoot() { return process.env.GATEREEVE_SCRATCH_ROOT || join(tmpdir(), 'gatereeve'); }
 
@@ -38,9 +57,25 @@ async function regularJson(path) {
   return json(path);
 }
 
+// A root record with the time it was last written, read through one handle so
+// the content and its modification time belong to the same file.
+async function rootRecord(path) {
+  const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+  try {
+    const stat = await handle.stat();
+    assert(stat.isFile() && stat.uid === uid() && !(stat.mode & 0o077) && stat.size < 32768, `Unsafe scratch record: ${path}`);
+    return { record: JSON.parse(await handle.readFile('utf8')), written: stat.mtimeMs };
+  } catch (error) {
+    if (error.code === 'ELOOP') throw new Error(`Unsafe scratch record: ${path}`);
+    throw error;
+  } finally { await handle.close(); }
+}
+
 // Resolve the OS temporary parent (on macOS /tmp is a normal symlink), but
 // never follow a substituted GateReeve root, run directory or ownership file.
-async function rootInfo(root, create = false) {
+// A writing caller (`refresh`) re-records a renumbered device; read-only
+// previews and Doctor accept an earlier boot's device without writing.
+async function rootInfo(root, create = false, refresh = false) {
   assert(uid() !== undefined, 'Managed scratch currently requires a POSIX host');
   root = join(await realpath(dirname(resolve(root))), basename(root));
   if (create) {
@@ -56,10 +91,12 @@ async function rootInfo(root, create = false) {
   }
   for (let attempt = 0; ; attempt++) {
     try {
-      const stat = await directory(root), owner = await regularJson(join(root, 'owner.json'));
-      assert(owner.kind === KIND && owner.uid === uid() && same(owner, stat), 'Scratch root ownership changed');
-      await directory(join(root, 'runs'));
-      await directory(join(root, 'reports'));
+      const stat = await directory(root), { record: owner, written } = await rootRecord(join(root, 'owner.json'));
+      assert(owner.kind === KIND && owner.uid === uid() && rootMatches(owner, written, stat, await lstat(dirname(root))), 'Scratch root ownership changed');
+      for (const name of ['runs', 'reports']) assert((await directory(join(root, name))).dev === stat.dev, 'Scratch root spans filesystems');
+      // The root record never changes otherwise, so concurrent refreshes write
+      // the same content by atomic rename and need no lock.
+      if (refresh && owner.dev !== stat.dev) await saveOwner(root, { ...owner, dev: stat.dev });
       return { root, ...identity(stat) };
     } catch (error) {
       // Another creator can be publishing a new root. Do not create missing
@@ -72,7 +109,7 @@ async function rootInfo(root, create = false) {
 
 // Register a private root for a supervised tree (test harness shards) so
 // processes that inherit it may create runs without registering it again.
-export async function registerScratchRoot(root) { return (await rootInfo(root, true)).root; }
+export async function registerScratchRoot(root) { return (await rootInfo(root, true, true)).root; }
 
 export async function processIdentity(pid) {
   assert(Number.isSafeInteger(pid) && pid > 0, 'Invalid process identity');
@@ -154,7 +191,7 @@ export async function createScratch({ purpose, root = scratchRoot(), keepUntil =
   assert(typeof purpose === 'string' && purpose.length > 0 && purpose.length <= 200, 'Scratch purpose is required (maximum 200 characters)');
   assert(keepUntil === null || Number.isFinite(Date.parse(keepUntil)), 'Invalid retention expiry');
   // Inherited roots must already be registered by the supervising invocation.
-  const info = await rootInfo(root, root !== process.env.GATEREEVE_SCRATCH_ROOT);
+  const info = await rootInfo(root, root !== process.env.GATEREEVE_SCRATCH_ROOT, true);
   // Spec AC2 (D33): no global lock. The run name is unique and the owner record
   // is published by an atomic rename; until it exists cleanup sees the run as
   // uncertain and never removes it.
@@ -173,7 +210,8 @@ async function loadRun(root, id) {
   assert(ID.test(id), 'Invalid scratch run ID');
   const path = join(root, 'runs', id), stat = await directory(path);
   const owner = await regularJson(join(path, 'owner.json'));
-  assert(owner.kind === KIND && owner.id === id && owner.uid === uid() && same(owner, stat)
+  assert(owner.kind === KIND && owner.id === id && owner.uid === uid() && inode(owner, stat)
+    && stat.dev === (await lstat(join(root, 'runs'))).dev
     && typeof owner.purpose === 'string' && Number.isFinite(Date.parse(owner.createdAt))
     && Number.isSafeInteger(owner.processId) && owner.processId > 0 && typeof owner.processStartedAt === 'string'
     && owner.processStartedAt.length > 0 && ['active', 'finished', 'failed'].includes(owner.state)
@@ -413,7 +451,7 @@ export async function inspectScratch({ root = scratchRoot(), run, quick = false,
 export async function cleanupScratch({ root = scratchRoot(), run, apply = false, ...options } = {}) {
   const preview = await inspectScratch({ root, run, ...options, quick: false });
   if (!apply || preview.error || (preview.entries.length === 0 && (run || !(preview.reports?.removable.age || preview.reports?.removable.count || preview.tombstones)))) return { ...preview, applied: false, removed: [], reclaimedBytes: 0 };
-  const info = await rootInfo(root), { removeTree = path => rm(path, { recursive: true }) } = options;
+  const info = await rootInfo(root, false, true), { removeTree = path => rm(path, { recursive: true }) } = options;
   const removed = [], errors = [], skipped = [];
   for (const item of preview.entries.filter(entry => entry.status === 'eligible')) {
     let entombed = false;
@@ -540,7 +578,7 @@ export async function publishScratch(source, destination, { move = rename } = {}
 }
 
 export async function finishScratch(scratch, { error = null, diagnostics = '' } = {}) {
-  const info = await rootInfo(scratch.root);
+  const info = await rootInfo(scratch.root, false, true);
   await lock(info.root, async () => {
     const { path, owner } = await loadRun(info.root, scratch.id);
     assert(same(owner, scratch.owner) && owner.processId === process.pid && owner.processStartedAt === await selfIdentity(), 'Scratch belongs to a different invocation');

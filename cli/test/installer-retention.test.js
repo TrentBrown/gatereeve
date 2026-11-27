@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { mkdtemp, realpath, rm, mkdir, writeFile, readFile, lstat, symlink, link, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
-import { tmpdir } from 'node:os';
+import { tmpdir, uptime } from 'node:os';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
@@ -272,4 +272,40 @@ test('CLI import, hold and consumer lease preserve source and release lease afte
   await call(['installer', 'release-hold', added.id]);
   assert.equal((await f.cleanup({ apply: true })).removed[0].id, added.id);
   assert.equal(await readFile(source, 'utf8'), 'selected');
+});
+
+// #159: macOS APFS can renumber a volume's st_dev across a reboot or OS update
+// while the directory, inode, owner and mode stay the same.
+const beforeThisBoot = () => new Date(Date.now() - uptime() * 1000 - 60000);
+test('a device renumbered in an earlier boot keeps the installer root and its records; same-boot and replaced roots are refused', async t => {
+  const f = await fixture(t), one = await f.build('one');
+  const two = await f.build('two', { inspectActivity: async () => 'active' });
+  const rootOwner = join(f.root, 'owner.json'), actual = await lstat(f.root);
+  const recorded = async () => JSON.parse(await readFile(rootOwner, 'utf8'));
+  const before = await recorded();
+  // A record last written in this boot must still name the current device.
+  await writeFile(rootOwner, JSON.stringify({ ...before, dev: actual.dev + 1 }), { mode: 0o600 });
+  assert.match((await inspectInstallers({ root: f.root, quick: true })).error, /Installer root ownership changed/u);
+  await assert.rejects(f.build('same boot'), /Installer root ownership changed/u);
+  // The same record last written before this boot is a renumbered device.
+  await fsPromises.utimes(rootOwner, beforeThisBoot(), beforeThisBoot());
+  for (const entry of [one, two]) {
+    const owner = JSON.parse(await readFile(join(entry.path, 'owner.json'), 'utf8'));
+    await edit(entry, { dev: owner.dev + 1, ...owner.file ? { file: { ...owner.file, dev: owner.file.dev + 1 } } : {} });
+  }
+  // Read-only inspection opens the root and accepts every record without writing.
+  const preview = await inspectInstallers({ root: f.root, ...inactive });
+  assert.equal(preview.error, undefined); assert.deepEqual(preview.errors, []);
+  assert.deepEqual(preview.entries.map(e => e.status), [one, two].map(e => e.id === preview.keeper ? 'latest-successful' : 'eligible'));
+  assert.equal((await recorded()).dev, actual.dev + 1);
+  // A writing operation re-records the current device and keeps the success sequence.
+  const result = await f.cleanup({ apply: true });
+  assert.deepEqual(result.errors, []); assert.equal(result.removed.length, 1);
+  assert.deepEqual(await recorded(), before);
+  // A copied root has the same records but a different inode.
+  await fsPromises.rename(f.root, join(f.parent, 'original'));
+  await execute('cp', ['-Rp', join(f.parent, 'original'), f.root]);
+  assert.notEqual((await lstat(f.root)).ino, actual.ino);
+  assert.match((await f.cleanup({ apply: true })).error, /Installer root ownership changed/u);
+  await assert.rejects(f.build('three'), /Installer root ownership changed/u);
 });
