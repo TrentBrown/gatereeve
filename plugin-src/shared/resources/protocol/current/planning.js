@@ -72,7 +72,8 @@ export function planningFacts(body) {
 
 // Specification rules (spec AC3, AC4; design D3, D4). Separate from fact
 // extraction: a grandfathered spec reports them as warnings, never silently.
-const SECTION_END = /^#{1,2}\s/u;
+// ATX headings may be indented up to three spaces (CommonMark).
+const SECTION_END = /^ {0,3}#{1,2}(?:\s|$)/u;
 const UNBOUNDED = Object.freeze([['always', /\balways\b/iu], ['any', /\bany\b/iu], ['all cases', /\ball cases\b/iu],
   ['never fails', /\bnever fails\b/iu], ['converges', /\bconverges\b/iu], ['robust', /\brobust\b/iu]]);
 // A bound on the same line: a failure-model reference, a numeral or a bounding
@@ -88,7 +89,7 @@ function sectionLines(lines, prose, pattern) {
 }
 export function specificationRules(body, facts) {
   const lines = body.split(/\r?\n/u), prose = outsideFences(lines), problems = [];
-  const model = sectionLines(lines, prose, /^##\s+failure model\s*$/iu);
+  const model = sectionLines(lines, prose, /^ {0,3}##\s+failure model\s*#*\s*$/iu);
   if (!model) problems.push('Specification needs a "## Failure model" section naming the handled conditions and the detect-and-refuse behaviour outside them');
   else {
     const content = model.body.filter(i => prose[i] && lines[i].trim());
@@ -96,7 +97,7 @@ export function specificationRules(body, facts) {
     else if (content.some(i => /\bTODO\b/u.test(lines[i]))) problems.push(`Failure model section at line ${model.heading + 1} is unresolved (TODO)`);
   }
   const linted = new Set([...facts.acceptance, ...facts.criteria].map(item => item.line - 1));
-  for (const pattern of [/^##\s+acceptance criteria\s*$/iu, /^##\s+rubric\s*$/iu]) {
+  for (const pattern of [/^ {0,3}##\s+acceptance criteria\s*#*\s*$/iu, /^ {0,3}##\s+rubric\s*#*\s*$/iu]) {
     for (const i of sectionLines(lines, prose, pattern)?.body ?? []) linted.add(i);
   }
   const unbounded = [];

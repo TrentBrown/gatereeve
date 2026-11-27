@@ -44,6 +44,8 @@ test('the policy moved with the specification rules', () => { assert.equal(PLANN
 test('a spec needs a nonempty, resolved Failure model section (AC3)', async () => {
   assert.deepEqual(rules(spec(MODEL)), []);
   assert.deepEqual(rules(spec('## failure MODEL\nHandled conditions listed.\n')), [], 'heading matches case-insensitively');
+  assert.deepEqual(rules(spec('   ## Failure model ##\nHandled conditions listed.\n')), [], 'an indented or closed ATX heading counts');
+  assert.match(rules(spec('    ## Failure model\nIndented code, not a heading.\n')).join(), /needs a "## Failure model" section/u);
   assert.match(rules(spec('')).join(), /needs a "## Failure model" section/u);
   assert.match(rules(spec('### Failure model\nNot level two.\n')).join(), /needs a "## Failure model" section/u);
   assert.match(rules(spec('```\n## Failure model\n```\n')).join(), /needs a "## Failure model" section/u, 'a heading inside a fence does not count');
@@ -77,6 +79,7 @@ test('criteria with unbounded wording need a same-line bound (AC4)', () => {
   assert.deepEqual(rules(spec(MODEL, '- **AC1.** Export the value. Many companies anyway.')), [], 'whole words only');
   // Nested criterion lines are linted; text outside the two sections is not.
   assert.equal(rules(spec(MODEL, '- **AC1.** Export the value.\n  - It is always right.')).length, 1);
+  assert.equal(rules(` # Spec\n${MODEL} ## Acceptance Criteria\n- **AC1.** Export the value.\n  - It is always right.\n ## Rubric\n| R1 | AC1 | right | other | test |\n`).length, 1, 'indented section headings are linted');
   assert.deepEqual(rules(`# Spec\n## Summary\nAlways robust, any case.\n${MODEL}## Acceptance Criteria\n- **AC1.** Export.\n## Rubric\n| R1 | AC1 | 42 | other | test |\n`), []);
   // One diagnostic lists every offending line.
   const problems = rules(spec(MODEL, '- **AC1.** Always export.\n- **AC2.** Export any value.', '| R1 | AC1 robust | right | other | test |\n| R2 | AC2 | right | other | test |'));

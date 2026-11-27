@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:e7b176f50a75af9ff6968ca96a528884941eb01200cb9f9d7991b6ea6685a4f1",
+  "protocolHash": "sha256:7145039be7529fac555820d2f34d94a943cdd5099b80c3e8ade5a592c6f94f48",
   "contract": "gatereeve/current/8",
   "contractSha256": "1df0afc21301595b72a5f9bdad3ab2aade7452ad1c5a4f97455bde354bf1120a",
   "files": [
@@ -142,8 +142,8 @@
     },
     {
       "path": "current/planning.js",
-      "size": 10094,
-      "sha256": "1ada2dce66320798c9f87d35be018067938427a060eb3acdbc50ce25f013cc28"
+      "size": 10204,
+      "sha256": "38ebb564e65f2e0dc00da4316aeb7146a5adf89ed7405d725820af8509846384"
     },
     {
       "path": "current/pre-tool-use.js",

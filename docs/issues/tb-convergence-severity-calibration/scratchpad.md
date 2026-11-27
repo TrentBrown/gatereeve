@@ -118,3 +118,13 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
 - **Alternatives:** fix only the new rules pass (leaves the extractor
   disagreeing with the rules, which the first test run showed).
 - **Reversibility:** high.
+
+## S9. Boundary round 3: indented headings; CI lint receipt
+
+- **Answered by:** agent
+- **Decision:** Codex round 3: section headings indented up to three spaces
+  (and closed ATX headings) now count as headings for the Failure model check,
+  the linted sections and section ends; four spaces is code, as in
+  CommonMark. Local Verification gains a receipt that runs the changed CI
+  record lints exactly as CI invokes them.
+- **Reversibility:** high.
