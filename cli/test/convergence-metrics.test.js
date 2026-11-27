@@ -13,7 +13,7 @@ import { spawn } from 'node:child_process';
 import { MetricsStore } from '../../plugin-src/shared/resources/performance/store.js';
 import { metricsRequest, renderReevaluation, renderConvergenceMarkdown } from '../../plugin-src/shared/resources/performance/service.js';
 import { projectWorkflow, PROJECTION_VERSION } from '../../plugin-src/shared/resources/performance/workflow-projection.js';
-import { observation, reportingDatabase, NOT_RECORDED } from '../../plugin-src/shared/resources/performance/fleet.js';
+import { observation, reportingDatabase, NOT_RECORDED, captureSnapshot, exportSnapshot, importSnapshot, SNAPSHOT_FORMAT } from '../../plugin-src/shared/resources/performance/fleet.js';
 import { convergence, roundsMeasure, demotedMeasure, escapedMeasure, secondOpinionMeasure, reviewerTable, cohort } from '../../plugin-src/shared/resources/performance/convergence.js';
 import { createSession } from '../../plugin-src/shared/resources/performance/mcp.js';
 
@@ -221,6 +221,19 @@ test('R5: an earlier-version workflow is replayed with the new fields; earlier r
   const rows = await localRows(store);
   assert.ok(rows.some(row => row.check === 'boundary-reviewer' && row.reference === H(10)));
   assert.equal(rows.find(row => row.reference === 'event-11').rigor, 'full');
+  // Capture keeps every replayed row: a replayed version that only adds
+  // convergence fields is an upgrade of the earlier version, not a conflict.
+  const captured = await captureSnapshot({}, store);
+  assert.deepEqual(captured.skipped ?? [], []);
+  const dataset = await exportSnapshot({ dataset: captured.dataset }, store);
+  assert.equal(dataset.records.find(row => row.id === `${source}:${H(10)}:finding:H1`).demoted, false);
+  assert.equal(dataset.records.find(row => row.id === `${source}:${H(10)}`).reviewerStatus, 'completed');
+  // The earlier snapshot still imports beside the replayed one; the replayed version stays latest.
+  const earlier = { format: SNAPSHOT_FORMAT, sources: dataset.sources, records: [JSON.parse(db.prepare('SELECT body FROM reporting_observations WHERE id=? AND body NOT LIKE ?').get(`${source}:${H(10)}:finding:H1`, '%demoted%').body)] };
+  await importSnapshot(earlier, store);
+  assert.equal(latest(`${source}:${H(10)}:finding:H1`).demoted, false);
+  // A same-time version that changes a stored field is still a conflict.
+  await assert.rejects(importSnapshot({ ...earlier, records: [{ ...earlier.records[0], outcome: 'PASS' }] }, store), /Conflicting values for the same observation time/u);
   // A current-version workflow projects only new events.
   const before = await ids();
   await projectWorkflow(core, store);
@@ -395,6 +408,8 @@ test('R11: rows without the new fields are not recorded, never zero, and make th
   const value = convergence([...legacy, pairRow('w1', 'slice', 1, 'PASS', 1), findingRow({})].flat());
   assert.deepEqual([value.rounds.notRecorded, value.rounds.coverage, value.rounds.met, value.rounds.medianRoundsToPass], [1, 'incomplete', null, 1]);
   assert.deepEqual([value.demoted.notRecorded, value.demoted.coverage, value.demoted.met, value.demoted.denominator.demoted], [1, 'incomplete', null, 1]);
+  // An earlier finding no defect links to still makes measure 3 incomplete.
+  assert.deepEqual([value.escapedFromDemoted.notRecorded, value.escapedFromDemoted.coverage], [1, 'incomplete']);
   assert.deepEqual([value.secondOpinion.coverage, value.secondOpinion.met], ['incomplete', null]);
   // A review result projected before these fields (no reviewer status) alone makes the cohort incomplete.
   const oldResult = convergence([pairRow('w1', 'slice', 1, 'PASS', 1), row({ kind: 'artifact', check: 'review', outcome: 'FAIL', reference: H(5) })].flat());

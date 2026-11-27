@@ -161,11 +161,13 @@ export function escapedMeasure(rows) {
   const confirmed = defects.filter(row => LINK_BASES.includes(row.linkBasis) && Array.isArray(row.links) && row.links.length);
   const findings = new Map(reviewFindings(rows).map(row => [`${row.reference}\u0000${row.findingId}`, row]));
   const traced = [], linkedFindings = new Set(), followedUp = new Set();
-  let notRecorded = 0, unmatched = 0;
+  // Every review finding projected before these fields is not recorded (AC11),
+  // whether or not a defect links to it: its demotion status is unknown.
+  const notRecorded = reviewFindings(rows).filter(row => row.demoted == null).length;
+  let unmatched = 0;
   for (const defect of confirmed) {
     const linked = defect.links.map(link => FINDING_LINK.exec(link)).filter(Boolean).map(([, hash, id]) => findings.get(`${hash}\u0000${id}`));
     if (linked.some(row => row === undefined)) unmatched++;
-    if (linked.some(row => row && row.demoted == null)) notRecorded++;
     const demoted = linked.filter(row => row?.demoted === true);
     for (const row of demoted) { linkedFindings.add(row.id); if (row.followUp != null) followedUp.add(row.id); }
     if (demoted.length) traced.push({ fixId: defect.fixId ?? null, findings: demoted.length, withFollowUp: demoted.filter(row => row.followUp != null).length });

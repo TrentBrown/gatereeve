@@ -225,7 +225,11 @@ build) is omitted rather than failing the workflow's projection.
 A workflow last projected by version 1 is replayed once: rows that gain
 convergence fields get a new version of the same ID with every stored field
 kept, other rows are left untouched (earlier rows are not converted), and only
-the new per-reviewer rows are added.
+the new per-reviewer rows are added. A replayed version that differs from the
+earlier version only in convergence fields is an upgrade, not a conflict:
+`metrics capture` keeps it, and importing either snapshot beside the other
+keeps the replayed version as latest. Any other difference at the same
+observation time is still refused as a conflict.
 
 `gatereeve metrics convergence [--dataset <id>] [--project <label>] [--since <date>]
 [--until <date>] [--format json|markdown]` reads this store's latest rows, or a

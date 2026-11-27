@@ -63,9 +63,12 @@ are in `interview.md`.
 - **Answered by:** agent
 - **Decision:** Earlier-version workflows are replayed; replayed rows gain
   only the convergence fields, other rows stay untouched (the existing rule
-  that earlier reporting rows are never converted).
+  that earlier reporting rows are never converted). A replayed version that
+  differs only in convergence fields supersedes the earlier version in
+  snapshot capture and import, instead of being skipped as a same-time
+  conflict (post-merge review round 7).
 - **Reversibility:** high.
-- **Source:** scratchpad S4, interview D8.
+- **Source:** scratchpad S4, S13, interview D8.
 
 ## DEC-7. Pair rounds from reviewer inputs; uncounted pairs
 

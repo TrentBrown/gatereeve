@@ -73,6 +73,15 @@ export const FOLLOW_UP_STATUSES = Object.freeze(['undecided','accepted-risk','ne
 const GATE_IDS = Object.freeze(GATES.map(gate => gate.id));
 const ENUMS = { severity: () => SEVERITIES, band: () => BANDS, followUp: () => FOLLOW_UP_STATUSES, reviewerStatus: () => OUTCOME_STATUSES, unavailableReason: () => UNAVAILABLE_REASONS };
 export const LINK_BASES = Object.freeze(['human-stated','agent-proposed']);
+// Fields a version-2 replay of an earlier-version row may set (issue #149, AC5).
+export const replayField = (row, key) => CONVERGENCE_FIELDS.includes(key) || (row.check === 'BOUNDARY_REVIEWED' && ['outcome', 'count'].includes(key));
+// Whether two versions of one observation differ only by such replay fields:
+// a replayed row is an upgrade of the earlier version, never a conflict.
+export function replayVersion(old, row) {
+  const differing = [...new Set([...Object.keys(old), ...Object.keys(row)])].filter(key => JSON.stringify(old[key]) !== JSON.stringify(row[key]));
+  return differing.length > 0 && differing.every(key => replayField(row, key) && replayField(old, key));
+}
+const replayFields = row => Object.keys(row).filter(key => replayField(row, key) && row[key] != null).length;
 export function observation(input) {
   const value = normalizedObservation(input);
   const allowed = ['id','source','observedAt','kind','project','projectKey','workflow','issue','branch','platform','check','model','provider','strategy','reason','outcome','findingId','fixId','links','reference','metrics','limitation','validator','contract',...MEASUREMENT];
@@ -131,10 +140,12 @@ export async function importSnapshot(input, store, { skipConflicts = false } = {
       // stored value, skips the conflicting row and reports it, so one bad row
       // (for example a test fixture's reused identity) cannot block capture.
       const conflict = reason => { if (!skipConflicts) check(false, reason); conflicts.push({ id: row.id, reason }); return true; };
-      if (historical.some(old => Date.parse(old.observed_at) === Date.parse(row.observedAt) && storedBody(old.body) !== JSON.stringify(row))
+      const replayed = body => replayVersion(JSON.parse(storedBody(body)), row);
+      if (historical.some(old => Date.parse(old.observed_at) === Date.parse(row.observedAt) && storedBody(old.body) !== JSON.stringify(row) && !replayed(old.body))
         && conflict('Conflicting values for the same observation time')) continue;
       const latest = db.prepare('SELECT o.body,o.observed_at FROM reporting_observations o JOIN reporting_latest l ON o.id=l.id AND o.version=l.version WHERE o.id=?').get(row.id);
-      if (latest && storedBody(latest.body) !== JSON.stringify(row)) {
+      const upgrade = latest && replayed(latest.body);
+      if (latest && storedBody(latest.body) !== JSON.stringify(row) && !upgrade) {
         const old = JSON.parse(latest.body);
         if (!(old.source === row.source && old.kind === row.kind && (old.metrics && row.metrics ? old.metrics.projectId === row.metrics.projectId && old.metrics.featureId === row.metrics.featureId : old.workflow === row.workflow))
           && conflict('Conflicting observation identity')) continue;
@@ -142,7 +153,8 @@ export async function importSnapshot(input, store, { skipConflicts = false } = {
         if (old.metrics && row.metrics && !(old.metrics.id === row.metrics.id && old.metrics.startedAt === row.metrics.startedAt) && conflict('Conflicting execution identity')) continue;
       }
       db.prepare('INSERT OR IGNORE INTO reporting_observations VALUES (?,?,?,?)').run(row.id,version,row.observedAt,JSON.stringify(row));
-      if (!latest || Date.parse(latest.observed_at) < Date.parse(row.observedAt)) db.prepare('INSERT INTO reporting_latest VALUES (?,?) ON CONFLICT(id) DO UPDATE SET version=excluded.version').run(row.id,version);
+      // A replayed version with more convergence fields supersedes the earlier one.
+      if (!latest || Date.parse(latest.observed_at) < Date.parse(row.observedAt) || (upgrade && replayFields(row) > replayFields(JSON.parse(storedBody(latest.body))))) db.prepare('INSERT INTO reporting_latest VALUES (?,?) ON CONFLICT(id) DO UPDATE SET version=excluded.version').run(row.id,version);
       db.prepare('INSERT INTO reporting_members VALUES (?,?,?)').run(id,row.id,version);
     }
     db.prepare('INSERT INTO reporting_datasets VALUES (?,?)').run(id,JSON.stringify({ format: SNAPSHOT_FORMAT, sources: canonical.sources, capturedAt: new Date().toISOString() }));

@@ -170,3 +170,18 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
   identity stays stable, and the replay re-reads results that were
   already projected.
 - **Reversibility:** high.
+
+## S13. Round 6-7 fixes after the second merge of main
+
+- **Answered by:** agent (round 6 continued by the human)
+- **Decision:** Round 5 Codex findings: the reviewer table counts rule rows
+  of review results only, and a counted reviewer outcome without a status is
+  not recorded in measure 1. Both are fixed; round 6 passed. Main (#171) was
+  then merged in cleanly. In round 7, a fresh pass without history found two
+  more issues, both fixed: capture skipped replayed rows as same-time
+  conflicts (now a replay-only difference is an upgrade, `replayVersion` in
+  fleet.js), and measure 3 now counts every earlier finding as not recorded.
+  Codex's medium non-blocking note (a `--since` boundary can split a round
+  from its findings) and Claude's low note on the local receipt's suite list
+  are left as follow-ups.
+- **Reversibility:** high.

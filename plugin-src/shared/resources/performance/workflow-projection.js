@@ -3,7 +3,7 @@ import { basename } from 'node:path';
 import { sourceGit } from '../protocol/current/git-source.js';
 import { hostname } from 'node:os';
 import { MetricsStore } from './store.js';
-import { reportingDatabase, observation, DIAL_FIELDS, LINK_BASES, reportingDial, CONVERGENCE_FIELDS } from './fleet.js';
+import { reportingDatabase, observation, DIAL_FIELDS, LINK_BASES, reportingDial, replayField } from './fleet.js';
 import { DEFAULT_DIALS, GATES } from '../protocol/current/contracts.js';
 import { captureWarning } from './observe.js';
 import { scheduledBlocking, severityOf, band } from '../protocol/current/round-policy.js';
@@ -202,8 +202,7 @@ export async function projectWorkflow(core, store = new MetricsStore()) {
     }
     const latestBody = db.prepare('SELECT o.body FROM reporting_latest l JOIN reporting_observations o ON o.id=l.id AND o.version=l.version WHERE l.id=?');
     const kept = observations.slice(0, firstNew ?? observations.length).flatMap(row => {
-      const added = Object.fromEntries(Object.entries(row).filter(([key]) => CONVERGENCE_FIELDS.includes(key)
-        || (row.check === 'BOUNDARY_REVIEWED' && ['outcome', 'count'].includes(key))));
+      const added = Object.fromEntries(Object.entries(row).filter(([key]) => replayField(row, key)));
       if (!Object.keys(added).length) return [];
       const existing = latestBody.get(row.id);
       if (!existing) return [row];
