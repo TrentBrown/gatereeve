@@ -1030,8 +1030,11 @@ passage. Findings and independent dispositions are also recorded automatically.
 **Escaped defects.** Record a defect found after an earlier run or PR let it
 through as an `escaped-defect` note in the run that fixes it. To link the fix to
 its origin, give `fixId` (the fix PR or commit), `links` (origin references such
-as `run:<runId>`, `candidate:<hash>` or `owner/repo#12`), `linkBasis` and the
-observed human `authority`:
+as `run:<runId>`, `candidate:<hash>`, `owner/repo#12` or
+`finding:<result-hash>:<finding-id>` for the review finding that let it through),
+`linkBasis` and the observed human `authority`. A `finding:` link to a demoted
+finding is counted by the convergence measures (PERFORMANCE.md, Convergence
+measures):
 
 ```json
 {"kind":"escaped-defect","fixId":"owner/repo#31","reason":"Export returned 41","links":["owner/repo#12"],"linkBasis":"agent-proposed","authority":{"kind":"human-confirmed","instruction":"Yes, #12 introduced it.","context":"Agent proposed origin #12 from blame of the changed line"}}

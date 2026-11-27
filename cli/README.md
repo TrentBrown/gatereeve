@@ -359,3 +359,10 @@ See [measurement usage and privacy](../plugin-src/shared/resources/PERFORMANCE.m
 for wrapper/import commands, retention, capture limits and MCP configuration.
 No metric changes required validation or authorizes reuse. Preserve active
 sessions during upgrades and verify activation separately.
+
+`gatereeve metrics convergence [--dataset <id>] [--project <label>] [--since <date>]
+[--until <date>] [--format json|markdown]` reports the four review convergence
+measures (rounds to PASS, demoted findings, escaped defects traced to demoted
+findings, second opinion) and a per-reviewer table from the local reporting
+store or a fixed dataset. Rows recorded before these fields are not recorded,
+never zero.

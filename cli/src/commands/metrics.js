@@ -1,11 +1,15 @@
 import { Command } from 'commander';
 import { readFile } from 'node:fs/promises';
-import { metricsRequest, renderReport, renderReevaluation, runMeasured, importMetrics, fetchGitHubJobs, serve } from '../performance.js';
+import { metricsRequest, renderReport, renderReevaluation, renderConvergenceMarkdown, runMeasured, importMetrics, fetchGitHubJobs, serve } from '../performance.js';
 const output=value=>process.stdout.write(`${typeof value==='string'?value:JSON.stringify(value,null,2)}\n`);
 export function metricsCommands() {
   const root=new Command('metrics').enablePositionalOptions().description('Local workflow measurement; never grants gate authority');
   for(const action of ['report','export'])root.command(action).option('--project <identity>').option('--feature <identity>').option('--since <date>').option('--until <date>').option('--limit <count>','maximum records',Number,200).option('--offset <count>','record offset',Number,0).option('--format <format>','json, markdown or html','json').action(async options=>{const {format,...query}=options;output(renderReport(await metricsRequest(action,query),format));});
   root.command('capture').option('--platform <label>').option('--missing-source <name>', 'Unavailable fleet source', (value, rows) => [...rows,value], []).action(async options => output(await metricsRequest('capture',{platform:options.platform,missingSources:options.missingSource})));
+  root.command('convergence').description('The four convergence measures and per-reviewer table; reporting only').option('--dataset <id>','fixed dataset (default: this store)').option('--project <label>').option('--since <date>','observed at or after').option('--until <date>','observed at or before').option('--format <format>','json or markdown','json').action(async options=>{
+    const {format,...input}=options;if(!['json','markdown'].includes(format))throw new Error('Convergence supports json or markdown');
+    const value=await metricsRequest('convergence',input);output(format==='markdown'?renderConvergenceMarkdown(value):value);
+  });
   root.command('datasets').action(async()=>output(await metricsRequest('datasets')));
   root.command('databases').option('--workflow <id>').action(async options=>output(await metricsRequest('databases',options)));
   root.command('combine').argument('<datasets...>').action(async datasets=>output(await metricsRequest('combine',{datasets})));
