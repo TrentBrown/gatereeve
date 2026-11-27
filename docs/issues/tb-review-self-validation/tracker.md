@@ -28,3 +28,7 @@ Append pull-request review boundary entries here.
   Claude medium `EV1`-`EV3` (no receipts for metrics-repair, idle-inhibitor and
   desktop suites) and lows `L1`, `L2`. Evidence answered by added checks
   (scratchpad S5, S8). Hosted CI on 0632708: all 16 checks passed.
+- 2026-11-27 boundary round 2 (head 8006105): Claude PASS (round 1 findings
+  resolved; low `N1`); Codex FAIL high `codex/nested-parenthesized-link`
+  (fixed: a parenthesis-balancing scanner for link destinations) and mandate
+  UNAVAILABLE (PR description not in evidence; recorded in `decisions.md`).

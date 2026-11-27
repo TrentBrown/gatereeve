@@ -63,6 +63,8 @@ test('R7: links are read from prose, never from code, and classified', () => {
   // Balanced parentheses, escapes and angle brackets in a destination (round 1, codex high).
   assert.deepEqual(markdownLinks('[draft](docs/(draft).md) [esc](a\\)b.md) [angle](<two words.md>) [t](plain.md "Title")'),
     ['docs/(draft).md', 'a)b.md', 'two words.md', 'plain.md']);
+  // Any depth of balanced parentheses (round 2, codex high); unbalanced is not a link.
+  assert.deepEqual(markdownLinks('[n](docs/(a(b)).md) [deep](x/((((y)))).md "T") [bad](docs/(open.md'), ['docs/(a(b)).md', 'x/((((y)))).md']);
   assert.deepEqual(linkedPath('docs/(draft).md'), { path: 'docs/(draft).md' });
   assert.deepEqual(linkedPath('notes.md#part'), { path: 'notes.md' });
   assert.deepEqual(linkedPath('dir/../notes.md'), { path: 'notes.md' });
@@ -77,6 +79,7 @@ test('R7: linked feature-home documents are captured; others become notes; exter
   await writeFile(join(f.home, 'notes.md'), '# Notes\n');
   await mkdir(join(f.home, 'docs'));
   await writeFile(join(f.home, 'docs', '(draft).md'), '# Draft\n');
+  await writeFile(join(f.home, 'docs', '(a(b)).md'), '# Nested\n');
   await writeFile(join(f.home, 'big.md'), 'x'.repeat(256 * 1024 + 1));
   await mkdir(join(f.home, 'folder'));
   await symlink(join(f.home, 'notes.md'), join(f.home, 'link.md'));
@@ -84,11 +87,12 @@ test('R7: linked feature-home documents are captured; others become notes; exter
   let fetched = 0;
   globalThis.fetch = async () => { fetched++; throw new Error('no network'); };
   t.after(() => { globalThis.fetch = fetch; });
-  const spec = `${SPEC}\nThe global Definition of Done applies.\n[n](notes.md) [n again](notes.md) [draft](docs/(draft).md) [design](design.md) [big](big.md) [folder](folder) [link](link.md) [missing](missing.md) [up](../x.md) [web](https://example.test/spec.md)\n`;
+  const spec = `${SPEC}\nThe global Definition of Done applies.\n[n](notes.md) [n again](notes.md) [draft](docs/(draft).md) [nested](docs/(a(b)).md) [design](design.md) [big](big.md) [folder](folder) [link](link.md) [missing](missing.md) [up](../x.md) [web](https://example.test/spec.md)\n`;
   const value = await incorporatedDocuments(f.core.store, spec, ['spec.md', 'design.md']);
   assert.equal(fetched, 0);
   assert.deepEqual(value.documents.map(item => [item.reference, item.path]), [
-    ['global Definition of Done', DEFINITION_OF_DONE_VIEW_PATH], ['notes.md', 'incorporated/feature/notes.md'], ['docs/(draft).md', 'incorporated/feature/docs/(draft).md']]);
+    ['global Definition of Done', DEFINITION_OF_DONE_VIEW_PATH], ['notes.md', 'incorporated/feature/notes.md'], ['docs/(draft).md', 'incorporated/feature/docs/(draft).md'],
+    ['docs/(a(b)).md', 'incorporated/feature/docs/(a(b)).md']]);
   assert.equal(value.documents[0].ref.hash.startsWith('sha256:'), true);
   assert.deepEqual(value.notes.map(item => item.reference), ['big.md', 'folder', 'link.md', 'missing.md', '../x.md']);
   assert.match(value.notes[0].reason, /larger than 256 KiB/u);

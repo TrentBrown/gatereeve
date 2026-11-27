@@ -135,3 +135,14 @@ summary).
 - **Decision:** Not folded in; it changes the repair contract beyond this
   spec. Filed as #167.
 - **Source:** scratchpad S7.
+
+## PR description (mandate evidence)
+
+The PR for this run is TrentBrown/gatereeve#166, opened as a **draft**, not
+merged, against `main`. Its description starts with "Closes #142" and has a
+"Decisions made for you (please check)" section listing DEC-2 to DEC-9 and
+DEC-12 in plain words, with the test methods used (CLI tests, a
+real-provider smoke check of both adapters, the launch on Node 22 and 24) and
+the locally omitted host-dependent tests. Publication of the review summary
+(`review.publish`) adds the agent decisions again. Nothing is merged by this
+run; the release merge needs Trent's per-PR instruction.

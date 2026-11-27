@@ -139,3 +139,15 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
   the pinned evidence; the decisions it asks to see are DEC-1 to DEC-12 here,
   and the PR description lists them under "Decisions made for you".
 - **Reversibility:** code and verification configuration.
+
+## S9. Review round 2 fixes
+
+- **Answered by:** agent
+- **Decision:** Fixed codex/nested-parenthesized-link (high; Claude rated the
+  same class low as N1, so the pair records high): inline link destinations
+  are now read by a scanner that balances parentheses at any depth, honours
+  backslash escapes and angle brackets, and ignores an unbalanced
+  destination, with tests for nested and deep cases. The Codex mandate
+  assessment was UNAVAILABLE because the PR description is not in the
+  pinned evidence, so `decisions.md` now records what it contains.
+- **Reversibility:** code only.

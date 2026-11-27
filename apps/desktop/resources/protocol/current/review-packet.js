@@ -29,12 +29,42 @@ function prose(text) {
   }
   return kept.join('\n');
 }
+// The destination of an inline link or image starting at `index` (just after
+// its opening parenthesis), as CommonMark reads it: `<...>`, or a bare run
+// without whitespace whose parentheses balance at any depth (backslash
+// escapes count as text), then an optional title and the closing parenthesis.
+// Returns null when the text there is not a link destination.
+function inlineDestination(body, index) {
+  let at = index;
+  while (body[at] === ' ' || body[at] === '\t') at += 1;
+  let target;
+  if (body[at] === '<') {
+    const close = body.indexOf('>', at + 1);
+    if (close === -1 || body.slice(at + 1, close).includes('\n')) return null;
+    target = body.slice(at, close + 1); at = close + 1;
+  } else {
+    let depth = 0; const begin = at;
+    for (; at < body.length; at += 1) {
+      const char = body[at];
+      if (char === '\\' && at + 1 < body.length) { at += 1; continue; }
+      if (/\s/u.test(char)) break;
+      if (char === '(') depth += 1;
+      else if (char === ')') { if (depth === 0) break; depth -= 1; }
+    }
+    if (depth !== 0 || at === begin) return null;
+    target = body.slice(begin, at);
+  }
+  const rest = /^[ \t]*(?:\n[ \t]*)?(?:(?:"[^"\n]*"|'[^'\n]*'|\([^)\n]*\))[ \t]*)?\)/u.exec(body.slice(at));
+  return rest ? target : null;
+}
 // Link targets in Markdown text: inline links and images `[x](target "t")`
 // and reference definitions `[x]: target`, in document order.
 export function markdownLinks(text) {
   const body = prose(text), found = [];
-  // A bare destination may hold balanced parentheses, as in CommonMark.
-  for (const match of body.matchAll(/!?\[[^\]\n]*\]\(\s*(<[^>\n]*>|(?:[^\s()\\]|\\.|\((?:[^\s()\\]|\\.)*\))+)(?:\s+(?:"[^"\n]*"|'[^'\n]*'|\([^)\n]*\)))?\s*\)/gu)) found.push({ index: match.index, target: match[1] });
+  for (const match of body.matchAll(/!?\[[^\]\n]*\]\(/gu)) {
+    const target = inlineDestination(body, match.index + match[0].length);
+    if (target !== null) found.push({ index: match.index, target });
+  }
   for (const match of body.matchAll(/^[ ]{0,3}\[[^\]\n]+\]:\s*(<[^>\n]*>|\S+)/gmu)) found.push({ index: match.index, target: match[1] });
   // Angle brackets delimit a destination; a backslash escapes ASCII punctuation.
   return found.sort((a, b) => a.index - b.index).map(item => item.target.replace(/^<|>$/gu, '').replace(/\\([!-/:-@[-`{-~])/gu, '$1'));
