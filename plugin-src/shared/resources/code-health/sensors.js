@@ -75,8 +75,12 @@ export async function sense({ executable, worktree, configPath, env, timeoutMs, 
 // Coaching is Habit Hooks' own: the mapper renders guides for whatever
 // findings it is given, so it receives only the regressions.
 export async function coach({ executable, worktree, configPath, env, findings }) {
-  if (!executable || findings.length === 0) return '';
+  if (findings.length === 0) return { text: '', error: null };
   const result = await run(executable, ['--config', configPath], { cwd: worktree, env, input: JSON.stringify(findings), timeoutMs: 120000 });
-  if (result.code === null || result.code > 1) return '';
-  return result.stdout.trim();
+  // habit-mapper exits 1 when it coached an enforced smell; that is success.
+  if (result.code === null || result.code > 1 || !result.stdout.trim()) {
+    const detail = (result.stderr || result.stdout || String(result.code ?? result.signal)).trim().split('\n').slice(-2).join(' | ');
+    return { text: '', error: `habit-mapper could not render coaching (${detail}); the regressions are listed below without it.` };
+  }
+  return { text: result.stdout.trim(), error: null };
 }

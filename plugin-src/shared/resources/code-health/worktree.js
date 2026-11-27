@@ -3,9 +3,9 @@
 // project's tool environments linked in, and inline suppressions are
 // neutralized so they affect neither side (design C1.2, C1.4).
 import { existsSync } from 'node:fs';
-import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, sep } from 'node:path';
 import { git } from './process.js';
 
 const JS = /\.(?:[cm]?[jt]sx?)$/;
@@ -22,13 +22,42 @@ export function neutralize(path, text) {
   }
   if (PY.test(path)) {
     return text
-      .replace(/#(\s*)ruff(\s*):(\s*)noqa/gi, `#$1${MARK}`)
+      .replace(/#(\s*)(?:ruff|flake8)(\s*):(\s*)noqa/gi, `#$1${MARK}`)
       .replace(/#(\s*)noqa\b/gi, `#$1${MARK}`);
   }
   return text;
 }
 
 const LINKED = ['node_modules', '.venv', 'venv'];
+
+// Package-local installs (a monorepo's cli/node_modules) are linked too: every
+// directory with a tracked package.json gets its node_modules.
+async function environmentLinks(root) {
+  const tracked = (await git(root, ['ls-files', '-z', '--', 'package.json', '*/package.json', '*/*/package.json'])).split('\0').filter(Boolean);
+  const nested = tracked.map(path => dirname(path)).filter(directory => directory !== '.').map(directory => join(directory, 'node_modules'));
+  return [...LINKED, ...nested].filter(path => existsSync(join(root, path)));
+}
+
+// Every write must land inside the temporary worktree: never through a
+// tracked symlink or a linked environment into the user's files.
+async function inside(worktree, path) {
+  const base = await realpath(worktree);
+  let parent;
+  try {
+    parent = await realpath(dirname(path));
+  } catch {
+    return false;
+  }
+  return parent === base || parent.startsWith(base + sep);
+}
+
+async function isSymlink(path) {
+  try {
+    return (await lstat(path)).isSymbolicLink();
+  } catch {
+    return false;
+  }
+}
 
 export class Worktrees {
   constructor(root, { scratch = tmpdir() } = {}) {
@@ -43,29 +72,34 @@ export class Worktrees {
     const path = join(parent, 'tree');
     this.paths.push(parent);
     await git(this.root, ['worktree', 'add', '--detach', '--quiet', path, commit]);
-    for (const name of LINKED) {
-      const source = join(this.root, name);
-      if (existsSync(source) && !existsSync(join(path, name))) await symlink(source, join(path, name));
+    for (const name of await environmentLinks(this.root)) {
+      const target = join(path, name);
+      if (!existsSync(target) && await inside(path, target)) await symlink(join(this.root, name), target);
     }
     return path;
   }
 
-  // Make the base worktree's governed files exactly the head's.
+  // Make the base worktree's governed files exactly the head's. Each target is
+  // unlinked first, so an existing symlink is replaced, never written through;
+  // a governed symlink at the head is recreated as a symlink.
   async overlay(path, headCommit, baseHashes, headHashes) {
-    for (const file of Object.keys(baseHashes)) {
-      if (!(file in headHashes)) await rm(join(path, file), { force: true });
-    }
-    for (const file of Object.keys(headHashes)) {
+    for (const file of new Set([...Object.keys(baseHashes), ...Object.keys(headHashes)])) {
+      const target = join(path, file);
+      await mkdir(dirname(target), { recursive: true });
+      if (!await inside(path, target)) throw new Error(`Refusing to write outside the temporary worktree: ${file}`);
+      await rm(target, { force: true });
+      if (!(file in headHashes)) continue;
+      const entry = (await git(this.root, ['ls-tree', headCommit, '--', file])).split('\t')[0].split(' ');
       const content = await git(this.root, ['show', `${headCommit}:${file}`]);
-      await mkdir(dirname(join(path, file)), { recursive: true });
-      await writeFile(join(path, file), content);
+      if (entry[0] === '120000') await symlink(content, target);
+      else await writeFile(target, content);
     }
   }
 
   async neutralize(path, files) {
     for (const file of files) {
       const absolute = join(path, file);
-      if (!existsSync(absolute)) continue;
+      if (!existsSync(absolute) || await isSymlink(absolute) || !await inside(path, absolute)) continue;
       const text = await readFile(absolute, 'utf8');
       const rewritten = neutralize(file, text);
       if (rewritten !== text) await writeFile(absolute, rewritten);

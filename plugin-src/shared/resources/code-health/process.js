@@ -4,6 +4,7 @@
 import { spawn } from 'node:child_process';
 import { access, constants } from 'node:fs/promises';
 import { delimiter, join } from 'node:path';
+import { parseToml as parseTomlText, TomlError } from './toml.js';
 
 export class Unavailable extends Error {
   constructor(cause, message, details = {}) {
@@ -73,17 +74,15 @@ export async function resolveTool(name, { root, override, env = process.env } = 
   return null;
 }
 
-const TOML_TO_JSON = 'import json,sys,tomllib\nprint(json.dumps(tomllib.loads(sys.stdin.read())))';
-
-// Habit Hooks needs Python 3.11+, so a Python with tomllib is present wherever
-// it can run; parsing through it avoids a second TOML implementation.
-export async function parseToml(text, { python = process.env.GATEREEVE_PYTHON || 'python3' } = {}) {
-  const result = await run(python, ['-I', '-c', TOML_TO_JSON], { input: text, timeoutMs: 30000 });
-  if (result.code !== 0) {
-    if (result.error) throw new Unavailable('missing-tool', `Python 3.11+ (${python}) is required to read Habit Hooks TOML configuration`);
-    throw new Unavailable('invalid-config', `TOML could not be parsed: ${result.stderr.trim().split('\n').at(-1)}`);
+// Configuration is parsed in-process (toml.js): Python 3.10 hosts have no
+// tomllib, and the wrapper must not depend on which Python is installed.
+export async function parseToml(text) {
+  try {
+    return parseTomlText(text);
+  } catch (error) {
+    if (error instanceof TomlError) throw new Unavailable('invalid-config', `TOML could not be parsed: ${error.message}`);
+    throw error;
   }
-  return JSON.parse(result.stdout);
 }
 
 function tomlKey(key) {

@@ -1,8 +1,6 @@
 // Effective thresholds, read from the tools themselves (design D16): ESLint's
 // resolved configuration for a scoped file, and Ruff's settings tables.
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { parseToml, run } from './process.js';
+import { parseToml, resolveTool, run } from './process.js';
 import { readCommitted } from './scope.js';
 
 const ESLINT_RULES = {
@@ -24,8 +22,8 @@ function ruleLimit(entry) {
 
 async function eslintThresholds(worktree, files, env) {
   const file = files.find(path => /\.(?:[cm]?[jt]sx?)$/.test(path));
-  const eslint = join(worktree, 'node_modules', '.bin', 'eslint');
-  if (!file || !existsSync(eslint)) return null;
+  const eslint = await resolveTool('eslint', { root: worktree, env });
+  if (!file || !eslint) return null;
   const result = await run(eslint, ['--print-config', file], { cwd: worktree, env, timeoutMs: 120000 });
   if (result.code !== 0) return null;
   try {
@@ -36,11 +34,11 @@ async function eslintThresholds(worktree, files, env) {
   }
 }
 
-async function ruffThresholds(root, head, options) {
+async function ruffThresholds(root, head) {
   for (const [path, prefix] of [['ruff.toml', []], ['.ruff.toml', []], ['pyproject.toml', ['tool', 'ruff']]]) {
     const text = await readCommitted(root, head, path);
     if (text === null) continue;
-    const parsed = prefix.reduce((value, key) => value?.[key], await parseToml(text, options));
+    const parsed = prefix.reduce((value, key) => value?.[key], await parseToml(text));
     if (!parsed) continue;
     const lint = parsed.lint ?? parsed;
     return {
@@ -54,9 +52,9 @@ async function ruffThresholds(root, head, options) {
   return null;
 }
 
-export async function thresholds({ root, head, worktree, files, env, options }) {
+export async function thresholds({ root, head, worktree, files, env }) {
   return {
     eslint: worktree ? await eslintThresholds(worktree, files, env) : null,
-    ruff: await ruffThresholds(root, head, options).catch(() => null),
+    ruff: await ruffThresholds(root, head).catch(() => null),
   };
 }

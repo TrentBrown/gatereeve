@@ -43,8 +43,8 @@ async function treeBlobs(root, commit) {
   const blobs = new Map();
   for (const entry of output.split('\0').filter(Boolean)) {
     const tab = entry.indexOf('\t');
-    const [, type, object] = entry.slice(0, tab).split(' ');
-    if (type === 'blob') blobs.set(entry.slice(tab + 1), object);
+    const [mode, type, object] = entry.slice(0, tab).split(' ');
+    if (type === 'blob') blobs.set(entry.slice(tab + 1), { mode, object });
   }
   return blobs;
 }
@@ -83,12 +83,12 @@ async function pyprojectHash(root, object, options) {
 
 async function governedHashes(root, commit, matchers, options) {
   const hashes = {};
-  for (const [path, object] of await treeBlobs(root, commit)) {
+  for (const [path, { mode, object }] of await treeBlobs(root, commit)) {
     if (IGNORED.test(path)) continue;
-    if (/(^|\/)pyproject\.toml$/.test(path)) {
+    if (/(^|\/)pyproject\.toml$/.test(path) && mode !== '120000') {
       hashes[path] = await pyprojectHash(root, object, options);
-    } else if (matchers.some(match => match(path))) {
-      hashes[path] = `git:${object}`;
+    } else if (matchers.some(match => match(path)) || /(^|\/)pyproject\.toml$/.test(path)) {
+      hashes[path] = `git:${mode}:${object}`;
     }
   }
   return hashes;

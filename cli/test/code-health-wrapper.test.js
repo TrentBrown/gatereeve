@@ -111,7 +111,7 @@ test('neutralize rewrites directives in place and preserves lines', () => {
   const out = neutralize('a.mjs', js);
   assert.equal(out.split('\n').length, js.split('\n').length);
   assert.doesNotMatch(out, /eslint-(disable|enable)|\/\* eslint /);
-  assert.equal(neutralize('a.py', 'x = 1  # noqa: E501\n# ruff: noqa\n'), 'x = 1  # gatereeve-neutralized: E501\n# gatereeve-neutralized\n');
+  assert.equal(neutralize('a.py', 'x = 1  # noqa: E501\n# ruff: noqa\n# flake8: noqa\n'), 'x = 1  # gatereeve-neutralized: E501\n# gatereeve-neutralized\n# gatereeve-neutralized\n');
   assert.equal(neutralize('README.md', '<!-- eslint-disable -->'), '<!-- eslint-disable -->');
 });
 
@@ -142,11 +142,14 @@ test('every UNAVAILABLE cause names its way forward', async () => {
   };
   const noPlugin = fixtureRepository({ config: BASE_CONFIG.replace('"gatereeve"', '"python"'), files: { 'src/a.js': 'x\n' } });
   const notEnforced = fixtureRepository({ config: BASE_CONFIG.replace('[smells.swallowed-exception]\nseverity = "enforced"', '[smells.swallowed-exception]\nseverity = "suggested"'), files: { 'src/a.js': 'x\n' } });
+  const disabled = fixtureRepository({ config: BASE_CONFIG.replace('[smells.swallowed-exception]\nseverity = "enforced"', '[smells.swallowed-exception]\nseverity = "enforced"\ndisabled = true'), files: { 'src/a.js': 'x\n' } });
   const cases = [
     ['not-set-up', notSetUp, {}],
     ['missing-tool', plain(), { habitSensors: join(tools.directory, 'absent') }],
     ['plugin-not-configured', noPlugin, {}],
     ['plugin-not-configured', notEnforced, {}],
+    ['plugin-not-configured', disabled, {}],
+    ['missing-tool', plain(), { habitMapper: join(tools.directory, 'absent-mapper') }],
     ['incomplete-run', plain(), { env: { FAKE_SENSORS_MODE: 'incomplete' } }],
     ['incomplete-run', plain(), { env: { FAKE_SENSORS_MODE: 'parse' } }],
     ['sensor-failed', plain(), { env: { FAKE_SENSORS_MODE: 'crash' } }],
@@ -157,10 +160,8 @@ test('every UNAVAILABLE cause names its way forward', async () => {
     const result = await check(root, options);
     assert.equal(result.verdict, 'UNAVAILABLE', cause);
     assert.equal(result.reasons[0].cause, cause);
-    if (cause !== 'sensor-failed') {
-      assert.match(result.reasons[0].remedy, /code-health init --preset moderate/, cause);
-      assert.match(result.reasons[0].remedy, /opt-out-code-health/, cause);
-    }
+    assert.match(result.reasons[0].remedy, /code-health init --preset moderate/, cause);
+    assert.match(result.reasons[0].remedy, /opt-out-code-health/, cause);
   }
 });
 

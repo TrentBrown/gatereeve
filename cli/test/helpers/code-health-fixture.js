@@ -18,7 +18,7 @@ const files = JSON.parse((config.match(/^files = (\\[.*\\])$/m) || [, '[]'])[1])
 if (process.env.FAKE_SENSORS_LOG) {
   let probe = null;
   try { probe = fs.readFileSync('eslint.config.js', 'utf8').trim(); } catch {}
-  fs.appendFileSync(process.env.FAKE_SENSORS_LOG, JSON.stringify({ cwd: process.cwd(), files, probe }) + '\\n');
+  fs.appendFileSync(process.env.FAKE_SENSORS_LOG, JSON.stringify({ cwd: process.cwd(), files, probe, nested: fs.existsSync('pkg/node_modules/marker') }) + '\\n');
 }
 if (mode === 'crash') { console.error('sensor exploded'); process.exit(3); }
 if (mode === 'badjson') { console.log('not json'); process.exit(0); }
@@ -45,6 +45,7 @@ console.log(JSON.stringify([...bySmell].map(([smell, issues]) => ({ smell, detai
 `;
 
 const FAKE_MAPPER = `#!/usr/bin/env node
+if (process.env.FAKE_MAPPER_MODE === 'crash') { console.error('mapper exploded'); process.exit(2); }
 const input = require('node:fs').readFileSync(0, 'utf8');
 const findings = JSON.parse(input);
 console.log(findings.map(f => '── ' + f.smell + ' (' + f.issues.length + ' issue) ── COACH ' + f.smell).join('\\n'));
@@ -64,15 +65,25 @@ severity = "enforced"
 severity = "enforced"
 `;
 
+// A fake ESLint for threshold and version reporting; it lives on PATH only
+// when a test puts its directory there.
+const FAKE_ESLINT = `#!/usr/bin/env node
+if (process.argv[2] === '--version') { console.log('v' + (process.env.FAKE_ESLINT_VERSION || '9.0.0')); process.exit(0); }
+if (process.argv[2] === '--print-config') { console.log(JSON.stringify({ rules: { 'max-lines-per-function': ['error', { max: 40 }], 'max-params': ['error', 5], complexity: ['error', 15], 'max-depth': ['error', { max: 4 }], 'max-lines': ['error', { max: 500 }] } })); process.exit(0); }
+process.exit(2);
+`;
+
 export function fakeTools() {
   const directory = mkdtempSync(join(tmpdir(), 'gatereeve-code-health-tools-'));
   const sensors = join(directory, 'habit-sensors');
   const mapper = join(directory, 'habit-mapper');
-  writeFileSync(sensors, FAKE_SENSORS);
-  writeFileSync(mapper, FAKE_MAPPER);
-  chmodSync(sensors, 0o755);
-  chmodSync(mapper, 0o755);
-  return { directory, sensors, mapper };
+  const eslintDirectory = join(directory, 'eslint-bin');
+  mkdirSync(eslintDirectory);
+  for (const [path, content] of [[sensors, FAKE_SENSORS], [mapper, FAKE_MAPPER], [join(eslintDirectory, 'eslint'), FAKE_ESLINT]]) {
+    writeFileSync(path, content);
+    chmodSync(path, 0o755);
+  }
+  return { directory, sensors, mapper, eslintDirectory };
 }
 
 export function gitIn(root, ...args) {

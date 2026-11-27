@@ -49,7 +49,15 @@ export async function main(argv, { stdout = process.stdout, stderr = process.std
     return 0;
   }
   const { json, help, ...input } = options;
-  const result = await runCodeHealth({ ...input, env });
+  let result;
+  try {
+    result = await runCodeHealth({ ...input, env });
+  } catch (error) {
+    // Anything that escapes the run (scratch storage, a crash) is UNAVAILABLE,
+    // never exit 1, which means FAIL.
+    result = { verdict: 'UNAVAILABLE', base: input.base, mergeBase: null, scope: { files: [] }, governed: { matched: null },
+      findings: { new: [], preExisting: [], advisory: [] }, groups: [], reasons: [{ cause: 'internal-error', message: `The code-health check could not run: ${error.message}` }] };
+  }
   stdout.write(json ? `${JSON.stringify(result, null, 2)}\n` : renderText(result));
   return exitCode(result.verdict);
 }
