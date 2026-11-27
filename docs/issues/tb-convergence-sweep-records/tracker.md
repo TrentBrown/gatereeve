@@ -33,3 +33,6 @@ Append pull-request review boundary entries here.
   the declared protocol inventory). Fixed; local Verification extended.
 - 2026-11-27 merged main (26 commits, #142 conflict in execution.js resolved);
   feature base moved to the merge base; round 5 and CI on the merged head.
+- 2026-11-27 boundary round 5 (head 22de63b): codex UNAVAILABLE (PR state not
+  evidenced; low scope-reset round count); claude-code FAIL (medium CR5-1
+  reintroduction origin lost; medium EV5-1 missing suite receipts). Fixed.

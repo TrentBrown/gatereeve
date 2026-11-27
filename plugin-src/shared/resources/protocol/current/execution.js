@@ -1031,17 +1031,19 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
       (candidate.repositories.some(repo => finding.path.startsWith(`${repo.alias}/`))
         || (brief ? ['requirements/brief.md'] : PLANNING_PATHS).includes(finding.path))) {
       // A later re-report keeps the raising review in history (its origin),
-      // like a `present` disposition (issue #134).
+      // like a `present` disposition (issue #134). Earlier closures stay too,
+      // so a finding resolved and later reintroduced is judged afresh.
       const known = findingStates.get(`${report.gate}:${finding.id}`);
-      if (known) Object.assign(known, { open: true, closure: null, closures: [], reopened: ref });
+      if (known) Object.assign(known, { open: true, closure: null, reopened: ref });
       else findingStates.set(`${report.gate}:${finding.id}`, { id: finding.id, gate: report.gate, ref, open: true, closure: null, closures: [] });
     }
     for (const disposition of report.dispositions ?? []) {
       const finding = findingStates.get(`${report.gate}:${disposition.id}`);
-      // Every closure since the last reopening stays in history, so each
-      // reviewer's latest perspective of the closing round is judged (#134).
+      // Every closure stays in history, so each reviewer's latest perspective
+      // of the closing round is judged and a reopened finding keeps the
+      // resolution that makes a reintroduction fresh (#134).
       if (finding && ['resolved', 'unsupported', 'present-low'].includes(disposition.status)) { finding.open = false; finding.closure = ref; finding.closures.push(ref); }
-      if (finding && disposition.status === 'present') { finding.open = true; finding.closure = null; finding.closures = []; finding.reopened = ref; }
+      if (finding && disposition.status === 'present') { finding.open = true; finding.closure = null; finding.reopened = ref; }
     }
   }
   const selectedHistory = new Map([...(input.history ?? []), ...[...latestContext.values()].filter(item => item.scoped || item.negative).map(item => item.ref), ...[...negativeContext.values()].map(item => item.ref)].map(ref => [ref.hash, ref]));
@@ -1049,6 +1051,7 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
   for (const finding of findingStates.values()) {
     if (finding.open) {
       selectedHistory.set(finding.ref.hash, finding.ref);
+      for (const closure of finding.closures) selectedHistory.set(closure.hash, closure);
       if (finding.reopened) selectedHistory.set(finding.reopened.hash, finding.reopened);
     }
     else {
@@ -1066,7 +1069,7 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
   const priorities = new Map();
   const prioritize = (ref, rank) => { if (ref) priorities.set(ref.hash, Math.min(priorities.get(ref.hash) ?? HISTORY_PRIORITY.context, rank)); };
   for (const finding of findingStates.values()) {
-    if (finding.open) { prioritize(finding.ref, HISTORY_PRIORITY.open); prioritize(finding.reopened, HISTORY_PRIORITY.open); }
+    if (finding.open) [finding.ref, ...finding.closures, finding.reopened].forEach(ref => prioritize(ref, HISTORY_PRIORITY.open));
     else if (reconsiderClosures.some(item => item.gate === finding.gate && item.id === finding.id)) [finding.ref, ...finding.closures, finding.reopened].forEach(ref => prioritize(ref, HISTORY_PRIORITY.reconsider));
   }
   for (const ref of [...(input.history ?? []), input.prior]) prioritize(ref, HISTORY_PRIORITY.requested);

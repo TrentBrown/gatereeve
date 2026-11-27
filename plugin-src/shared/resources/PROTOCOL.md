@@ -342,8 +342,9 @@ are not counted. `status.rounds` shows each scope, its round and band, and advic
   a round each provider's latest report is its perspective, so a same-revision
   re-review (for example after a disputed claim) supersedes that provider's
   earlier report, and the round that first raised a finding can still close
-  it; the next round's history carries every closure since the finding was
-  last reopened. A round is the round policy's scope epoch (how many times the scope
+  it; the next round's history carries every closure of the finding, so a
+  finding resolved and later reintroduced keeps being judged from its
+  reintroduction. A round is the round policy's scope epoch (how many times the scope
   has closed), round and revision (`packet.roundPolicy` carries all of them),
   so two individual selection-tagged reviews of one revision are judged as one
   round. A planning round that failed at

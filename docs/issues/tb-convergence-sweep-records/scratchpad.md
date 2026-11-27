@@ -160,3 +160,26 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
   reviews this feature's diff rather than #142's. One paired review round
   (round 5) and hosted CI rerun on the merged head before merging.
 - **Reversibility:** reversible.
+
+## S14. Boundary review round 5 findings
+
+- **Answered by:** agent
+- **Decision:** Round 5 (head 22de63b, after the main merge): codex
+  UNAVAILABLE only because the PR state is not in the bound evidence (one low,
+  scope-reset round count); claude-code FAIL with two mediums.
+  - `CR5-1` (class `reintroduction-origin-lost`): the S5 history change
+    cleared a finding's closures when a re-report or `present` reopened it,
+    so from the round after a reintroduction the resolving review left
+    history and qualification judged the finding from its first raise.
+    Fixed: closures are kept when a finding reopens, and an open finding's
+    history carries them. Sites: the re-report and `present` branches of
+    `findingStates`, open-finding history selection and prioritization in
+    `execution.js`. Test: round-policy.test.js "a reintroduced boundary
+    finding stays a regression in the round after its reintroduction"
+    (fails on the round-5 code).
+  - `EV5-1`: no local receipt for `self-validation.test.js` and
+    `review-packet.test.js` (both arrived from main). Swept the CLI tests for
+    drivers of `gate.execute`, `review.execute`, `boundaryReviews` and the
+    round policy; these two were the only uncovered ones. Added as a new
+    Verification check.
+- **Reversibility:** reversible.
