@@ -61,7 +61,7 @@ test('R1: the tool and the execution accept the same verdicts and report the sam
       const recorded = run.verdicts[index];
       assert.equal(row.valid, !recorded.invalidVerdictContract, item.name);
       assert.equal(row.error, recorded.invalidVerdictContract ? recorded.summary : null, item.name);
-      assert.equal(row.recordedOutcome, recorded.invalidVerdictContract ? null : recorded.outcome, item.name);
+      assert.equal(row.recordedOutcome, recorded.outcome, item.name);
       assert.deepEqual(row.corrections, (recorded.normalized ?? []).map(entry => entry.rule), item.name);
     }
   }
@@ -134,6 +134,7 @@ test('R2: the server answers MCP requests read-only and keeps answering after ba
   const invalid = await client.call(4, { verdicts: [verdict({ criteria: [{ id: 'R1', outcome: 'FAIL', evidence: 'no' }] })] });
   assert.equal(invalid.report.verdicts[0].valid, false);
   assert.match(invalid.report.verdicts[0].error, /^Assessment PASS contradicts criterion outcomes: criteria\[0\] \(R1\) is FAIL/u);
+  assert.equal(invalid.report.verdicts[0].recordedOutcome, 'UNAVAILABLE', 'An invalid verdict is recorded UNAVAILABLE (round 4, codex high)');
   const recorded = await client.call(5, { verdicts: [verdict({ findings: [blocking('B1')] })] });
   assert.equal(recorded.report.verdicts[0].recordedOutcome, 'FAIL');
   const envelope = await client.call(6, { verdict: [] });

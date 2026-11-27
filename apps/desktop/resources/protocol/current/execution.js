@@ -706,7 +706,8 @@ export function checkReviewOutput(output, context) {
   // on the recorded result.
   const shared = [...(context.executionCorrections ?? []), ...envelope.normalized.map(row => row.rule)];
   const rows = verdicts.map(verdict => verdict.invalidVerdictContract
-    ? { gate: verdict.gate, valid: false, error: verdict.summary, recordedOutcome: null, corrections: [...shared, ...(verdict.normalized ?? []).map(row => row.rule)] }
+    // An invalid verdict is recorded UNAVAILABLE (then repaired once).
+    ? { gate: verdict.gate, valid: false, error: verdict.summary, recordedOutcome: 'UNAVAILABLE', corrections: [...shared, ...(verdict.normalized ?? []).map(row => row.rule)] }
     : { gate: verdict.gate, valid: true, error: null, recordedOutcome: verdict.outcome, corrections: [...shared, ...(verdict.normalized ?? []).map(row => row.rule)] });
   return { valid: rows.every(row => row.valid), error: null, verdicts: rows };
 }

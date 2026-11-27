@@ -35,8 +35,8 @@ function prose(text) {
 // escapes count as text), then an optional title and the closing parenthesis.
 // Returns null when the text there is not a link destination.
 function inlineDestination(body, index) {
-  let at = index;
-  while (body[at] === ' ' || body[at] === '\t') at += 1;
+  // Spaces, tabs and at most one line ending may precede the destination.
+  let at = /^[ \t]*(?:\r?\n[ \t]*)?/u.exec(body.slice(index))[0].length + index;
   let target;
   if (body[at] === '<') {
     const close = body.indexOf('>', at + 1);
@@ -54,7 +54,8 @@ function inlineDestination(body, index) {
     if (depth !== 0 || at === begin) return null;
     target = body.slice(begin, at);
   }
-  const rest = /^[ \t]*(?:\n[ \t]*)?(?:(?:"[^"\n]*"|'[^'\n]*'|\([^)\n]*\))[ \t]*)?\)/u.exec(body.slice(at));
+  // An optional title (backslash escapes allowed inside), then the closing parenthesis.
+  const rest = /^[ \t]*(?:\r?\n[ \t]*)?(?:(?:"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|\((?:[^)\\\n]|\\.)*\))[ \t]*)?\)/u.exec(body.slice(at));
   return rest ? target : null;
 }
 // Link targets in Markdown text: inline links and images `[x](target "t")`
@@ -65,10 +66,12 @@ function inlineDestination(body, index) {
 export function markdownLinks(text) {
   const body = prose(text), found = [];
   for (const match of body.matchAll(/\]\(/gu)) {
+    // An escaped `\]` is literal text, not the end of a label.
+    if (/(?:^|[^\\])(?:\\\\)*\\$/u.test(body.slice(Math.max(0, match.index - 64), match.index))) continue;
     const target = inlineDestination(body, match.index + 2);
     if (target !== null) found.push({ index: match.index, target });
   }
-  for (const match of body.matchAll(/^[ ]{0,3}\[(?:[^\]\\\n]|\\.)+\]:[ \t]*(<[^>\n]*>|\S+)/gmu)) found.push({ index: match.index, target: match[1] });
+  for (const match of body.matchAll(/^[ ]{0,3}\[(?:[^\]\\\n]|\\.)+\]:[ \t]*(?:\r?\n[ \t]*)?(<[^>\n]*>|\S+)/gmu)) found.push({ index: match.index, target: match[1] });
   // Angle brackets delimit a destination; a backslash escapes ASCII punctuation.
   return found.sort((a, b) => a.index - b.index).map(item => item.target.replace(/^<|>$/gu, '').replace(/\\([!-/:-@[-`{-~])/gu, '$1'));
 }

@@ -36,3 +36,7 @@ Append pull-request review boundary entries here.
   `codex/nested-markdown-link-label` (fixed: links found from the closing `](`)
   and mandate UNAVAILABLE (PR state now observed by a verification receipt);
   Claude delta refused (agent decisions changed after its prior).
+- 2026-11-27 boundary round 4 (head dde0cda): both FAIL. Codex high
+  `codex/invalid-verdict-recorded-outcome` (fixed); Claude medium regression
+  `claude-code/R4-refdef-next-line` (fixed); lows fixed. Mandate: Claude PASS;
+  Codex FAIL only through the R2 defect (PR state now observed by receipt).

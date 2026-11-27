@@ -167,3 +167,16 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
 - **Alternatives:** keep parsing labels (rejected: each nested form is a new
   edge case); leave the mandate UNAVAILABLE (rejected: not adjudicable).
 - **Reversibility:** code and verification configuration.
+
+## S11. Review round 4 fixes
+
+- **Answered by:** agent
+- **Decision:** Fixed codex/invalid-verdict-recorded-outcome (high): the tool
+  reports `recordedOutcome: UNAVAILABLE` for a contract-invalid verdict, as
+  the execution records it, with tests (the parity test now compares every
+  recorded outcome). Fixed claude-code/R4-refdef-next-line (medium
+  regression): a reference definition's destination may sit on the next line
+  again. Also fixed the lows: an inline destination on the next line, escaped
+  quotes in titles, and an escaped `\]` no longer read as a link. The PR
+  description's testing section now matches the local checks.
+- **Reversibility:** code only.
