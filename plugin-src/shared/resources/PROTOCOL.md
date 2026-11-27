@@ -798,7 +798,8 @@ does not run reviews). The Claude Code adapter keeps `--restricted`,
 `--strict-mcp-config` and `--tools Read,Glob,Grep`; its `--mcp-config` names
 only this server, and `mcp__gatereeve__validate_verdict` joins the stage
 agent's tools and `--allowedTools`. The Codex adapter keeps
-`--sandbox read-only` and adds only `mcp_servers.gatereeve`. Receipts record
+`--sandbox read-only` and adds only `mcp_servers.gatereeve` (its command,
+arguments and environment, which turns the server's metrics off). Receipts record
 `isolation.selfValidation`. Other adapters run exactly as before, and the
 recorded verdict is still checked and repaired as above.
 

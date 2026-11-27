@@ -2,7 +2,9 @@
 
 Permanent decision records promoted from `scratchpad.md` and `interview.md` at
 PR boundaries. Goal autonomy: every agent entry below was decided on the
-human's behalf and is listed on the PR for Trent to check.
+human's behalf and is listed on the PR for Trent to check, in the PR
+description's "Decisions made for you" section (and in the published review
+summary).
 
 ## DEC-1. Full rigor, goal autonomy
 
@@ -117,9 +119,19 @@ human's behalf and is listed on the PR for Trent to check.
   tokens).
 - **Source:** scratchpad S4.
 
-## DEC-11. Host-dependent test files left to CI
+## DEC-11. Host-dependent tests left to CI
 
 - **Answered by:** agent
-- **Decision:** Local broad verification omits `local-agent-idle-inhibitor`,
-  `scratch-cleanup` and `metrics-repair` test files; hosted CI runs them.
+- **Decision:** Local verification omits `scratch-cleanup.test.js` (host
+  installer-root ownership, #159) and three hanging wrapper-signal tests of
+  `local-agent-idle-inhibitor.test.js` (skipped by name); everything else,
+  including `metrics-repair`, the rest of the idle-inhibitor file and the
+  desktop suite, runs locally. Hosted CI runs all of them.
 - **Source:** scratchpad S5.
+
+## DEC-12. Mandate-assessment format repair left to #167
+
+- **Answered by:** agent
+- **Decision:** Not folded in; it changes the repair contract beyond this
+  spec. Filed as #167.
+- **Source:** scratchpad S7.

@@ -701,7 +701,10 @@ export function checkReviewOutput(output, context) {
   let verdicts;
   try { verdicts = checkReviewVerdicts(envelope.output.verdicts, context); }
   catch (error) { return { valid: false, error: error.message, verdicts: [] }; }
-  const shared = envelope.normalized.map(row => row.rule);
+  // Corrections GateReeve records on every verdict of the execution before
+  // the reviewer answers (for example a dropped stale claim) come first, as
+  // on the recorded result.
+  const shared = [...(context.executionCorrections ?? []), ...envelope.normalized.map(row => row.rule)];
   const rows = verdicts.map(verdict => verdict.invalidVerdictContract
     ? { gate: verdict.gate, valid: false, error: verdict.summary, recordedOutcome: null, corrections: [...shared, ...(verdict.normalized ?? []).map(row => row.rule)] }
     : { gate: verdict.gate, valid: true, error: null, recordedOutcome: verdict.outcome, corrections: [...shared, ...(verdict.normalized ?? []).map(row => row.rule)] });
@@ -1284,7 +1287,7 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
       // creation or adapter checks never charges one (issue #140).
       const contractContext = { gates: input.gates, candidate, changes, history, claims, reconsiderClosures: value.reconsiderClosures,
         replacements, mandate: Boolean(mandate), repair: value.repair, provider: configuration.provider, model: configuration.model,
-        reviewerSelection: configuration.reviewerSelection ?? null };
+        reviewerSelection: configuration.reviewerSelection ?? null, executionCorrections: claimDrops.map(row => row.rule) };
       const reviewed = await independent(core, state, candidate, prepared, configuration, packet, jobId, history, priorities, ledgers, contractContext, value.incorporated?.documents ?? [], async () => {
         // Mark the launch first, so a failed count never hides a running reviewer.
         launched = progress.launched = true;

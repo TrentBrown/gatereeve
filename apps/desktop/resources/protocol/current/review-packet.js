@@ -33,9 +33,11 @@ function prose(text) {
 // and reference definitions `[x]: target`, in document order.
 export function markdownLinks(text) {
   const body = prose(text), found = [];
-  for (const match of body.matchAll(/!?\[[^\]\n]*\]\(\s*(<[^>\n]*>|[^\s)]+)(?:\s+(?:"[^"\n]*"|'[^'\n]*'|\([^)\n]*\)))?\s*\)/gu)) found.push({ index: match.index, target: match[1] });
+  // A bare destination may hold balanced parentheses, as in CommonMark.
+  for (const match of body.matchAll(/!?\[[^\]\n]*\]\(\s*(<[^>\n]*>|(?:[^\s()\\]|\\.|\((?:[^\s()\\]|\\.)*\))+)(?:\s+(?:"[^"\n]*"|'[^'\n]*'|\([^)\n]*\)))?\s*\)/gu)) found.push({ index: match.index, target: match[1] });
   for (const match of body.matchAll(/^[ ]{0,3}\[[^\]\n]+\]:\s*(<[^>\n]*>|\S+)/gmu)) found.push({ index: match.index, target: match[1] });
-  return found.sort((a, b) => a.index - b.index).map(item => item.target.replace(/^<|>$/gu, ''));
+  // Angle brackets delimit a destination; a backslash escapes ASCII punctuation.
+  return found.sort((a, b) => a.index - b.index).map(item => item.target.replace(/^<|>$/gu, '').replace(/\\([!-/:-@[-`{-~])/gu, '$1'));
 }
 // The feature-home path a relative link names, or why it names none. External
 // links (with a scheme) and in-document anchors are not references to include.

@@ -71,6 +71,10 @@ test('R1: the tool and the execution accept the same verdicts and report the sam
   assert.deepEqual(corrected.verdicts[0].corrections, ['pass-with-blocking-finding']);
   assert.equal(checkReviewOutput({ verdicts: [(({ summary, ...rest }) => rest)(verdict())] }, context()).verdicts[0].error, 'review.summary is required');
   assert.equal(checkReviewOutput({ verdicts: 'none' }, context()).error, 'Invalid verdict envelope: verdicts must be an array');
+  // Corrections recorded on every verdict of the execution before the
+  // reviewer answers come first, as on the recorded result (round 1, low).
+  const dropped = checkReviewOutput({ verdicts: [verdict()], extra: 1 }, context({ executionCorrections: ['claim-not-retained'] }));
+  assert.deepEqual(dropped.verdicts[0].corrections, ['claim-not-retained', 'unknown-property']);
 });
 
 // A small MCP client over the exact launch GateReeve gives an adapter.

@@ -22,3 +22,9 @@
 ## Review Log
 
 Append pull-request review boundary entries here.
+- 2026-11-27 boundary round 1 (FEATURE, head 0632708): both FAIL. Codex high
+  `codex/incorporated-parenthesized-link` (fixed: CommonMark destinations with
+  parentheses, escapes, angle brackets) and medium `codex/missing-boundary-build`;
+  Claude medium `EV1`-`EV3` (no receipts for metrics-repair, idle-inhibitor and
+  desktop suites) and lows `L1`, `L2`. Evidence answered by added checks
+  (scratchpad S5, S8). Hosted CI on 0632708: all 16 checks passed.

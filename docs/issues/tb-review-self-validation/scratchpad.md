@@ -75,7 +75,7 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
   show the provider CLIs accept the MCP configuration).
 - **Reversibility:** none needed; no repository change.
 
-## S5. Local verification leaves three host-dependent test files to CI
+## S5. Local verification leaves host-dependent tests to CI (revised after round 1)
 
 - **Promoted:** DEC-11 in `decisions.md` (2026-11-26)
 
@@ -86,6 +86,13 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
   `metrics-repair.test.js` (`Unsafe metrics directory` on this host). Each is
   recorded as failing or hanging the same way on unmodified `main` on this
   host (earlier runs and #159), and this change does not touch their code. Hosted Ubuntu acceptance runs them.
+- **Revision (review round 1, Claude EV1-EV3):** those files are affected
+  suites, so verification now also runs `metrics-repair.test.js` (it passes
+  here now), `local-agent-idle-inhibitor.test.js` with only its three
+  hanging wrapper-signal tests skipped by name (`ignores SIGTERM`,
+  `interrupting the evaluator`, `closes its streams`), the desktop test suite,
+  and `plugin validate` and `plugin build` (round 1, Codex). The original
+  broad receipt is kept unchanged so its identity stays covered.
 - **Alternatives:** keep them and accept a failing local receipt (rejected:
   unrelated host conditions).
 - **Reversibility:** verification configuration only.
@@ -103,3 +110,32 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
 - **Alternatives:** record the field only when non-empty (rejected: an
   emptied link list would then compare equal to "never computed").
 - **Reversibility:** one comparison.
+
+## S7. Mandate-assessment format repair left to #167
+
+- **Promoted:** DEC-12 in `decisions.md` (2026-11-27)
+
+- **Answered by:** agent
+- **Decision:** The coordinating thread reported a review UNAVAILABLE with
+  `Format repair must preserve mandate assessment`. `validateFormatRepair`
+  still compares `mandateAssessment` by identity, so a repair cannot supply
+  an omitted assessment. Changing it alters the repair contract beyond this
+  spec (an amendment), so it is filed as #167 and not folded in.
+- **Alternatives:** fold it in with a spec amendment (rejected: widens a PR
+  already in review rounds).
+- **Reversibility:** a separate small PR.
+
+## S8. Review round 1 fixes
+
+- **Answered by:** agent
+- **Decision:** Fixed codex/incorporated-parenthesized-link (high): link
+  destinations now keep balanced parentheses, angle brackets and backslash
+  escapes (CommonMark), with tests. Addressed claude-code/L1 (low): the tool's
+  corrections include the execution-level ones known before launch (a dropped
+  stale claim). claude-code/L2 (low): PROTOCOL.md names the Codex server's
+  environment entry. Evidence findings (codex/missing-boundary-build,
+  claude-code/EV1-EV3) are answered by the added checks in S5. The Codex
+  mandate assessment was UNAVAILABLE because the PR description is not in
+  the pinned evidence; the decisions it asks to see are DEC-1 to DEC-12 here,
+  and the PR description lists them under "Decisions made for you".
+- **Reversibility:** code and verification configuration.
