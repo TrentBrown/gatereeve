@@ -194,6 +194,7 @@ test('R4: the predicate: same class, another ID, a counted round no later than t
 test('R5: the reviewer instructions point to the guide, which states the verification and regression rules', async () => {
   const source = await readFile(new URL('../../plugin-src/shared/resources/protocol/current/execution.js', import.meta.url), 'utf8');
   assert.match(source, /When packet\.sweepRecords is present, follow packet\.sweepRecords\.guide\./);
+  assert.match(source, /medium regressions of the previous fix \(findings on packet\.roundPolicy\.regressionPaths, missed sites of a class in packet\.sweepRecords, or earlier regressions still present\) block/);
   assert.match(SWEEP_GUIDE, /Verify each one against the candidate: run or reason through the search, check every listed site and look for sites it missed, and check that the fix, the test and the dependents are as stated/);
   assert.match(SWEEP_GUIDE, /Report a missed site of a swept class as a finding with that record's classId/);
   assert.match(SWEEP_GUIDE, /is a regression of the previous fix: in rounds 4-5 a medium or high one blocks/);
