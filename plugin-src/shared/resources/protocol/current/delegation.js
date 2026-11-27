@@ -335,28 +335,35 @@ export function briefLines(bytes) {
 }
 // The CommonMark HTML blocks that end only at their closing tag and keep their
 // inner whitespace. An opening tag is found anywhere in a prose line, so an
-// inline one fails closed too.
-const RAW_HTML_OPEN = /<(pre|script|style|textarea)(?=[\s>]|$)/giu;
+// inline one fails closed too. An HTML comment is tracked so that a tag inside
+// it opens nothing; comment text is not rendered, so it stays prose.
+const RAW_HTML_OPEN = /<(pre|script|style|textarea)(?=[\s>]|$)|<!--/giu;
 const RAW_HTML_CLOSE = /<\/(pre|script|style|textarea)>/giu;
-// Whether a line is inside or opens raw HTML content (`open` is the tag still
-// open from earlier lines), and which tag remains open after it. A line of
-// indented code (`opens` false) can close an open tag but never opens one.
+const COMMENT = 'comment';
+// Whether a line is inside or opens raw HTML content (`open` is the tag, or
+// COMMENT, still open from earlier lines), and which remains open after it. A
+// line of fenced or indented code (`opens` false) can close an open tag or
+// comment but never opens one.
 function rawHtml(line, open, opens) {
   const masked = maskCodeSpans(line);
-  let touched = Boolean(open), at = 0;
+  let touched = Boolean(open) && open !== COMMENT, at = 0;
   for (;;) {
     if (open) {
-      let close = null;
-      RAW_HTML_CLOSE.lastIndex = at;
-      for (let found; (found = RAW_HTML_CLOSE.exec(line));) if (found[1].toLowerCase() === open) { close = found; break; }
-      if (!close) return { open, touched };
-      at = close.index + close[0].length; open = null;
+      let end = -1;
+      if (open === COMMENT) { const close = line.indexOf('-->', at); if (close !== -1) end = close + 3; }
+      else {
+        RAW_HTML_CLOSE.lastIndex = at;
+        for (let found; (found = RAW_HTML_CLOSE.exec(line));) if (found[1].toLowerCase() === open) { end = found.index + found[0].length; break; }
+      }
+      if (end === -1) return { open, touched };
+      at = end; open = null;
     }
     if (!opens) return { open: null, touched };
     RAW_HTML_OPEN.lastIndex = at;
     const found = RAW_HTML_OPEN.exec(masked);
     if (!found) return { open: null, touched };
-    touched = true; open = found[1].toLowerCase(); at = found.index + found[0].length;
+    open = found[1] ? found[1].toLowerCase() : COMMENT; at = found.index + found[0].length;
+    if (open !== COMMENT) touched = true;
   }
 }
 // Inline code spans: a run of N backticks up to the next run of exactly N. An
@@ -399,8 +406,8 @@ export function briefScope(bytes) {
   // Each kept line is a typed entry, so no sentinel text can collide with a
   // line's content. Verbatim ("code"): fenced code (blank lines included), raw
   // HTML content (see rawHtml; tracked over these scope-bearing lines only, so
-  // a findings-log entry never changes how later sections compare, and never
-  // inside fenced code), any line indented four or more columns (tabs
+  // a findings-log entry never changes how later sections compare; fenced code
+  // can close an open tag but never opens one), any line indented four or more columns (tabs
   // expand to the next multiple of four), which may be an indented code block or
   // a fence nested in a list item, and a blank line between two such lines. This
   // fails closed: such prose only becomes stricter. Elsewhere a blank line's
@@ -412,8 +419,8 @@ export function briefScope(bytes) {
   // only stricter elsewhere (before a list item or a fence).
   let raw = null;
   const html = outside.map(({ line, code }) => {
-    if (code) return false;
-    const found = rawHtml(line, raw, indentColumns(line) < 4); raw = found.open;
+    if (code && !raw) return false;
+    const found = rawHtml(line, raw, !code && indentColumns(line) < 4); raw = found.open;
     return found.touched;
   });
   const verbatim = outside.map(({ line, code }, index) => Boolean(code) || html[index] || indentColumns(line) >= 4 && Boolean(line.trim()));

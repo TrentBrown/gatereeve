@@ -161,6 +161,17 @@ test('brief comparison keeps raw HTML <pre> content and hard line breaks (#157)'
   assert.equal(scope(shownIndented.replace('After  prose', 'After prose')), scope(shownIndented), 'a tag inside indented code is not markup');
   const indentedClose = '<pre>\na  b\n    </pre>\n\nAfter  prose.';
   assert.equal(scope(indentedClose.replace('After  prose', 'After prose')), scope(indentedClose), 'an indented line still closes an open tag');
+  // Review round 2: a fenced line still closes an open tag, and a tag inside
+  // an HTML comment opens nothing.
+  const fencedClose = '<pre>\n```\n</pre>\n```\n\nAfter  prose.';
+  assert.equal(scope(fencedClose.replace('After  prose', 'After prose')), scope(fencedClose), 'a fenced line closes an open tag');
+  const fencedOpen = '```\n<pre>\n```\n\nAfter  prose.';
+  assert.equal(scope(fencedOpen.replace('After  prose', 'After prose')), scope(fencedOpen), 'a tag inside fenced code opens nothing');
+  for (const comment of ['<!-- <pre> -->\n\nAfter  prose.', '<!--\n<pre>\n-->\n\nAfter  prose.']) {
+    assert.equal(scope(comment.replace('After  prose', 'After prose')), scope(comment), `a tag inside a comment: ${JSON.stringify(comment)}`);
+  }
+  const afterComment = '<!-- note --> <pre>\na  b\n</pre>';
+  assert.notEqual(scope(afterComment.replace('a  b', 'a b')), scope(afterComment), 'a tag after a closed comment still opens');
   // A case-fold that changes string length never misplaces a close and reopen.
   const folded = '<pre>\n\u0130</pre><pre>\na  b\n</pre>';
   assert.notEqual(scope(folded.replace('a  b', 'a b')), scope(folded), 'a reopen after a length-changing character');
