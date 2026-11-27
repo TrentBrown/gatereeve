@@ -1,0 +1,734 @@
+file://[redacted]/.t3/worktrees/gatereeve/tb-convergence-severity-7c9f2a8871242b4c/plugin-src/shared/resources/storage/scratch.js:623
+        const error = new Error(`Scratch command failed (${timedOut ? 'timeout' : outputLimited ? 'output limit' : outcome.signal ?? outcome.code})${options.capture ? '' : `: ${tail}`}`);
+                      ^
+
+Error: Scratch command failed (1): ✔ an individual selection-tagged review cannot bypass the round 6 hand-back (4880.62175ms)
+✔ successive individual selection-tagged review pairs advance the counter until round 6 hands back (55126.070083ms)
+✔ a planning review that fails at the provider still uses its round (2948.702334ms)
+✔ a result retained from an earlier review contract keeps its qualification (AC11) (0.145958ms)
+✔ a planning round that failed at the provider keeps the regression baseline (0.381167ms)
+✔ a planning finding fixed and later reintroduced is judged afresh (0.239417ms)
+✔ a completed UNAVAILABLE planning review never clears a regression (0.126458ms)
+✔ a resolved boundary finding reintroduced by the fix is judged afresh as a regression (41743.257375ms)
+✔ a planning review of a new revision past round 6 is refused before any provider launch (12801.246666ms)
+✔ a same-revision planning retry that is UNAVAILABLE keeps the regression found earlier in that round (0.464459ms)
+✔ a restored earlier revision is qualified as the next round, never its old one (8143.678917ms)
+✔ when peers disagree whether a regression was resolved, it keeps blocking (33046.383708ms)
+✔ automatic discovery explicitly skips smoke requiring external tools (63.190125ms)
+✔ explicit smoke invocation still rejects missing tool arguments (32.664ms)
+✔ effective timeout is visible, per-check overrides runner limit, and zero disables it (2637.408667ms)
+✔ actual timeout is distinguished from a nonzero exit and a failed launch (5572.931875ms)
+✔ invalid timeout rejects: -1 (0.355125ms)
+✔ invalid timeout rejects: 1.5 (0.060917ms)
+✔ invalid timeout rejects: 100 (0.04825ms)
+✔ invalid timeout rejects: 2147483648 (0.039708ms)
+✔ supervised tools inherit managed temporary storage, preserve cwd and share one nested root (1701.820166ms)
+✔ failed child exports bounded diagnostics before reclaiming tool leftovers (1037.175458ms)
+✔ split UTF-8 output is preserved in captured streams and failure diagnostics (2477.290542ms)
+✔ inherited unmanaged root is rejected without adopting it (36.610125ms)
+✔ cross-volume publication preserves outputs and symlinks without exposing ownership records (50.691084ms)
+✔ sealed reviewer trees are reclaimable without following links into caller data (820.688917ms)
+✔ governed check supervisor captures failure, bounds timeout and reaps the command (2319.087417ms)
+✔ governed checks retain command evidence when scratch report publication also fails (5646.308375ms)
+✔ concurrent producers wait for a verified live maintainer beyond the interrupted-lock grace period (3946.995959ms)
+✔ captured validation output stays out of scratch failure diagnostics (648.852375ms)
+✔ code reviewers judge likelihood before consequence in full and light runs (AC1) (0.383834ms)
+✔ planning reviewers apply the same severity rule and judge failure-model gaps (AC1, AC2) (0.081625ms)
+✔ code reviewers read the failure model from the requirement basis (AC2) (0.058208ms)
+✔ only light-run reviewers receive the documentation bar (AC6) (0.082833ms)
+✔ the review contract version moved and keeps retained qualification rules (AC8) (0.062167ms)
+✔ paginated gh reads use --paginate --jq (no --slurp) and join every page (0.625583ms)
+✔ escalation walks only roots that are still the recorded process (0.095375ms)
+✔ assembles native marketplace layout from generated packages (116.906333ms)
+✔ verifies native manager installation, discovery, setup, and doctor (164.564125ms)
+✔ selects a compatible python later on PATH (1.5345ms)
+✔ refuses to reuse a nonempty smoke workspace (7.879292ms)
+✔ CLI staging records an exact canonical protocol inventory and hash (1473.438208ms)
+✔ consumer staging copies only validated support paths and names its manifest (226.646209ms)
+✔ isolated groups cover every case once, preserve focused filters and propagate failures (485.3155ms)
+✔ every CLI test file imports the private scratch helper first (66.705375ms)
+✔ trusted production creates a schema-v2 lifecycle through Desktop trust (73.992459ms)
+✔ trusted production rejects cross-request or changed-byte aggregation (25.385583ms)
+✔ trusted production rejects a same-source Plugin candidate from another RC (213.954167ms)
+✔ tally: a PASS reporting a blocking finding is recorded as FAIL (1.187625ms)
+✔ tally: a PASS marking an earlier blocking finding present is recorded as FAIL, rated or unrated (0.23575ms)
+✔ a PASS whose only blocking findings are low stays PASS, current or earlier (0.190625ms)
+✔ tally: present for a claimed non-blocking earlier finding is accepted and recorded (0.162458ms)
+✔ tally: an undisclosed review disposition is dropped and recorded (0.088666ms)
+✔ tally: unknown properties are stripped at every level and recorded with their paths (0.62ms)
+✔ a missing required field is not stripped and reaches repair with its path (0.784125ms)
+✔ tally: exactly one JSON object inside prose is found; none or two are not (0.17375ms)
+✔ the Claude parser unwraps one object only when asked to record it (0.43225ms)
+✔ codex: prose-wrapped output is unwrapped through the hook; without it, malformed JSON (1793.570625ms)
+✔ claude-code: prose-wrapped output is unwrapped through the hook; without it, malformed JSON (1610.215833ms)
+✔ tally: a repair may supply the disposition the original omitted; stated dispositions keep their status (6.185042ms)
+✔ tally: a repair may say FAIL where the original PASS showed the blocking finding (0.409541ms)
+✔ meaning-changing gaps stay contract errors that name the field path (0.590292ms)
+✔ every rejection rule this change names maps to a stable identifier (0.200875ms)
+✔ work deficiencies remain visible without failing a substantive Whiteboard Defense (2.465208ms)
+✔ Defender and Publisher instructions require a final exact evidence-span audit (1.926958ms)
+✔ Whiteboard PASS requires the Defender and Publisher substantive attestation (0.425959ms)
+✔ manifest substantive status must match the Defender and Publisher attestation (0.1245ms)
+✔ artifact deficiencies fail validation when questions are softened or evidence is omitted (0.212875ms)
+✔ missing native reveal controls and stale validation receipts prevent passage (0.246333ms)
+✔ nontrivial defenses require a bound visual and self-contained sandbox-safe HTML (0.393667ms)
+✔ findings require inline placement and a linked summary (0.354041ms)
+✔ grading, audio assessment, and Explain Diff dependencies are artifact deficiencies (0.459125ms)
+✔ bundle creation turns artifact defects into an auditable gate FAIL without grading work findings (0.629875ms)
+✔ governed validation resolves every evidence line against the pinned repository (3.391542ms)
+✔ inspection does not create a missing database (4.315084ms)
+✔ SQLite is authoritative across instances and isolates workflows (13.094459ms)
+✔ concurrent append, retries and failed transactions cannot overwrite facts (168.122625ms)
+✔ legacy activation is retained without replay and requires explicit resume (147.06975ms)
+✔ missing database has no reconstructed approvals (10.303542ms)
+✔ process interruption rolls back SQLite authority and independent processes compete by revision (187.192166ms)
+✔ candidate.prepare fails naming a missing decisions log (4942.490625ms)
+✔ a declared check replacement is covered once both paired reviewers accept it, and not by a single assessment or a rejection (38437.032167ms)
+✔ job.abandon accepts a gone runner job, refuses a live or delivery job, and older proof qualifies again (4501.201166ms)
+✔ discovery finds main checkouts under the root and their worktrees through git (514.900583ms)
+✔ candidate rules: merged branch, merged or closed PR, complete GateReeve run, and stale shown separately (1805.629375ms)
+✔ always skipped with reasons: main checkout, own directory, open PR, unknown PR state, unpushed development branch (616.923ms)
+✔ the list names what might matter and leaves out exactly the regenerable set (762.6115ms)
+✔ apply removes only confirmed worktrees, prunes, deletes only merged local branches and never touches remotes (1214.832667ms)
+✔ non-interactive apply removes only worktrees with nothing listed, and preview never removes (832.128542ms)
+✔ every regenerable directory name is omitted at any depth; an ignored file with such a name and .env are listed (730.125292ms)
+✔ a staged rename is listed by its new path and its original path is not misparsed (872.29525ms)
+✔ an unreadable part of workflow state is never covered by a harvest marker (619.789666ms)
+✔ an open PR outside the all-states listing still protects its worktree; a full open listing is unknown (362.441834ms)
+✔ only repository-local git config extends the regenerable set (398.743417ms)
+ℹ tests 637
+ℹ suites 0
+ℹ pass 634
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 2205146.078791
+
+✖ failing tests:
+
+test at test/current-measurement.test.js:367:1
+✖ CLI, desktop, MCP and plugin copies match and use contract gatereeve/current/8 (293.880041ms)
+  AssertionError [ERR_ASSERTION]: [redacted]/.t3/worktrees/gatereeve/tb-convergence-severity-7c9f2a8871242b4c/cli/resources/protocol/current/core.js
+  + actual - expected
+  ... Skipped lines
+  
+  + Buffer(115675) [Uint8Array] [
+  - Buffer(116166) [Uint8Array] [
+      105,
+      109,
+      112,
+      111,
+      114,
+  ...
+      32,
+  -   123,
+  -   10,
+  -   32,
+  -   32,
+  -   32,
+  -   32,
+  -   32,
+  -   32,
+  -   47,
+  -   47,
+  -   32,
+  -   65,
+  -   110,
+  -   32,
+  -   111,
+  -   98,
+  -   115,
+  -   101,
+  -   114,
+  -   118,
+  -   101,
+  -   100,
+  -   32,
+  -   105,
+  -   109,
+  -   112,
+  -   108,
+  -   101,
+  -   109,
+  -   101,
+  -   110,
+  -   116,
+      97,
+  -   116,
+  -   105,
+  -   111,
+  -   110,
+  -   32,
+  -   97,
+  -   112,
+  -   112,
+  -   114,
+  -   111,
+  -   118,
+  -   97,
+  -   108,
+  -   32,
+  -   98,
+  -   105,
+  -   110,
+  -   100,
+  -   115,
+  -   32,
+  -   116,
+  -   104,
+  -   101,
+  -   32,
+  -   101,
+  -   120,
+  -   97,
+  -   99,
+  -   116,
+  -   32,
+  -   115,
+  -   112,
+  -   101,
+  -   99,
+  -   32,
+  -   98,
+  -   121,
+  -   116,
+  -   101,
+  -   115,
+  -   44,
+  -   32,
+  -   115,
+  -   111,
+  -   32,
+  -   105,
+  -   116,
+  -   10,
+  -   32,
+  -   32,
+  -   32,
+  -   32,
+  -   32,
+  -   32,
+  -   47,
+  -   47,
+  -   32,
+  -   118,
+  -   111,
+  -   117,
+  -   99,
+  -   104,
+  -   101,
+  -   115,
+  -   32,
+  -   102,
+  -   111,
+  -   114,
+  -   32,
+  -   116,
+  -   104,
+  -   101,
+  -   32,
+  -   117,
+  -   110,
+  -   99,
+  -   104,
+  -   97,
+  -   110,
+  -   103,
+  -   101,
+  -   100,
+  -   32,
+  -   115,
+  -   112,
+  -   101,
+  -   99,
+  -   32,
+  -   111,
+  -   110,
+  -   32,
+  -   100,
+  -   105,
+  -   115,
+  -   107,
+  -   58,
+  -   32,
+  -   116,
+  -   104,
+  -   97,
+  -   116,
+  -   32,
+  -   118,
+  -   97,
+  -   108,
+  -   105,
+  -   100,
+  -   97,
+  -   116,
+  -   105,
+  -   111,
+  -   110,
+  -   32,
+  -   105,
+  -   115,
+  -   10,
+  -   32,
+  -   32,
+  -   32,
+  -   32,
+  -   32,
+  -   32,
+  -   47,
+  -   47,
+  -   32,
+  -   103,
+  -   114,
+  -   97,
+  -   110,
+  -   100,
+  -   102,
+  -   97,
+  -   116,
+  -   104,
+  -   101,
+  -   114,
+  -   101,
+  -   100,
+  -   32,
+  -   40,
+  -   115,
+  -   112,
+  -   101,
+  -   99,
+  -   32,
+  -   65,
+  -   67,
+  -   53,
+  -   44,
+  -   32,
+  -   100,
+  -   101,
+  -   115,
+  -   105,
+  -   103,
+  -   110,
+  -   32,
+  -   68,
+  -   53,
+  -   41,
+  -   46,
+  -   32,
+  -   65,
+  -   32,
+  -   100,
+  -   101,
+  -   115,
+  -   105,
+  -   103,
+  -   110,
+  -   32,
+  -   97,
+  -   112,
+  -   112,
+  -   114,
+  -   111,
+  -   118,
+  -   97,
+  -   108,
+  -   32,
+  -   97,
+  -   108,
+  -   111,
+  -   110,
+  -   101,
+  -   32,
+  -   100,
+  -   111,
+  -   101,
+  -   115,
+  -   32,
+  -   110,
+  -   111,
+  -   116,
+  -   46,
+  -   10,
+  -   32,
+  -   32,
+  -   32,
+  -   32,
+  -   32,
+  -   32,
+  -   116,
+  -   104,
+  -   105,
+  -   115,
+  -   46,
+  -   114,
+  -   101,
+  -   115,
+  -   117,
+  -   109,
+  -   105,
+  -   110,
+  -   103,
+  -   83,
+  -   112,
+  -   101,
+  -   99,
+  -   105,
+  -   102,
+  -   105,
+  -   99,
+  -   97,
+  -   116,
+  -   105,
+  -   111,
+  -   110,
+  -   32,
+  -   61,
+  -   32,
+  -   66,
+  -   111,
+  -   111,
+  -   108,
+  -   101,
+  -   97,
+  -   110,
+  -   40,
+  -   112,
+  -   108,
+  -   97,
+  -   110,
+  -   110,
+  -   105,
+  -   110,
+  -   103,
+  -   46,
+  -   105,
+  -   109,
+  -   112,
+  -   108,
+  -   101,
+  -   109,
+  -   101,
+  -   110,
+  -   116,
+  -   97,
+  -   116,
+  -   105,
+  -   111,
+  -   110,
+  -   41,
+  -   32,
+  -   38,
+  -   38,
+  -   32,
+  -   40,
+  -   97,
+      119,
+      97,
+      105,
+      116,
+      32,
+  ...
+      46,
+  -   99,
+  -   111,
+  -   109,
+  -   109,
+  -   105,
+  -   116,
+  -   109,
+      101,
+  -   110,
+  -   116,
+  -   115,
+  -   40,
+  -   41,
+  -   41,
+  -   46,
+  -   115,
+  -   117,
+  -   98,
+  -   106,
+  -   101,
+  -   99,
+  -   116,
+  -   32,
+  -   61,
+  -   61,
+  -   61,
+  -   32,
+  -   112,
+  -   108,
+  -   97,
+  -   110,
+  -   110,
+  -   105,
+  -   110,
+  -   103,
+  -   46,
+  -   105,
+  -   109,
+  -   112,
+  -   108,
+  -   101,
+  -   109,
+  -   101,
+  -   110,
+  -   116,
+  -   97,
+  -   116,
+  -   105,
+  -   111,
+  -   110,
+  -   46,
+  -   115,
+  -   117,
+  -   98,
+  -   106,
+  -   101,
+  -   99,
+  -   116,
+  -   59,
+  -   10,
+  -   32,
+  -   32,
+  -   32,
+  -   32,
+  -   32,
+  -   32,
+  -   116,
+  -   114,
+  -   121,
+  -   32,
+  -   123,
+  -   32,
+  -   97,
+  -   119,
+  -   97,
+  -   105,
+  -   116,
+  -   32,
+  -   116,
+  -   104,
+  -   105,
+  -   115,
+  -   46,
+  -   101,
+      120,
+      101,
+      99,
+      117,
+      116,
+  ...
+      59,
+  -   32,
+  -   125,
+      10,
+      32,
+      32,
+      32,
+      32,
+  -   32,
+  -   32,
+  -   102,
+      105,
+  -   110,
+  -   97,
+  -   108,
+  -   108,
+  -   121,
+  -   32,
+  -   123,
+  -   32,
+  -   116,
+  -   104,
+  -   105,
+  -   115,
+  -   46,
+  -   114,
+  -   101,
+  -   115,
+  -   117,
+  -   109,
+  -   105,
+  -   110,
+  -   103,
+  -   83,
+  -   112,
+  -   101,
+  -   99,
+  -   105,
+      102,
+  -   105,
+  -   99,
+  -   97,
+  -   116,
+  -   105,
+  -   111,
+  -   110,
+      32,
+  -   61,
+  -   32,
+  -   102,
+  -   97,
+  -   108,
+  -   115,
+  -   101,
+  -   59,
+  -   32,
+  -   125,
+  -   10,
+  -   32,
+  -   32,
+  -   32,
+  -   32,
+  -   125,
+  -   10,
+  -   32,
+  -   32,
+  -   32,
+  -   32,
+  -   105,
+  -   102,
+  -   32,
+      40,
+      112,
+      108,
+      97,
+      110,
+  ...
+      32,
+  -   116,
+  -   104,
+  -   105,
+  -   115,
+  -   46,
+  -   114,
+  -   101,
+  -   115,
+  -   117,
+  -   109,
+  -   105,
+  -   110,
+  -   103,
+  -   83,
+  -   112,
+  -   101,
+  -   99,
+  -   105,
+  -   102,
+  -   105,
+  -   99,
+      97,
+  -   116,
+  -   105,
+  -   111,
+  -   110,
+  -   32,
+  -   61,
+  -   61,
+  -   61,
+  -   32,
+  -   116,
+  -   114,
+  -   117,
+  -   101,
+  -   10,
+  -   32,
+  -   32,
+  -   32,
+  -   32,
+  -   32,
+  -   32,
+  -   124,
+  -   124,
+  -   32,
+  -   97,
+      119,
+      97,
+      105,
+      116,
+      32,
+  
+      at TestContext.<anonymous> (file://[redacted]/.t3/worktrees/gatereeve/tb-convergence-severity-7c9f2a8871242b4c/cli/test/current-measurement.test.js:385:43)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: <Buffer 69 6d 70 6f 72 74 20 7b 20 62 61 73 65 6e 61 6d 65 2c 20 72 65 73 6f 6c 76 65 20 7d 20 66 72 6f 6d 20 27 6e 6f 64 65 3a 70 61 74 68 27 3b 0a 69 6d 70 ... 115625 more bytes>,
+    expected: <Buffer 69 6d 70 6f 72 74 20 7b 20 62 61 73 65 6e 61 6d 65 2c 20 72 65 73 6f 6c 76 65 20 7d 20 66 72 6f 6d 20 27 6e 6f 64 65 3a 70 61 74 68 27 3b 0a 69 6d 70 ... 116116 more bytes>,
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/performance.test.js:82:1
+✖ concurrent writers in separate processes lose no observations (5339.26725ms)
+  AssertionError [ERR_ASSERTION]: GateReeve metrics: capture incomplete; underlying work continues.
+  
+  
+  GateReeve metrics: capture incomplete; underlying work continues.
+  
+  
+      at TestContext.<anonymous> (file://[redacted]/.t3/worktrees/gatereeve/tb-convergence-severity-7c9f2a8871242b4c/cli/test/performance.test.js:86:10)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+    at file://[redacted]/.t3/worktrees/gatereeve/tb-convergence-severity-7c9f2a8871242b4c/plugin-src/shared/resources/storage/scratch.js:623:23
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async withScratch (file://[redacted]/.t3/worktrees/gatereeve/tb-convergence-severity-7c9f2a8871242b4c/plugin-src/shared/resources/storage/scratch.js:562:18)
+    at async file://[redacted]/.t3/worktrees/gatereeve/tb-convergence-severity-7c9f2a8871242b4c/plugin-src/shared/resources/storage/scratch.js:648:5 {
+  scratchResult: {
+    code: 1,
+    signal: null,
+    timedOut: false,
+    outputLimited: false,
+    stdout: '',
+    stderr: ''
+  },
+  scratchCleanup: {
+    root: '/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve/runs/validation-check-394332a3-35ab-4e1e-b162-2f8684f9b3e1/tmp/gatereeve-test-eHDbmj/gatereeve',
+    entries: [
+      {
+        id: 'node-2c2a04e0-ea9f-404b-be5c-888715e25fc3',
+        path: '/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve/runs/validation-check-394332a3-35ab-4e1e-b162-2f8684f9b3e1/tmp/gatereeve-test-eHDbmj/gatereeve/runs/node-2c2a04e0-ea9f-404b-be5c-888715e25fc3',
+        status: 'eligible',
+        bytes: 155504640,
+        purpose: 'node',
+        createdAt: '2026-11-27T07:52:34.111Z',
+        keepUntil: null,
+        identity: { dev: 16777231, ino: 288020516 },
+        files: 22415
+      }
+    ],
+    eligibleBytes: 155504640,
+    files: 22415,
+    reports: null,
+    tombstones: 0,
+    tombstoneFiles: 0,
+    quick: false,
+    applied: true,
+    removed: [
+      {
+        id: 'node-2c2a04e0-ea9f-404b-be5c-888715e25fc3',
+        bytes: 155504640,
+        files: 22415
+      }
+    ],
+    skipped: [],
+    errors: [],
+    reportsRemoved: 0,
+    tombstonesRemoved: 0,
+    reclaimedBytes: 155504640,
+    reclaimedFiles: 22415
+  }
+}
+
+Node.js v24.15.0

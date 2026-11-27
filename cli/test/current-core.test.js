@@ -30,7 +30,7 @@ async function fixture(t, { nested = true, optionalGates = [] } = {}) {
   const head = (await git(repo, ['rev-parse', 'HEAD'])).trim();
   await writeFile(join(home, 'interview.md'), '# Interview\nSettled decisions.\n');
   await writeFile(join(home, 'design.md'), '# Design\n\n**Status:** approved\n');
-  await writeFile(join(home, 'spec.md'), '# Spec\n\n## Acceptance Criteria\n\n- **AC1.** Export the constant answer with value 42.\n\n## Rubric\n\n| # | Criterion | Pass | Fail | Evidence |\n|---|---|---|---|---|\n| R1 | AC1 | 42 | other | test |\n\n## Changes\n');
+  await writeFile(join(home, 'spec.md'), '# Spec\n\n## Failure model\n\nOne local writer; others are refused with an error.\n\n## Acceptance Criteria\n\n- **AC1.** Export the constant answer with value 42.\n\n## Rubric\n\n| # | Criterion | Pass | Fail | Evidence |\n|---|---|---|---|---|\n| R1 | AC1 | 42 | other | test |\n\n## Changes\n');
   await writeFile(join(home, 'plan.md'), '# Plan\n## P1 - Implement R1\n');
   await writeFile(join(home, 'issues.md'), '# Issues\n## I-1 - Implement\n**Status:** in-review\n**Plan steps:** P1\n**Rubric criteria:** R1\n');
   await writeFile(join(home, 'tracker.md'), '# Tracker\n## Rubric Status\n| R1 | AC1 | NOT YET | pending |\n## Review Log\n');
@@ -2734,4 +2734,68 @@ test('oversized operation IDs fail before execution and legacy completed outcome
   assert.deepEqual(recorded[0].payload.originalOperation, original);
   assert.equal(recorded[0].operation.hash, original.hash);
   assert.equal((await f.core.recordedResult(results[0], state)).result.outcome, result.outcome);
+});
+
+// Issue #143, spec AC3-AC5: spec.validate enforces the failure model and the
+// unbounded-wording lint, except for a grandfathered spec, where they warn.
+const UNMODELED = '# Spec\n\n## Acceptance Criteria\n\n- **AC1.** Always export the answer.\n\n## Rubric\n\n| # | Criterion | Pass | Fail | Evidence |\n|---|---|---|---|---|\n| R1 | AC1 export | right value | other | test |\n\n## Changes\n';
+async function approveDesign(f) {
+  const design = await f.core.store.capture('design.md');
+  await f.request('human.decide', { kind: 'approve-design', subject: design.hash, authority: human, reason: 'Approved design', consequences: 'Proceed to spec' }, 'design-fm');
+}
+test('spec.validate refuses a new spec without a failure model or with unbounded criteria, naming the lines', async t => {
+  const f = await fixture(t); await approveDesign(f);
+  const good = await readFile(join(f.home, 'spec.md'), 'utf8');
+  await writeFile(join(f.home, 'spec.md'), UNMODELED);
+  await assert.rejects(f.request('spec.validate', {}, 'unmodeled'), /validation failed/);
+  const failure = (await f.core.state()).state.validationFailures.at(-1);
+  const proof = await f.core.store.json(failure.proof);
+  assert.equal(proof.binding.policy, 'planning-facts/2'); assert.equal(proof.grandfathered, undefined);
+  assert.match(proof.diagnostic, /needs a "## Failure model" section/u); assert.match(proof.diagnostic, /line 5 \(always\)/u);
+  await writeFile(join(f.home, 'spec.md'), good);
+  const passed = await f.request('spec.validate', {}, 'modeled');
+  assert.deepEqual(passed.warnings, []);
+  assert.equal(passed.state.phase, 'PLANNING');
+});
+test('a spec already validated under the earlier policy warns; a changed spec is held to the rules', async t => {
+  const f = await fixture(t); await approveDesign(f);
+  await writeFile(join(f.home, 'spec.md'), UNMODELED);
+  // The record an in-flight run carries from before the upgrade.
+  const spec = await f.core.store.capture('spec.md'), design = await f.core.store.capture('design.md');
+  const old = await f.core.store.putJson({ guardId: 'spec.validation.current', binding: { policy: 'planning-facts/1', parser: 'sha256:old', contracts: 'sha256:old' }, passed: true, exitCode: 0 });
+  const { state } = await f.core.state();
+  await f.core.append(state, 'SPEC_VALIDATED', { spec, design, proof: old }, { id: 'earlier-policy', hash: `sha256:${'e'.repeat(64)}` });
+  const warned = await f.request('spec.validate', {}, 'grandfathered');
+  assert.equal(warned.warnings.length, 2); assert.match(warned.warnings.join(), /Grandfathered specification.*line 5 \(always\)/u);
+  const proof = await f.core.store.json((await f.core.state()).state.specValidation.proof);
+  assert.equal(proof.grandfathered, true); assert.deepEqual(proof.facts.warnings, warned.warnings);
+  // The grandfathered bytes stay grandfathered; changed bytes do not.
+  assert.equal((await f.request('spec.validate', {}, 'grandfathered-again')).warnings.length, 2);
+  await writeFile(join(f.home, 'spec.md'), UNMODELED.replace('## Changes\n', '## Changes\n\nRewritten after the upgrade.\n'));
+  await assert.rejects(f.request('spec.validate', {}, 'rewritten'), /validation failed/);
+});
+test('a resumption with observed approvals grandfathers its unchanged spec', async t => {
+  // An in-flight run whose spec predates the rules resumes (the active run is kept).
+  const f = await fixture(t);
+  await writeFile(join(f.home, 'spec.md'), UNMODELED);
+  const commitments = await f.core.commitments();
+  const base = { authority: human, reason: 'Observed earlier approval', consequences: 'Proceed within approved scope' };
+  const resumed = await f.request('run.resume-current', { implementers: ['implementer-one'], planning: {
+    design: { ...base, subject: commitments.docs['design.md'].hash }, implementation: { ...base, subject: commitments.subject } } }, 'resume-old-spec');
+  assert.equal(resumed.phase, 'IMPLEMENTING');
+  const proof = await f.core.store.json((await f.core.state()).state.specValidation.proof);
+  assert.equal(proof.grandfathered, true); assert.match(proof.facts.warnings.join(), /needs a "## Failure model" section/u);
+  assert.equal(f.core.resumingSpecification, false);
+  // A design approval alone does not vouch for the spec bytes.
+  const g = await fixture(t);
+  await writeFile(join(g.home, 'spec.md'), UNMODELED);
+  const design = (await g.core.commitments()).docs['design.md'].hash;
+  await assert.rejects(g.request('run.resume-current', { implementers: ['implementer-one'], planning: { design: { ...base, subject: design } } }, 'resume-design-only'), /validation failed/);
+  // A fresh start through run.resume-current has nothing to resume, so its spec is held to the rules.
+  const h = await fixture(t);
+  await writeFile(join(h.home, 'spec.md'), UNMODELED);
+  await rm(join(h.home, '.gatereeve-current'), { recursive: true });
+  const fresh = await h.core.commitments();
+  await assert.rejects(h.request('run.resume-current', { runId: 'fresh-start', implementers: ['implementer-one'], planning: {
+    design: { ...base, subject: fresh.docs['design.md'].hash }, implementation: { ...base, subject: fresh.subject } } }, 'resume-fresh'), /validation failed/);
 });

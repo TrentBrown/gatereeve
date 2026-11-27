@@ -82,7 +82,9 @@ jobs:
           node ci/review-artifact-change.mjs --feature-homes "$paths_file" > "$feature_homes"
           while IFS= read -r feature_home; do
             test -n "$feature_home"
-            python3 plugin-src/shared/resources/scripts/lint_spec.py "$feature_home"
+            # Record check: a feature home may hold a spec that spec.validate
+            # grandfathered, so the failure-model rules are reported, not enforced.
+            python3 plugin-src/shared/resources/scripts/lint_spec.py "$feature_home" --specification-rules=warn
             python3 plugin-src/shared/resources/scripts/lint_issues.py "$feature_home"
             python3 plugin-src/shared/resources/scripts/lint_tracker.py "$feature_home"
             python3 plugin-src/shared/resources/scripts/gate_triage.py "$feature_home"

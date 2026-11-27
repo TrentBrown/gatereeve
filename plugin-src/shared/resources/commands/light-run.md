@@ -43,6 +43,11 @@ What is in and out: files, behavior, interfaces.
 - Dated notes on discoveries, decisions and scope questions during the run.
 ```
 
+Optionally add a `## Failure model` section (the handled conditions, and what
+happens outside them). There is no lint on it. Reviewers rate a finding whose
+trigger lies outside a stated model as low; without the section, nothing is
+low merely for lying outside a model.
+
 No interview, design, spec, plan, issues or spec validation is required.
 
 ## 3. Get implementation authority
@@ -99,6 +104,13 @@ Light acceptance requires the same gates as full: `context`, `review`,
   interactions, verification sufficiency and scope against the brief's goal and
   scope. `spec`, `judge`, `reconcile` and `triage` are refused for a brief-based
   candidate; `code`, `pattern` and `explanation` remain available.
+- Light reviewers hold documentation and operations prose to a "good enough"
+  bar: a finding about it blocks only when a reader following the text as
+  written reaches a wrong or unsafe outcome (a wrong command, flag, path or
+  value; a missing warning before a destructive or irreversible step; a
+  contradiction with the shipped code or the brief). Wording, style,
+  structure, narrower restatements and suggestions to document more are low.
+  Documentation the brief asks for is still a requirement.
 - Run `review.publish` so the PR description carries the current review summary
   before presenting the PR for human review or merge authorization.
 - Supervised: present the candidate and risks for the human's `accept`.

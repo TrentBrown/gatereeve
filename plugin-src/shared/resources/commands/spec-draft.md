@@ -24,17 +24,37 @@ Use when a feature or task lacks acceptance criteria and rubric.
      deployment state, or other evidence intentionally available only after
      merge; preserve that obligation as an explicit post-merge release or
      deployment acceptance gate.
-6. Draft rubric entries:
+6. Draft the `## Failure model` section (required; `spec.validate` refuses a
+   spec without it):
+   - The handled conditions: the inputs, states and environments the feature
+     must handle.
+   - Outside them, the detect-and-refuse behaviour: a clear error, never a
+     silent best effort.
+   - Reviewers rate a finding whose trigger lies outside the handled
+     conditions as low (non-blocking), so name the conditions that matter.
+   - Keep criteria bounded. `spec.validate` refuses a criterion or rubric line
+     that says `always`, `any`, `all cases`, `never fails`, `converges` or
+     `robust` unless the same line carries a bound: a failure-model reference,
+     a number, or `at most`, `at least`, `up to`, `no more than` or `within`.
+7. Draft rubric entries:
    - Derived from the AC.
    - Explicit pass and fail conditions.
    - Binary, with no partial credit.
    - Includes expected evidence type.
-7. Present the draft for approval before writing it, unless the user already
+8. Present the draft for approval before writing it, unless the user already
    asked you to write the spec file directly.
 
 Output:
 
 ```markdown
+## Failure model
+
+Handled conditions:
+- ...
+
+Outside the model, ... detects and refuses with a clear error:
+- ...
+
 ## Acceptance Criteria
 
 - **AC1.** ...
