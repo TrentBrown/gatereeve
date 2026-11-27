@@ -136,3 +136,15 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
   fail on the round-2 code (the order-dependent case in one order, as
   expected).
 - **Reversibility:** reversible.
+
+## S12. Hosted CI failure: new module missing from the declared inventory
+
+- **Answered by:** agent
+- **Decision:** Round 3 converged (both PASS) and hosted CI ran on d5e37f2.
+  Both Ubuntu 24.04 jobs failed one test, `portability.test.js` "lints the
+  canonical repository plugin sources": `current/sweep-records.js` was not
+  listed in `plugin-src/contracts/workflow-inventory.json`. Added. The local
+  Verification now also runs the portability test, plugin lint and native
+  validation, which would have caught it. One paired round reviews the fix,
+  then CI reruns.
+- **Reversibility:** not applicable.

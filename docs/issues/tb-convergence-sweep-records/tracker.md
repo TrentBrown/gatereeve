@@ -28,3 +28,6 @@ Append pull-request review boundary entries here.
   claude-code FAIL (medium CR2-1, CR2-2: round groups spanning sequential
   executions). Fixed: per-provider latest perspective, report-level re-report
   rule, all closures in history.
+- 2026-11-27 boundary round 3 (head d5e37f2): codex PASS; claude-code PASS
+  (low CR3-1). Hosted CI: portability lint failed (new module missing from
+  the declared protocol inventory). Fixed; local Verification extended.
