@@ -312,41 +312,79 @@ export async function reviewPlanning(core, input, operation) {
 // "findings..." heading all count, and `#` lines inside fenced code are never
 // headings. The findings log may grow during a run; any other change is a
 // scope-changing amendment. Whitespace is compared as Markdown renders it
-// (GitHub issue #145): in prose, trailing whitespace, runs of inner whitespace
-// and blank lines are ignored, but leading indentation is kept because it carries
-// list and block structure; fenced code lines, lines indented four or more
-// columns (indented code) and inline code spans are compared verbatim, because
-// whitespace there is content.
+// (GitHub issues #145 and #157): in prose, trailing whitespace and runs of inner
+// whitespace are ignored, a blank line counts as a block separator (a run of
+// blank lines counts as one, and blank lines at the start or end are ignored),
+// and leading indentation is kept because it carries list and block structure.
+// A hard line break (two or more trailing spaces before a line that is neither
+// blank nor a heading) counts. Fenced code lines, lines indented four or more
+// columns (indented code), raw HTML <pre>, <textarea>, <script> and <style>
+// content, and inline code spans are compared verbatim, because whitespace
+// there is content.
 const FENCE = /^ {0,3}(`{3,}|~{3,})/u;
+// The CommonMark HTML blocks that end only at their closing tag and keep their
+// inner whitespace. An opening tag is found anywhere in a prose line, so an
+// inline one fails closed too.
+const RAW_HTML_OPEN = /<(pre|script|style|textarea)(?=[\s>]|$)/giu;
 export function briefLines(bytes) {
-  const lines = []; let fence = null;
+  const lines = []; let fence = null; let raw = null;
   for (const line of bytes.toString('utf8').split(/\r?\n/u)) {
     const marker = FENCE.exec(line)?.[1];
     if (fence) { if (marker && marker[0] === fence[0] && marker.length >= fence.length && !line.slice(line.indexOf(marker) + marker.length).trim()) fence = null; lines.push({ line, code: true }); continue; }
     if (marker) { fence = marker; lines.push({ line, code: true }); continue; }
+    // Raw HTML only makes lines verbatim. Headings and fences are found as
+    // before, so an unclosed tag can never move where the findings log ends.
+    const html = rawHtml(line, raw); raw = html.open;
     const heading = /^(#{1,6})\s+(.+)$/u.exec(line);
-    lines.push({ line, ...(heading ? { level: heading[1].length, title: heading[2].trim().toLowerCase() } : {}) });
+    lines.push({ line, ...(html.touched ? { code: true } : {}), ...(heading ? { level: heading[1].length, title: heading[2].trim().toLowerCase() } : {}) });
   }
   return lines;
 }
-// Collapse whitespace runs in prose, keeping inline code spans (a run of N
-// backticks up to the next run of exactly N) verbatim. An unclosed run is prose.
-function proseWithSpans(text) {
-  let out = '', prose = '', index = 0;
-  const flush = () => { out += prose.replace(/\s+/gu, ' '); prose = ''; };
+// Whether a line is inside or opens raw HTML content (`open` is the tag still
+// open from earlier lines), and which tag remains open after it.
+function rawHtml(line, open) {
+  const masked = maskCodeSpans(line), lower = line.toLowerCase();
+  let touched = Boolean(open), at = 0;
+  for (;;) {
+    if (open) {
+      const close = lower.indexOf(`</${open}>`, at);
+      if (close === -1) return { open, touched };
+      at = close + open.length + 3; open = null;
+    }
+    RAW_HTML_OPEN.lastIndex = at;
+    const found = RAW_HTML_OPEN.exec(masked);
+    if (!found) return { open: null, touched };
+    touched = true; open = found[1].toLowerCase(); at = found.index + found[0].length;
+  }
+}
+// Inline code spans: a run of N backticks up to the next run of exactly N. An
+// unclosed run is prose. Returns [start, end) ranges.
+function codeSpans(text) {
+  const spans = []; let index = 0;
   while (index < text.length) {
-    if (text[index] !== '`') { prose += text[index++]; continue; }
+    if (text[index] !== '`') { index++; continue; }
     let run = index; while (text[run] === '`') run++;
     const ticks = text.slice(index, run);
     let close = -1;
     for (let at = text.indexOf(ticks, run); at !== -1; at = text.indexOf(ticks, at + 1)) {
       if (text[at - 1] !== '`' && text[at + ticks.length] !== '`') { close = at; break; }
     }
-    if (close === -1) { prose += ticks; index = run; continue; }
-    flush(); out += text.slice(index, close + ticks.length); index = close + ticks.length;
+    if (close === -1) { index = run; continue; }
+    spans.push([index, close + ticks.length]); index = close + ticks.length;
   }
-  flush();
-  return out;
+  return spans;
+}
+// The line with its inline code spans blanked, so a tag shown as code is not markup.
+function maskCodeSpans(text) {
+  let out = '', index = 0;
+  for (const [start, end] of codeSpans(text)) { out += text.slice(index, start) + ' '.repeat(end - start); index = end; }
+  return out + text.slice(index);
+}
+// Collapse whitespace runs in prose, keeping inline code spans verbatim.
+function proseWithSpans(text) {
+  let out = '', index = 0;
+  for (const [start, end] of codeSpans(text)) { out += text.slice(index, start).replace(/\s+/gu, ' ') + text.slice(start, end); index = end; }
+  return out + text.slice(index).replace(/\s+/gu, ' ');
 }
 export function briefScope(bytes) {
   const lines = briefLines(bytes);
@@ -357,14 +395,17 @@ export function briefScope(bytes) {
   if (start !== -1) for (let index = start + 1; index < lines.length; index++) if (lines[index].level && lines[index].level <= level) { end = index; break; }
   const outside = lines.filter((_, index) => start === -1 || index < start || index >= end);
   // Each kept line is a typed entry, so no sentinel text can collide with a
-  // line's content. Verbatim ("code"): fenced code (blank lines included), any
-  // line indented four or more columns (tabs expand to the next multiple of
-  // four), which may be an indented code block or a fence nested in a list item,
-  // and a blank line between two such lines. This fails closed: such prose only
-  // becomes stricter. Elsewhere a blank line's presence counts, because it
-  // separates blocks (removing the one before an indented code block turns the
-  // code into paragraph text); runs of blank lines count as one, and blank lines
-  // at either end are ignored.
+  // line's content. Verbatim ("code"): fenced code (blank lines included), raw
+  // HTML content (see briefLines), any line indented four or more columns (tabs
+  // expand to the next multiple of four), which may be an indented code block or
+  // a fence nested in a list item, and a blank line between two such lines. This
+  // fails closed: such prose only becomes stricter. Elsewhere a blank line's
+  // presence counts, because it separates blocks (removing the one before an
+  // indented code block turns the code into paragraph text); runs of blank lines
+  // count as one, and blank lines at either end are ignored. A prose line ending
+  // in two or more spaces before a line that is neither blank nor a heading
+  // keeps a "break" entry: that is a hard line break wherever it renders one, and
+  // only stricter elsewhere (before a list item or a fence).
   const verbatim = outside.map(({ line, code }) => Boolean(code) || indentColumns(line) >= 4 && Boolean(line.trim()));
   const kept = [];
   outside.forEach(({ line }, index) => {
@@ -377,6 +418,8 @@ export function briefScope(bytes) {
       return;
     }
     kept.push(['text', /^\s*/u.exec(line)[0] + proseWithSpans(line.trim())]);
+    const next = outside[index + 1];
+    if (!outside[index].level && / {2,}$/u.test(line) && next?.line.trim() && !next.level) kept.push(['break']);
   });
   while (kept.at(-1)?.[0] === 'blank') kept.pop();
   return identity(kept);

@@ -84,10 +84,15 @@ findings log section (with its nested sub-headings), `commitments`
 keeps the authorized subject and no new decision is needed. Whitespace compares
 as Markdown renders it: in prose, trailing whitespace and inner whitespace runs
 are ignored, a blank line counts as a block separator (runs of blank lines count
-as one; blank lines at the ends are ignored), and leading indentation counts (it carries list
-structure); fenced code, lines indented four or more columns (tabs advance to the
-next multiple of four; indented code, including blank lines between such lines)
-and inline code spans compare verbatim. The same
+as one; blank lines at the ends are ignored), leading indentation counts (it carries list
+structure), and a hard line break counts (two or more trailing spaces before a line
+that is neither blank nor a heading; the number of spaces does not matter); fenced
+code, lines indented four or more columns (tabs advance to the
+next multiple of four; indented code, including blank lines between such lines),
+raw HTML `<pre>`, `<textarea>`, `<script>` and `<style>` content (from the line
+that opens the tag, outside inline code, to the line that closes it, or to the end
+when unclosed; headings are still found there) and inline code spans compare
+verbatim. The same
 comparison decides a delegated hand-back. Any other change
 (goal, scope, preamble or another section) no longer matches the authorized
 subject, so implementation, candidates and gates stop until the changed brief is
