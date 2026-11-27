@@ -44,7 +44,7 @@ await git(worktree, ['commit', '-m', 'Disposable smoke fixture']);
 await mkdir(featureHome, { recursive: true });
 await writeFile(resolve(featureHome, 'interview.md'), '# Runtime smoke interview\nNo product scope.\n');
 await writeFile(resolve(featureHome, 'design.md'), '# Runtime smoke design\nObserve the current desktop contract.\n');
-await writeFile(resolve(featureHome, 'spec.md'), '# Spec\n\n## Acceptance Criteria\n- **AC1.** Export answer 42.\n\n## Rubric\n| # | Criterion | Pass | Fail | Evidence |\n|---|---|---|---|---|\n| R1 | AC1 | 42 | other | test |\n\n## Changes\n');
+await writeFile(resolve(featureHome, 'spec.md'), '# Spec\n\n## Failure model\n\nOne local writer; others are refused with an error.\n\n## Acceptance Criteria\n- **AC1.** Export answer 42.\n\n## Rubric\n| # | Criterion | Pass | Fail | Evidence |\n|---|---|---|---|---|\n| R1 | AC1 | 42 | other | test |\n\n## Changes\n');
 const pythonExecutable = await discoverCompatiblePythonExecutable();
 if (!pythonExecutable) throw new Error('Smoke fixture needs compatible Python');
 const context = await resolveWorkflowContext({ cwd: worktree });

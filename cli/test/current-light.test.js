@@ -15,7 +15,7 @@ import { sha256Digest } from '../../plugin-src/shared/resources/protocol/agent-w
 const test = isolatedTests(import.meta.url);
 const human = { kind: 'human-confirmed', instruction: 'Light for this one; the brief looks right.', context: 'test user conversation' };
 const BRIEF = '# Brief\n\n## Goal\nExport the constant answer.\n\n## Scope\napp/app.js only.\n\n## Findings log\n- none yet\n';
-const SPEC = '# Spec\n\n## Acceptance Criteria\n\n- **AC1.** Export the constant answer with value 42.\n\n## Rubric\n\n| # | Criterion | Pass | Fail | Evidence |\n|---|---|---|---|---|\n| R1 | AC1 | 42 | other | test |\n\n## Changes\n';
+const SPEC = '# Spec\n\n## Failure model\n\nOne local writer; others are refused with an error.\n\n## Acceptance Criteria\n\n- **AC1.** Export the constant answer with value 42.\n\n## Rubric\n\n| # | Criterion | Pass | Fail | Evidence |\n|---|---|---|---|---|\n| R1 | AC1 | 42 | other | test |\n\n## Changes\n';
 const reviewConfig = { provider: 'codex', model: 'fixture' };
 const required = at => GATES.filter(item => item.at === at && !item.supplemental && !item.optional).map(item => item.id).sort();
 
@@ -203,6 +203,7 @@ test('light review assesses the brief through an independent fresh evaluator', a
   assert.deepEqual(seen.input.criteria, ['brief']);
   assert.equal(seen.input.planning.basis, 'brief'); assert.equal(seen.input.planning.brief, 'requirements/brief.md');
   assert.match(seen.instructions, /light-rigor run/); assert.match(seen.instructions, /goal within its stated scope/);
+  assert.match(seen.instructions, /Documentation bar for this light run/); // issue #143, spec AC6
   assert.deepEqual(result.criteria.map(row => row.id), ['brief']);
   const receipt = await f.core.store.json(result.receipt);
   assert.equal(receipt.evaluator.freshContext, true); assert.equal(receipt.evaluator.inheritedTurns, 0);

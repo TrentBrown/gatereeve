@@ -1,11 +1,13 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { planningFacts, planningReferences } from './planning.js';
+import { planningFacts, planningReferences, specificationRules } from './planning.js';
 
 const [kind, root] = process.argv.slice(2);
 try {
   if (!['spec', 'issues', 'tracker', 'triage'].includes(kind) || !root) throw new Error('Expected planning kind and feature directory');
   const spec = await readFile(join(root, 'spec.md'), 'utf8'), facts = planningFacts(spec);
+  // No run context here, so the specification rules always apply (spec AC5).
+  if (kind === 'spec') { const problems = specificationRules(spec, facts); if (problems.length) throw new Error(problems.join('; ')); }
   if (kind !== 'spec') {
     const name = kind === 'triage' ? 'scratchpad.md' : `${kind}.md`;
     const body = await readFile(join(root, name), 'utf8');

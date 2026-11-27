@@ -11,6 +11,15 @@ TODO: Describe what must be true when this branch is complete.
 
 The global Definition of Done in the software development workflow applies.
 
+## Failure model
+
+Handled conditions:
+- TODO: The conditions this feature must handle (inputs, states, environments).
+
+Outside the model, the feature detects and refuses with a clear error, never a
+silent best effort:
+- TODO: What happens outside the handled conditions.
+
 ## Acceptance Criteria
 
 - **AC1.** TODO: Observable behavior.

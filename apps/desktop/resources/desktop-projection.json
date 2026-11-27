@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:aa886b09f79239ed8dd202697e208adbb2c60f791edb83cf46715ae5fd29638a",
+  "protocolHash": "sha256:21c9a3c35071bad19d45187e8030c018d64ce6da8d242e21985e870bf0c112b5",
   "contract": "gatereeve/current/8",
   "contractSha256": "1df0afc21301595b72a5f9bdad3ab2aade7452ad1c5a4f97455bde354bf1120a",
   "files": [
@@ -62,8 +62,8 @@
     },
     {
       "path": "current/core.js",
-      "size": 115210,
-      "sha256": "ae023989cb9fb65d7c65df0b7d0f319e54d2fa5b8d7b67c30bd2dd04f0d1e8bf"
+      "size": 116166,
+      "sha256": "09ffdcf4b0a5131147ef3d95d2921386737dbda560f2598928d0b56795e47a79"
     },
     {
       "path": "current/coverage.js",
@@ -72,8 +72,8 @@
     },
     {
       "path": "current/delegation.js",
-      "size": 45727,
-      "sha256": "7d0ae6a71d93d1b2c8b83332e573ec20d7c6899e95fb3d84bb89c7739e3e4e94"
+      "size": 46868,
+      "sha256": "a7f427c6629128600976dcd65310685e610af298d58f9e244363547073666fc7"
     },
     {
       "path": "current/delivery.js",
@@ -102,8 +102,8 @@
     },
     {
       "path": "current/execution.js",
-      "size": 113457,
-      "sha256": "b52842349849d44611aea5bde680f51965cd54ba6afe85b90c5fe712a0b2d990"
+      "size": 115182,
+      "sha256": "4a8d2de30608ee0e016a8fcce67cf00435e6b7634b51e10f4a985dc43e553a0e"
     },
     {
       "path": "current/final-handoff.js",
@@ -137,13 +137,13 @@
     },
     {
       "path": "current/planning-lint.js",
-      "size": 1248,
-      "sha256": "2007310382cb1b9fcd65c5c3883d76584604d56af0aac7023d72e2aaeb775126"
+      "size": 1482,
+      "sha256": "63e9cb692e1febe3ebf6991f8d879bf557746d90ff1d7744669922887bb4d0c7"
     },
     {
       "path": "current/planning.js",
-      "size": 5041,
-      "sha256": "97d6893eb291808dc0f0cc19b90d6fdbe13cafd37c4319cc9e0c7a2bdafb7485"
+      "size": 9727,
+      "sha256": "f7fe7c7d89678328f228b2d512136da3162b458d95dcbedd3f6874918c88f1a5"
     },
     {
       "path": "current/pre-tool-use.js",
