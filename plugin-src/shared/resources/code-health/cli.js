@@ -6,9 +6,11 @@ import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { renderText } from './render.js';
 import { exitCode, runCodeHealth } from './run.js';
+import { initCodeHealth, renderInit } from './init.js';
 
 const USAGE = `Usage: code-health [run] --base <ref> [--json] [--approved <sha256>]... [--cwd <dir>]
-                   [--habit-sensors <path>] [--habit-mapper <path>] [--timeout-ms <ms>] [--no-cache]`;
+                   [--habit-sensors <path>] [--habit-mapper <path>] [--timeout-ms <ms>] [--no-cache]
+       code-health init --preset moderate [--cwd <dir>] [--json]`;
 
 export function parseArguments(argv) {
   const options = { approved: [], json: false, useCache: true };
@@ -36,7 +38,36 @@ export function parseArguments(argv) {
   return options;
 }
 
+function parseInit(argv) {
+  const options = { preset: undefined, json: false };
+  const args = [...argv];
+  while (args.length) {
+    const arg = args.shift();
+    if (arg === '--preset' || arg === '--cwd') {
+      const next = args.shift();
+      if (next === undefined || next.startsWith('--')) throw new Error(`${arg} needs a value`);
+      options[arg.slice(2)] = next;
+    } else if (arg === '--json') options.json = true;
+    else throw new Error(`Unknown argument: ${arg}`);
+  }
+  if (!options.preset) throw new Error('--preset is required (available: moderate)');
+  return options;
+}
+
+async function init(argv, { stdout, stderr }) {
+  try {
+    const { json, ...options } = parseInit(argv);
+    const report = await initCodeHealth(options);
+    stdout.write(json ? `${JSON.stringify(report, null, 2)}\n` : renderInit(report));
+    return 0;
+  } catch (error) {
+    stderr.write(`${error.message}\n${USAGE}\n`);
+    return 2;
+  }
+}
+
 export async function main(argv, { stdout = process.stdout, stderr = process.stderr, env = process.env } = {}) {
+  if (argv[0] === 'init') return init(argv.slice(1), { stdout, stderr });
   let options;
   try {
     options = parseArguments(argv);

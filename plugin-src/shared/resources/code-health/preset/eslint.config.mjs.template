@@ -1,0 +1,34 @@
+// GateReeve code-health preset (moderate). Thresholds live here, in the tool's
+// own config (design D16); changing them is a governed change that needs a
+// human approval before the code-health check accepts it.
+import tseslint from 'typescript-eslint';
+
+export default [
+  { ignores: ['**/node_modules/**', '**/dist/**', '**/build/**', '**/coverage/**'] },
+  {
+    files: ['**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}'],
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
+    },
+    plugins: { '@typescript-eslint': tseslint.plugin },
+    rules: {
+      'max-lines-per-function': ['error', { max: 40, skipBlankLines: true, skipComments: true, IIFEs: true }],
+      'max-params': ['error', 5],
+      complexity: ['error', 15],
+      'max-depth': ['error', { max: 4 }],
+      'max-lines': ['error', { max: 500, skipBlankLines: true, skipComments: true }],
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      eqeqeq: ['error', 'always'],
+      'no-var': 'error',
+      'prefer-const': 'error',
+      'no-duplicate-imports': 'error',
+      'no-warning-comments': ['warn', { terms: ['todo', 'fixme', 'xxx', 'hack'], location: 'anywhere' }],
+      '@typescript-eslint/no-floating-promises': ['error', {
+        allowForKnownSafeCalls: [{ from: 'package', package: 'node:test', name: ['test', 'it', 'describe', 'suite', 'before', 'after', 'beforeEach', 'afterEach'] }],
+      }],
+      '@typescript-eslint/no-misused-promises': 'error',
+    },
+  },
+];
