@@ -115,6 +115,41 @@ test('R1: gate.execute and review.execute refuse an invalid claim before any rev
   assert.ok(launches() > 0);
 });
 
+test('R1: a valid disputed claim on a retained finding is accepted through both commands', async t => {
+  const f = await lightRun(t);
+  reviewers(f, { findings: { codex: [medium('app/other.js', 'disputed-class')] } });
+  await f.request('review.execute', {}, 'round-1');
+  await revise(f, { 'app.js': 'export const answer = 42; // r2\n' }, 'r2');
+  const claim = disputed(F0, 'Intended: other.js is a public export.');
+  const accepted = async label => {
+    const { state } = await f.core.state();
+    const inputs = [];
+    for (const ref of state.results.slice(-2)) {
+      const report = await f.core.store.json(ref);
+      if (report.gate === 'review' && report.input) inputs.push(await f.core.store.json(report.input));
+    }
+    assert.ok(inputs.length, `${label}: a review result is recorded`);
+    for (const input of inputs) {
+      assert.deepEqual(input.claims, [claim], `${label}: the claim is retained`);
+      assert.equal(input.droppedClaims, undefined, `${label}: no claim is dropped`);
+    }
+  };
+  const seen = [];
+  reviewers(f, { patch: { codex: dispose([[F0, 'unsupported']]), 'claude-code': dispose([[F0, 'unsupported']]) } });
+  packets(f, seen);
+  const { state } = await f.core.state();
+  const reviewer = state.reviewerSelection.selection.reviewers[0];
+  const configuration = { provider: reviewer.provider, model: reviewer.model, reasoningEffort: reviewer.reasoningEffort, reviewerSelection: state.reviewerSelection.event };
+  assert.notEqual((await f.request('gate.execute', { gates: ['review'], claims: [claim], configuration }, 'individual-disputed')).reused, true);
+  await accepted('gate.execute');
+  // A new revision, so the paired review launches rather than reusing the individual result.
+  await revise(f, { 'app.js': 'export const answer = 42; // r3\n' }, 'r3');
+  assert.notEqual((await f.request('review.execute', { claims: [claim] }, 'paired-disputed')).reused, true);
+  await accepted('review.execute');
+  assert.ok(seen.length >= 3, 'gate.execute and review.execute both launched reviewers');
+  for (const packet of seen) assert.ok(packet.dispositionsRequired.some(row => row.id === F0), 'the claimed finding needs a disposition');
+});
+
 test('R3: a round carries its fixed claims as sweep records, and later rounds and individual reviews of the open scope still receive them', async t => {
   const { f, seen } = await claimedRound(t, 4);
   assert.equal(seen.length, 2);

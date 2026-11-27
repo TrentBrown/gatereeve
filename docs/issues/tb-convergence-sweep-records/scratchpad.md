@@ -228,3 +228,18 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
   commands. Swept the rubric for other rows that require both commands: R1
   is the only one.
 - **Reversibility:** reversible.
+
+## S18. Boundary review round 9 finding
+
+- **Answered by:** agent
+- **Decision:** Round 9 (head 698bff4): claude-code PASS; codex FAIL with one
+  high in the R1 class (`R1-valid-disputed-command-path`): the only command
+  acceptance check used a stale claim that is dropped, so a valid disputed
+  claim on a retained finding was not shown accepted through either command.
+  Fixed with a test that sends it through `gate.execute` and then (on a new
+  revision, so nothing is reused) `review.execute`, and checks the claim is
+  retained, not dropped, and in every packet's `dispositionsRequired`. Swept
+  every R1 Pass condition against the tests: the refusal cases, no launch
+  and no result on refusal, and acceptance through both commands are now
+  each tested through both commands.
+- **Reversibility:** reversible.

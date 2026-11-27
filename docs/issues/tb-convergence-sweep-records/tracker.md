@@ -44,3 +44,6 @@ Append pull-request review boundary entries here.
   conflict resolved); round 8 on the merged head.
 - 2026-11-27 boundary round 8 (head 94d1183): claude-code PASS (two lows);
   codex FAIL (high: R1 command-path cases incomplete). Fixed in the R1 test.
+- 2026-11-27 boundary round 9 (head 698bff4): claude-code PASS; codex FAIL
+  (high: valid disputed claim not accepted through the commands in tests).
+  Fixed; every R1 condition now tested through both commands.
