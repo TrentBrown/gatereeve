@@ -183,3 +183,19 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
     round policy; these two were the only uncovered ones. Added as a new
     Verification check.
 - **Reversibility:** reversible.
+
+## S15. Boundary review round 6 finding
+
+- **Answered by:** agent
+- **Decision:** Round 6 (head 63ed6dc, hand-back band): codex PASS (both
+  round-5 findings resolved); claude-code FAIL with one medium in the CR5-1
+  class (`CR6-1`): re-reports and `present` dispositions shared one
+  `reopened` slot, so a later `present` overwrote the review that
+  reintroduced a finding and qualification took the origin from a round that
+  did not touch its path. Fixed as a class: a finding's history is its
+  raising review plus every later report that reopened or closed it (`trail`
+  in `execution.js`), used by history selection and prioritization alike.
+  Test: round-policy.test.js "a reintroduced boundary finding keeps its
+  reintroducing round through later present dispositions" (fails on the
+  round-6 code). Round 7 needs the human `review-rounds` decision.
+- **Reversibility:** reversible.

@@ -36,3 +36,6 @@ Append pull-request review boundary entries here.
 - 2026-11-27 boundary round 5 (head 22de63b): codex UNAVAILABLE (PR state not
   evidenced; low scope-reset round count); claude-code FAIL (medium CR5-1
   reintroduction origin lost; medium EV5-1 missing suite receipts). Fixed.
+- 2026-11-27 boundary round 6 (head 63ed6dc): codex PASS; claude-code FAIL
+  (medium CR6-1, reopenings overwrite one history slot). Fixed with a per-finding
+  history trail. Round 7 awaits the human review-rounds decision.

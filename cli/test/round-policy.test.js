@@ -468,6 +468,38 @@ test('a reintroduced boundary finding stays a regression in the round after its 
   assert.equal(reviewed.outcome, 'FAIL', reviewed.summary);
 });
 
+test('a reintroduced boundary finding keeps its reintroducing round through later present dispositions', async t => {
+  // Raised in round 1, resolved in round 2, reintroduced by the round-3 change
+  // to app.js, then marked present in rounds 4 and 5 whose fixes touch only
+  // other.js: the round-3 re-report stays in history, so it stays a regression.
+  const f = await lightRun(t);
+  const finding = [{ path: 'app/app.js', evidence: '[medium] The export contract is broken.' }];
+  reviewers(f, { findings: { codex: finding } });
+  await f.request('review.execute', {}, 'round-1');
+  await revise(f, { 'other.js': 'export const other = 2;\n' }, 'r2');
+  const mark = status => (verdict, request) => {
+    const prior = (request.input.dispositionsRequired ?? []).find(row => row.id.endsWith('codex-finding-0'));
+    verdict.dispositions = [{ id: prior.id, status, evidence: `The finding is ${status}.` }];
+  };
+  reviewers(f, { patch: { codex: mark('resolved'), 'claude-code': mark('resolved') } });
+  await f.request('review.execute', {}, 'round-2');
+  assert.equal((await pair(f)).outcome, 'PASS');
+  const passRows = verdict => { verdict.dimensions.forEach(row => { row.outcome = 'PASS'; }); verdict.criteria.forEach(row => { row.outcome = 'PASS'; }); };
+  await revise(f, { 'app.js': 'export const answer = 42; // r3\n' }, 'r3');
+  reviewers(f, { findings: { codex: finding }, patch: { codex: passRows } });
+  await f.request('review.execute', {}, 'round-3');
+  assert.equal((await pair(f)).outcome, 'FAIL');
+  const present = (verdict, request) => { passRows(verdict); mark('present')(verdict, request); verdict.outcome = 'FAIL'; };
+  for (const [round, value] of [[4, 3], [5, 4]]) {
+    await revise(f, { 'other.js': `export const other = ${value + 1};\n` }, `r${round}`);
+    reviewers(f, { patch: { codex: present } });
+    await f.request('review.execute', {}, `round-${round}`);
+    const reviewed = await pair(f);
+    assert.equal(reviewed.round.round, round);
+    assert.equal(reviewed.outcome, 'FAIL', `round ${round}: ${reviewed.summary}`);
+  }
+});
+
 test('a planning review of a new revision past round 6 is refused before any provider launch', async t => {
   const f = await fixture(t, { rigor: 'light', authorize: false });
   await delegate(f);
