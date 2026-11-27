@@ -349,3 +349,77 @@ test('both local adapters advertise spawn reporting and forward onSpawn to their
     assert.deepEqual(received, [onSpawn, undefined]);
   }
 });
+
+// Issue #142: GateReeve's read-only validate_verdict tool is the only
+// addition; every existing restriction stays exactly as it was.
+const selfValidation = { server: 'gatereeve', tool: 'validate_verdict', command: '/usr/local/bin/node',
+  args: ['--permission', '--allow-fs-read=/resources/', '--allow-fs-read=/view/validation/context.json', '/resources/protocol/current/verdict-check-server.js', '/view/validation/context.json'],
+  env: { GATEREEVE_METRICS: 'off' } };
+async function launchArgs(create, value) {
+  const calls = [];
+  const adapter = create({ model: 'fixture', runner: async (executable, args) => {
+    calls.push(args);
+    const outputPath = args.includes('--output-last-message') ? args[args.indexOf('--output-last-message') + 1] : null;
+    if (outputPath) await writeFile(outputPath, '{"verdict":"PASS"}\n');
+    return { code: 0, signal: null, stderr: '', startedAt: new Date('2026-11-26T00:00:00Z'), completedAt: new Date('2026-11-26T00:01:00Z'),
+      stdout: outputPath ? '{"type":"thread.started","thread_id":"codex-context"}\n' : JSON.stringify({ session_id: 'claude-context', structured_output: { verdict: 'PASS' } }) };
+  } });
+  assert.equal(adapter.selfValidation, true);
+  const result = await adapter.runStage(value);
+  assert.equal(validateAgentWorkflowReceipt(result.receipt), result.receipt);
+  return { args: calls[0], receipt: result.receipt };
+}
+test('Claude Code offers only the validate_verdict tool and keeps its restrictions', async () => {
+  const without = await launchArgs(createClaudeCodeAgentAdapter, request());
+  const offered = await launchArgs(createClaudeCodeAgentAdapter, { ...request(), selfValidation });
+  assert.equal(without.receipt.isolation.selfValidation, false);
+  assert.equal(offered.receipt.isolation.selfValidation, true);
+  const value = (args, flag) => args[args.indexOf(flag) + 1];
+  for (const args of [without.args, offered.args]) {
+    assert(args.includes('--restricted'));
+    assert(args.includes('--strict-mcp-config'));
+    assert.equal(value(args, '--tools'), 'Read,Glob,Grep');
+    assert.equal(value(args, '--permission-mode'), 'dontAsk');
+  }
+  assert.equal(value(without.args, '--mcp-config'), '{"mcpServers":{}}');
+  assert(!without.args.includes('--allowedTools'));
+  assert.deepEqual(JSON.parse(value(offered.args, '--mcp-config')), { mcpServers: { gatereeve: { type: 'stdio', command: selfValidation.command, args: selfValidation.args, env: selfValidation.env } } });
+  assert.equal(value(offered.args, '--allowedTools'), 'mcp__gatereeve__validate_verdict');
+  const agents = args => JSON.parse(value(args, '--agents'))['gatereeve-stage'].tools;
+  assert.deepEqual(agents(without.args), ['Read', 'Glob', 'Grep']);
+  assert.deepEqual(agents(offered.args), ['Read', 'Glob', 'Grep', 'mcp__gatereeve__validate_verdict']);
+  // Apart from those three, the argument lists are identical.
+  const strip = args => {
+    const copy = [...args];
+    copy[copy.indexOf('--mcp-config') + 1] = '<mcp>'; copy[copy.indexOf('--agents') + 1] = '<agents>';
+    const allowed = copy.indexOf('--allowedTools');
+    if (allowed !== -1) copy.splice(allowed, 2);
+    return copy;
+  };
+  assert.deepEqual(strip(offered.args), strip(without.args));
+});
+test('Codex offers only the gatereeve MCP server and keeps its read-only sandbox', async () => {
+  const without = await launchArgs(createCodexAgentAdapter, request());
+  const offered = await launchArgs(createCodexAgentAdapter, { ...request(), selfValidation });
+  assert.equal(without.receipt.isolation.selfValidation, false);
+  assert.equal(offered.receipt.isolation.selfValidation, true);
+  for (const args of [without.args, offered.args]) assert.equal(args[args.indexOf('--sandbox') + 1], 'read-only');
+  // Scratch paths differ per run; compare everything else.
+  const normal = args => args.map((arg, index) => ['--output-schema', '--output-last-message'].includes(args[index - 1]) ? '<scratch>' : arg);
+  const added = [
+    '--config', `mcp_servers.gatereeve.command=${JSON.stringify(selfValidation.command)}`,
+    '--config', `mcp_servers.gatereeve.args=${JSON.stringify(selfValidation.args)}`,
+    '--config', 'mcp_servers.gatereeve.env={GATEREEVE_METRICS="off"}',
+  ];
+  const at = offered.args.indexOf(added[1]) - 1;
+  assert.deepEqual(offered.args.slice(at, at + added.length), added);
+  assert.deepEqual(normal([...offered.args.slice(0, at), ...offered.args.slice(at + added.length)]), normal(without.args));
+});
+test('both adapters refuse a malformed self-validation launch before starting a process', async () => {
+  for (const create of [createCodexAgentAdapter, createClaudeCodeAgentAdapter]) {
+    const adapter = create({ model: 'fixture', runner: () => assert.fail('launched') });
+    for (const launch of [{ ...selfValidation, command: 'node' }, { ...selfValidation, server: 'bad server' }, { ...selfValidation, args: [1] }, { ...selfValidation, env: { 'bad-key': 'x' } }]) {
+      await assert.rejects(adapter.runStage({ ...request(), selfValidation: launch }), /self-validation launch/u);
+    }
+  }
+});

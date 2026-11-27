@@ -250,6 +250,7 @@
       "tests/test_workflow_setup.py"
     ],
     "protocol": [
+      "DEFINITION-OF-DONE.md",
       "agent-workflow.js",
       "constants.js",
       "context.js",
@@ -284,6 +285,7 @@
       "current/pattern-inputs.js",
       "current/pre-tool-use.js",
       "current/review-history.js",
+      "current/review-packet.js",
       "current/round-policy.js",
       "current/source-retention.js",
       "current/source-views.js",
@@ -294,6 +296,7 @@
       "current/workflow-database.js",
       "current/workspace.js",
       "current/validation-scope.js",
+      "current/verdict-check-server.js",
       "errors.js",
       "index.js",
       "json-schema.js",

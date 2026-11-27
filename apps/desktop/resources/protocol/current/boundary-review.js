@@ -264,6 +264,23 @@ export function outcomeStatus(settled, result) {
   if (result.unavailableReason === 'missing-evidence') return 'could-not-assess';
   return 'provider-failed';
 }
+// One attempt's record on its outcome row (issue #142): kind, status, the
+// results it produced, and the provider usage and duration of the execution
+// that ran it. An attempt that launched nothing, or reused a retained result,
+// has unknown (null) usage and duration of its own.
+async function attemptRecord(core, provider, settled) {
+  const row = await attemptRow(core, provider, settled);
+  let tokens = null, durationMs = null;
+  if (row.status !== 'refused' && row.results?.[0]) {
+    try {
+      const receipt = await core.store.json((await core.store.json(row.results[0])).receipt);
+      tokens = receipt.metrics?.tokens ?? null;
+      const started = Date.parse(receipt.startedAt), completed = Date.parse(receipt.completedAt);
+      if (Number.isFinite(started) && Number.isFinite(completed) && completed >= started) durationMs = completed - started;
+    } catch { /* An unreadable receipt leaves usage unknown. */ }
+  }
+  return { kind: settled.kind ?? 'initial', status: row.status, results: row.results ?? [], tokens, durationMs };
+}
 async function attemptRow(core, provider, settled) {
   if (settled.status === 'rejected') {
     const reason = settled.reason?.message ?? String(settled.reason);
@@ -285,7 +302,8 @@ async function attemptRow(core, provider, settled) {
 // launch never hides an earlier launched one.
 export async function outcomeRow(core, provider, tried) {
   const rows = await Promise.all(tried.map(settled => attemptRow(core, provider, settled)));
-  return rows.findLast(row => row.status !== 'refused') ?? rows.at(-1);
+  const attempts = await Promise.all(tried.map(settled => attemptRecord(core, provider, settled)));
+  return { ...(rows.findLast(row => row.status !== 'refused') ?? rows.at(-1)), attempts };
 }
 
 export async function executeBoundaryReviews(core, input, operation) {
@@ -350,26 +368,27 @@ export async function executeBoundaryReviews(core, input, operation) {
       ...(priors[reviewer.provider] ? { prior: priors[reviewer.provider] } : {}) };
     const tried = [];
     // Run one attempt; returns its first result, or null when it produced none.
-    const attempt = async (body, identityOf, events) => {
+    // `kind` names the attempt on its receipt and outcome row (issue #142).
+    const attempt = async (kind, body, identityOf, events) => {
       try {
-        const value = await executeGates(core, body, identityOf, events ? { ...baseline, events } : baseline);
-        tried.push({ status: 'fulfilled', value });
+        const value = await executeGates(core, body, identityOf, { ...baseline, ...(events ? { events } : {}), attempt: kind });
+        tried.push({ status: 'fulfilled', value, kind });
         const reference = (value.event?.payload.results ?? value.results)?.[0];
         return reference ? { reference, verdict: await core.store.json(reference) } : null;
-      } catch (reason) { tried.push({ status: 'rejected', reason }); return null; }
+      } catch (reason) { tried.push({ status: 'rejected', reason, kind }); return null; }
     };
-    let last = await attempt(request, { id: `review_${identity([operation.id, slot]).slice(7)}`, hash: identity({ operation, request }) });
+    let last = await attempt('initial', request, { id: `review_${identity([operation.id, slot]).slice(7)}`, hash: identity({ operation, request }) });
     // One automatic retry of a transient provider failure (issue #140). Like
     // the repair turn it shares the round's baseline, so it is not a round.
     if (last && transientFailure(last.verdict)) {
-      last = await attempt(request, { id: `review_transient_${identity([operation.id, slot]).slice(7)}`, hash: identity({ operation, request, retry: TRANSIENT }) },
+      last = await attempt('transient-retry', request, { id: `review_transient_${identity([operation.id, slot]).slice(7)}`, hash: identity({ operation, request, retry: TRANSIENT }) },
         (await core.state()).events);
     }
     // Exactly one automatic repair turn per reviewer, either provider (AC5).
     // It reuses the round's baseline, so it is not a further round.
     if (last?.verdict.invalidVerdictContract) {
       const correction = last.verdict.unvalidatedVerdict ? { ...request, repair: last.reference } : request;
-      await attempt(correction, { id: `review_retry_${identity([operation.id, slot]).slice(7)}`, hash: identity({ operation, correction }) }, (await core.state()).events);
+      await attempt('repair', correction, { id: `review_retry_${identity([operation.id, slot]).slice(7)}`, hash: identity({ operation, correction }) }, (await core.state()).events);
     }
     return tried;
   }));

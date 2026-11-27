@@ -885,3 +885,43 @@ test('a prose unwrap is still recorded when the unwrapped object fails the envel
     assert.deepEqual(result.normalized, [{ rule: 'prose-unwrapped', field: 'output', id: null }], 'Review round 4, Codex R-141-4');
   }
 });
+
+// Issue #142: each outcome row lists its attempts in order, with kind,
+// status, results, provider usage and duration; receipts name the attempt.
+for (const provider of ['codex', 'claude-code']) test(`${provider}: a repair turn's tokens and duration are recorded with its attempt`, async t => {
+  const f = await prepared(t, 'full');
+  pairedAdapters(f);
+  const adapter = f.core.runtime.evaluators[provider], run = adapter.runStage.bind(adapter);
+  const usage = repair => ({ tokens: { input: repair ? 40 : 100, output: repair ? 10 : 20, cachedInput: null, cacheCreation: null }, cost: null });
+  adapter.runStage = async request => {
+    const result = await run(request);
+    if (!request.input.repair) delete result.output.verdicts[0].summary;
+    result.receipt.metrics = usage(Boolean(request.input.repair));
+    result.receipt.digests.output = sha256Digest(result.output);
+    return result;
+  };
+  const done = await f.request('review.execute', {}, `attempts-${provider}`);
+  const row = done.event.payload.outcomes.find(item => item.provider === provider);
+  assert.equal(row.status, 'completed', JSON.stringify(row));
+  assert.deepEqual(row.attempts.map(item => [item.kind, item.status]), [['initial', 'verdict-rejected'], ['repair', 'completed']]);
+  assert.deepEqual(row.attempts.map(item => item.tokens), [usage(false).tokens, usage(true).tokens]);
+  assert.ok(row.attempts.every(item => Number.isFinite(item.durationMs) && item.durationMs >= 0));
+  assert.deepEqual(row.attempts[1].results, row.results);
+  const receipts = await Promise.all(row.attempts.map(async item => f.core.store.json((await f.core.store.json(item.results[0])).receipt)));
+  assert.deepEqual(receipts.map(item => item.attempt), ['initial', 'repair']);
+  const peer = done.event.payload.outcomes.find(item => item.provider !== provider);
+  assert.deepEqual(peer.attempts.map(item => [item.kind, item.status]), [['initial', 'completed']]);
+  assert.equal(peer.attempts[0].tokens, null, 'A fixture receipt without usage stays unknown');
+});
+test('a transient retry is recorded as its own attempt', async t => {
+  const f = await prepared(t, 'full'); pairedAdapters(f);
+  const adapter = f.core.runtime.evaluators.codex, run = adapter.runStage.bind(adapter);
+  let calls = 0;
+  adapter.runStage = async request => { if (++calls === 1) throw transientError(); return run(request); };
+  const done = await f.request('review.execute', {}, 'attempts-transient');
+  const row = done.event.payload.outcomes.find(item => item.provider === 'codex');
+  assert.deepEqual(row.attempts.map(item => [item.kind, item.status]), [['initial', 'provider-failed'], ['transient-retry', 'completed']]);
+  assert.equal(row.attempts[0].tokens, null);
+  const receipt = await f.core.store.json((await f.core.store.json(row.attempts[1].results[0])).receipt);
+  assert.equal(receipt.attempt, 'transient-retry');
+});

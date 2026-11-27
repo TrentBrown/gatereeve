@@ -14,7 +14,7 @@ import { createHash } from 'node:crypto';
 import { MetricsStore } from '../../plugin-src/shared/resources/performance/store.js';
 import { metricsRequest, renderReevaluation } from '../../plugin-src/shared/resources/performance/service.js';
 import { projectWorkflow } from '../../plugin-src/shared/resources/performance/workflow-projection.js';
-import { escapedDefectStatement, DIAL_COMPARISON_CAVEAT, NOT_RECORDED, reportingDatabase } from '../../plugin-src/shared/resources/performance/fleet.js';
+import { escapedDefectStatement, DIAL_COMPARISON_CAVEAT, NOT_RECORDED, reportingDatabase, observation } from '../../plugin-src/shared/resources/performance/fleet.js';
 import { createSession } from '../../plugin-src/shared/resources/performance/mcp.js';
 import { CurrentCore } from '../../plugin-src/shared/resources/protocol/current/core.js';
 import { git } from '../../plugin-src/shared/resources/protocol/current/evidence.js';
@@ -449,4 +449,42 @@ test('verdict normalization and rejection rules are counted per rule in the metr
   assert.deepEqual(counted('verdict-rejection'), [[H(10), 'schema-required', 1]]);
   // Only rule identifiers and counts are projected, never the field paths or messages.
   assert.doesNotMatch(JSON.stringify(rows), /review\.note|is required/u);
+});
+
+test('each review result observation carries its attempt, duration and tokens; unknown usage stays null (issue #142)', async t => {
+  const store = await metricsStore(t);
+  let n = 0;
+  const event = (type, payload) => { n++; return { sequence: n, hash: `event-${n}`, recordedAt: new Date(Date.parse('2026-11-26T00:00:00Z') + n * 1000).toISOString(), type, payload }; };
+  const events = [
+    event('STARTED', { featureId: 'feature', implementers: ['implementer'], optionalGates: [] }),
+    event('JOB_FINISHED', { jobId: 'job-1', results: [{ hash: H(20) }] }),
+    event('JOB_FINISHED', { jobId: 'job-2', results: [{ hash: H(21) }] }),
+    event('JOB_FINISHED', { jobId: 'job-3', results: [{ hash: H(22) }] }),
+  ];
+  const result = (receipt, finding = []) => ({ gate: 'review', outcome: 'PASS', mode: 'full', input: { hash: H(8) }, receipt: { hash: receipt }, findings: finding, dispositions: [] });
+  const evaluator = { model: 'gate-model', provider: 'codex' };
+  const objects = new Map([
+    [H(20), { ...result(H(30), [{ id: 'F1' }]), outcome: 'UNAVAILABLE' }], [H(21), result(H(31))], [H(22), result(H(32))], [H(8), {}],
+    [H(30), { evaluator, attempt: 'initial', startedAt: '2026-11-26T00:00:00.000Z', completedAt: '2026-11-26T00:02:00.000Z', metrics: { tokens: { input: 100, output: 20, cachedInput: null, cacheCreation: null }, cost: null } }],
+    [H(31), { evaluator, attempt: 'repair', startedAt: '2026-11-26T00:03:00.000Z', completedAt: '2026-11-26T00:03:30.000Z', metrics: { tokens: { input: 40, output: 10, cachedInput: 5, cacheCreation: 0 }, cost: null } }],
+    // An earlier receipt without an attempt or usage.
+    [H(32), { evaluator, startedAt: '2026-11-26T00:04:00.000Z', completedAt: '2026-11-26T00:04:10.000Z', metrics: { tokens: null, cost: null } }],
+  ]);
+  const core = { context: { workspaceRoot: '/project/gatereeve', featureId: 'feature', repositories: [] }, store: { home: '/runs/feature', json: async ref => objects.get(ref.hash) },
+    state: async () => ({ state: { runId: 'run' }, events }) };
+  await projectWorkflow(core, store);
+  assert.equal(await store.captureIncomplete(), false);
+  const rows = (await report(store)).observations.filter(row => row.check === 'review' && row.kind === 'artifact');
+  const by = hash => rows.find(row => row.reference === hash);
+  assert.deepEqual([by(H(20)).attempt, by(H(20)).durationMs, by(H(20)).tokens], ['initial', 120000, { input: 100, output: 20, cachedInput: null, cacheCreation: null }]);
+  assert.deepEqual([by(H(21)).attempt, by(H(21)).durationMs, by(H(21)).tokens], ['repair', 30000, { input: 40, output: 10, cachedInput: 5, cacheCreation: 0 }]);
+  assert.equal(by(H(22)).attempt ?? null, null);
+  assert.equal(by(H(22)).tokens ?? null, null, 'Unknown usage is never zero');
+  assert.equal(by(H(22)).durationMs, 10000);
+  // Finding rows do not repeat the usage, so it is counted once per attempt.
+  const finding = (await report(store)).observations.find(row => row.kind === 'finding' && row.findingId === 'F1');
+  assert.equal(finding.tokens, undefined);
+  assert.equal(finding.durationMs, undefined);
+  assert.throws(() => observation({ id: 'x', source: 's', observedAt: '2026-11-26T00:00:00.000Z', kind: 'artifact', attempt: 'later' }), /Invalid reporting attempt/u);
+  assert.throws(() => observation({ id: 'x', source: 's', observedAt: '2026-11-26T00:00:00.000Z', kind: 'artifact', tokens: { input: -1 } }), /Invalid reporting tokens/u);
 });

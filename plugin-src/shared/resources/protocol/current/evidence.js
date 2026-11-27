@@ -1,3 +1,4 @@
+import { afterMergeCriteria } from './review-packet.js';
 import { planningFacts } from './planning.js';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -207,9 +208,16 @@ export async function sourceCandidate(store, context, input, authorization, sour
   if (light) requireThat(input.criteria.length === 1 && input.criteria[0] === LIGHT_CRITERION, `A light run has no rubric; its candidate criteria must be exactly ["${LIGHT_CRITERION}"]`);
   else {
     const spec = (await store.get(docs['spec.md'])).toString('utf8');
-    const rubric = planningFacts(spec).criteria.map(item => item.id);
+    const facts = planningFacts(spec);
+    const rubric = facts.criteria.map(item => item.id);
     requireThat(input.criteria.every(id => rubric.includes(id)), 'Review criterion is not in approved spec');
-    requireThat(input.scope !== 'FEATURE' || input.criteria.length === rubric.length, 'Feature review must cover the entire rubric');
+    // Rows the spec marks "After merge:" are checked only after merge, never
+    // at a review boundary (issue #142).
+    const afterMerge = afterMergeCriteria(facts).map(row => row.id);
+    const selectedAfterMerge = input.criteria.filter(id => afterMerge.includes(id));
+    requireThat(!selectedAfterMerge.length, `Criteria marked "After merge:" are checked after merge, not at a review boundary: ${selectedAfterMerge.join(', ')}`);
+    requireThat(input.scope !== 'FEATURE' || input.criteria.length === rubric.length - afterMerge.length,
+      afterMerge.length ? `Feature review must cover the entire rubric except rows marked "After merge:" (${afterMerge.join(', ')})` : 'Feature review must cover the entire rubric');
   }
   const value = { contract: CONTRACT, kind: 'candidate', sourceStorage: 'git-manifest', sourceRetention, featureId: context.featureId, repositories: repos,
     requirements: docs, authorization, scope: input.scope, criteria: [...input.criteria].sort() };

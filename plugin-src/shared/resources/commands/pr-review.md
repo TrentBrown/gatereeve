@@ -37,7 +37,13 @@ PASS when it does not block). Limit follow-up fix claims to new or affected
 repairs. Carry forward unchanged closures with supported history applicability;
 repeating a fix claim requires a new supported disposition for that finding. A
 claim naming a finding GateReeve no longer holds is dropped and recorded
-(`claim-not-retained`). In the automatic repair turn the reviewer may supply a
+(`claim-not-retained`). A reviewer PASS that gives no disposition for a finding
+its paired peer raised records it `not-assessed` (`peer-not-assessed`); the
+finding stays open, so claim the fix and let the raising reviewer confirm it.
+Reviewers can check their verdict with GateReeve's read-only
+`validate_verdict` tool before they answer. Mark a rubric row that can only be
+checked after merge by starting its criterion with `After merge:`; boundary
+reviews leave it out. In the automatic repair turn the reviewer may supply a
 disposition it omitted, but changing a stated disposition still needs a fresh
 assessment.
 

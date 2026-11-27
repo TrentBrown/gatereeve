@@ -12,10 +12,13 @@ import { qualifyGeneratedInputs, outputIdentity } from './generated-inputs.js';
 import { patternInputs } from './pattern-inputs.js';
 import { runScratchCommand, processIdentity } from '../../storage/scratch.js';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { realpathSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { CONTRACT, canonical, identity, requireThat, gate, text, autonomousValue } from './contracts.js';
 import { agentDecisions, AGENT_DECISION_RULE } from './goal.js';
 import { newView } from './source-views.js';
+import { incorporatedDocuments, afterMergeCriteria } from './review-packet.js';
 import { localPath } from './store.js';
 import { assertSourceIsolation, checkCandidate, checkSource, contentIdentity, git, assertClean, briefBased } from './evidence.js';
 import { ROUND_POLICY, boundaryScope, scheduledRound, assertRoundOpen, countReviewRound, scopeEpoch, band as roundBand } from './round-policy.js';
@@ -287,7 +290,9 @@ Prior results are inputs, not authority. Verify open findings, claimed fixes and
 Every finding states severity, failureScenario (trigger -> observable wrong outcome), classId and a one-line classStatement naming the defect class. Severity follows the failure scenario: high when a realistic scenario causes data loss, a security problem, wrong results reported as success, or breaks a stated acceptance criterion; medium when a realistic scenario causes a visible failure that is recoverable or reported, or an edge case within the stated failure model; low when it needs an unusual combination of conditions or lies outside the stated failure model. Low findings never block: set blocking false. When packet.roundPolicy is present, apply its band: in rounds 1-3 every in-scope finding that is not low may block; in rounds 4-5 only high findings and medium regressions of the previous fix (findings on packet.roundPolicy.regressionPaths, missed sites of a class in packet.sweepRecords, or earlier regressions still present) block, so set blocking false on other findings and do not fail a criterion or responsibility for them alone. A FAIL with no blocking finding other than low ones, with every criterion, responsibility and coverage decision passing and nothing else contradicting PASS, is recorded as PASS. Blocking findings must set criterion to a selected rubric ID (for example R1) or exactly gate:<gate> (for example gate:code), plus current source evidence. Planning findings may cite requirements/spec.md or planning/<document>.md from packet.planning. For packet.coverageClaims, review, spec and judge must return coverageDecisions with a PASS or FAIL and evidence for every claim. A claim with kind check-replacement says a check in the consumed verification replaces an earlier check identity (replaces) for the stated reason: PASS only when the replacement check, as run, covers the behavior the replaced check verified. Assess replacement behavior, prior failures and changed interactions, not command spelling. Never approve a replacement merely because its tests pass. Use the structured output schema directly. Return the verdict object without prose or code fences. When packet.repair is present, use its eligibleAffected list if supplied and correct only the reported contract error (packet.repair.diagnostic) in its original verdict; preserve outcome, findings with their severity and evidence, criterion outcomes, coverage completeness and limitations, coverage decisions, dispositions and responsibility outcomes. Text that depends on a corrected field may change. Its original provider context is unavailable, so use the supplied original report and retained source without repeating an unrelated full review. Unvalidated findings in prior reports still require investigation; they are observations, not trusted verdicts. Advice, unsupported speculation and unrelated pre-existing issues are nonblocking follow-ups. Do not invent scope.
 For delta review, explicitly cover all changed paths and their interactions and state any uncovered scope. PASS requires complete required coverage, no blocking findings and no unresolved required limitations. Missing verification is UNAVAILABLE, never an invented successful test. Examine consumed runner.validation: the declared required CI jobs may be too narrow; assess executed and skipped jobs against the approved scope. An alternative is only an implementer proposal: independently assess actual local receipts against that scope and record the conclusion in the evidence dimension. During local review rounds the consumed Verification must carry receipts executed on this candidate tree for the focused tests of every changed source area and for every test suite whose code the candidate changes: assess that coverage in the evidence dimension and report each missing changed-area or affected-suite receipt as an evidence finding rated under the severity rules. Also assess runner.validation.ciRequiredChecks: the hosted CI jobs planned for after convergence must cover the approved scope; an absent or too narrow plan is an evidence finding, because CI after convergence is qualified mechanically against this plan.
 Every snapshot has metadata/<alias>.json with the original Git modes and kinds at base, head and target; prior snapshots have the same metadata under prior/<result-hash>/. Files in this read-only view are materialized without executable permissions, so use the retained mode metadata when assessing permission changes. Git symlinks are regular text files containing their target, never followed. Gitlinks are JSON metadata with the pinned commit; contents require a separately selected repository or an explicit coverage limitation. Do not treat metadata as reviewed implementation.
-Read current files under repositories/<alias>/, base files under base/<alias>/, prior head source under prior/<result-hash>/repositories/<alias>/ and prior base source under prior/<result-hash>/base/<alias>/, target/<alias>/ is the independently pinned proposed merge target; assess its interactions with the complete feature change. Prior targets are under prior/<result-hash>/target/<alias>/. Read requirements/ and the explicit evidence paths in the input. If input.mandate is supplied, independently compare actual behavior and proposed risk with its fixed human goal/constraints and mandateAuthority. Return mandateAssessment with outcome and precise evidence. Missing evidence is UNAVAILABLE, and a mandate violation prevents PASS. Do not redefine the mandate from mutable planning documents. Do not access network or modify files.`;
+Read current files under repositories/<alias>/, base files under base/<alias>/, prior head source under prior/<result-hash>/repositories/<alias>/ and prior base source under prior/<result-hash>/base/<alias>/, target/<alias>/ is the independently pinned proposed merge target; assess its interactions with the complete feature change. Prior targets are under prior/<result-hash>/target/<alias>/. Read requirements/ and the explicit evidence paths in the input. If input.mandate is supplied, independently compare actual behavior and proposed risk with its fixed human goal/constraints and mandateAuthority. Return mandateAssessment with outcome and precise evidence. Missing evidence is UNAVAILABLE, and a mandate violation prevents PASS. Do not redefine the mandate from mutable planning documents. Do not access network or modify files.
+When packet.selfValidation is present, call its validate_verdict tool (MCP server gatereeve) with the complete object you intend to return, before you return it. The tool is read-only: it applies the contract GateReeve applies when it records your verdict and reports, per gate, whether the verdict is valid, the first contract error with its field path, the outcome GateReeve would record and the corrections it would record. Correct only what it reports, call it again, and return a verdict it accepts. It checks form, not your assessment: never change a conclusion to satisfy it. A PASS that gives no disposition for an open or claimed finding the paired reviewer raised records that finding as not-assessed by you; it stays open for that reviewer.
+packet.incorporated lists documents the specification incorporates by reference, readable at their listed paths under incorporated/, and notes for references GateReeve could not include. A missing incorporated document is a non-blocking note, not by itself a reason for UNAVAILABLE; but a selected criterion that cannot be judged without it fails, with evidence naming the missing document. packet.afterMergeCriteria lists rubric rows the specification marks as checked only after merge (release, deployment or live acceptance): they are not selected, so do not score them and do not report them as coverage limitations, findings or a reason for UNAVAILABLE.`;
 
 const briefInstructions = `This is a light-rigor run. Its requirement basis is requirements/brief.md (goal, scope and findings log); there is no specification rubric or planning record. The single selected criterion "brief" means the change achieves the brief's goal within its stated scope. Assess code defects and interactions, verification sufficiency and scope against the brief; the requirements dimension assesses conformance to the brief's goal and scope. Blocking findings set criterion to brief or exactly gate:<gate>; findings about the brief itself cite requirements/brief.md.`;
 // Full-rigor rules stay byte-identical; a brief-based candidate adds its basis.
@@ -369,7 +374,45 @@ async function reviewerView(core, candidate, references, packet, runId, jobId, {
     return view;
   } catch (error) { await view.close(); throw error; }
 }
-async function independent(core, state, candidate, prepared, configuration, packet, jobId, history = [], priorities = new Map(), ledgers = {}, onLaunch = async () => {}) {
+// Reviewer self-validation (issue #142): GateReeve's read-only MCP server and
+// its one tool. The context file sits in the sealed reviewer view.
+export const SELF_VALIDATION_SERVER = 'gatereeve';
+export const SELF_VALIDATION_TOOL = 'validate_verdict';
+export const SELF_VALIDATION_CONTEXT = 'gatereeve-verdict-check/1';
+export const SELF_VALIDATION_CONTEXT_PATH = 'validation/context.json';
+const SELF_VALIDATION_SERVER_PATH = fileURLToPath(new URL('./verdict-check-server.js', import.meta.url));
+// The resources root the server's modules load from (protocol, performance,
+// release, storage): its only readable tree besides the context file.
+const SELF_VALIDATION_READ_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+// The exact launch GateReeve gives an adapter. Under Node's permission model
+// the server may read only its modules and its context file; it has no
+// file-write, child-process, worker, addon or WASI permission, so a write or
+// spawn would be refused at runtime. Electron's Node mode does not accept
+// these flags (the desktop never runs reviews); there only ELECTRON_RUN_AS_NODE
+// is set.
+export function selfValidationLaunch(contextPath, { electron = Boolean(process.versions.electron), execPath = process.execPath } = {}) {
+  // Each path is allowed as given and as resolved, since a temporary or
+  // plugin directory may sit behind a symlink.
+  const readable = [...new Set([SELF_VALIDATION_READ_ROOT, contextPath].flatMap(path => { try { return [path, realpathSync(path)]; } catch { return [path]; } }))];
+  const permission = electron ? [] : ['--permission', ...readable.map(path => `--allow-fs-read=${path}`)];
+  return { server: SELF_VALIDATION_SERVER, tool: SELF_VALIDATION_TOOL, command: execPath,
+    args: [...permission, SELF_VALIDATION_SERVER_PATH, contextPath],
+    env: { GATEREEVE_METRICS: 'off', ...(electron ? { ELECTRON_RUN_AS_NODE: '1' } : {}) } };
+}
+// What checkReviewVerdicts reads, as plain data: candidate criteria, its
+// requirement names (light or full) and source paths; history results;
+// coverage claims by id.
+export function selfValidationContext(context) {
+  const paths = files => files.map(file => ({ path: file.path }));
+  const { candidate } = context;
+  return { contract: SELF_VALIDATION_CONTEXT, context: { ...context,
+    candidate: { criteria: candidate.criteria, requirements: Object.fromEntries(Object.keys(candidate.requirements ?? {}).map(name => [name, true])),
+      repositories: candidate.repositories.map(repo => ({ alias: repo.alias, files: paths(repo.files), baseFiles: paths(repo.baseFiles), targetFiles: paths(repo.targetFiles) })) },
+    history: context.history.map(entry => ({ reviewerResult: entry.reviewerResult })),
+    replacements: context.replacements.map(claim => ({ id: claim.id })),
+    repair: context.repair ? { original: context.repair.original, eligibleAffected: context.repair.eligibleAffected ?? null } : null } };
+}
+async function independent(core, state, candidate, prepared, configuration, packet, jobId, history = [], priorities = new Map(), ledgers = {}, contractContext = null, documents = [], onLaunch = async () => {}) {
   const provider = configuration.provider;
   requireThat(['codex', 'claude-code'].includes(provider), 'Select codex or claude-code for independent execution');
   text(configuration.model, 'Evaluator model');
@@ -380,6 +423,10 @@ async function independent(core, state, candidate, prepared, configuration, pack
     : createClaudeCodeAgentAdapter({ model: configuration.model, reasoningEffort: configuration.reasoningEffort ?? 'high' }));
   const outputSchema = reviewSchema(packet.gates, candidate.criteria, ledgers);
   const instructions = evaluatorInstructions(candidate);
+  // Offered only to an adapter that declares it can give the reviewer the
+  // tool; others run exactly as before (issue #142).
+  const selfValidation = adapter.selfValidation === true && contractContext !== null;
+  if (selfValidation) packet.selfValidation = { tool: SELF_VALIDATION_TOOL, server: SELF_VALIDATION_SERVER };
   // Shape history after the view lists its evidence, measured against the
   // exact prompt text the adapter will send.
   let fitted = null;
@@ -388,7 +435,19 @@ async function independent(core, state, candidate, prepared, configuration, pack
       input: { ...packet, history: shaped.entries, historyIndex: shaped.summary } }), MAX_PROMPT_CHARACTERS_LIMIT);
     packet.history = fitted.entries; packet.historyIndex = fitted.summary;
   };
-  const view = await observe({category:'setup',label:'source-view',worker:false}, () => reviewerView(core, candidate, [...history.map(item => item.reference), ...packet.consumedReferences], packet, state.runId, jobId, { history, beforeSeal: shapeHistory }));
+  const beforeSeal = async root => {
+    await shapeHistory();
+    // Incorporated documents, from their bound bytes (issue #142).
+    for (const document of documents) {
+      const target = join(root, ...document.path.split('/'));
+      await mkdir(dirname(target), { recursive: true });
+      await writeFile(target, await core.store.get(document.ref), { mode: 0o400, flag: 'wx' });
+    }
+    if (!selfValidation) return;
+    await mkdir(join(root, 'validation'));
+    await writeFile(join(root, SELF_VALIDATION_CONTEXT_PATH), JSON.stringify(selfValidationContext(contractContext)), { mode: 0o400, flag: 'wx' });
+  };
+  const view = await observe({category:'setup',label:'source-view',worker:false}, () => reviewerView(core, candidate, [...history.map(item => item.reference), ...packet.consumedReferences], packet, state.runId, jobId, { history, beforeSeal }));
   const metric = { category: 'review', startedAt: Date.now(), durationMs: 0, worker: false, project: core.context.workspaceRoot, feature: core.context.featureId };
   await record({ ...metric, label: 'review-prompt', count: fitted.characters, outcome: fitted.fits ? 'PASS' : 'REJECTED' });
   // SKIPPED: some selected history was carried by reference or index only.
@@ -409,7 +468,8 @@ async function independent(core, state, candidate, prepared, configuration, pack
       capabilityProfile: HIGH_CAPABILITY_PROFILE,
       policy: { repositoryAccess: 'read-only', networkAccess: 'deny', scratch: 'isolated' },
       repositoryPath: root, snapshotDigest: contentIdentity(candidate), instructions,
-      input: packet, outputSchema, timeoutSeconds: configuration.timeoutSeconds ?? 900 };
+      input: packet, outputSchema, timeoutSeconds: configuration.timeoutSeconds ?? 900,
+      ...(selfValidation ? { selfValidation: selfValidationLaunch(join(root, SELF_VALIDATION_CONTEXT_PATH)) } : {}) };
     // A reviewer counts as launched when its process spawns (adapters that
     // report it); for any other adapter, when its stage is invoked.
     let launchReported = false;
@@ -419,7 +479,8 @@ async function independent(core, state, candidate, prepared, configuration, pack
     const result = await observe({category:'review',label:'provider-execution',project:core.context.workspaceRoot,feature:core.context.featureId,worker:true},
       () => adapter.runStage(request, adapter.reportsSpawn === true ? { onSpawn: launch, onNormalized } : { onNormalized }));
     retained = [await core.store.putJson(result.receipt), await core.store.putJson(result.output)];
-    try { requireThat(result.output && Array.isArray(result.output.verdicts), 'Invalid verdict envelope: verdicts must be an array'); }
+    let envelope;
+    try { envelope = reviewEnvelope(result.output); }
     catch (error) { error.artifacts = retained; error.invalidVerdictContract = true; throw error; }
     validateAgentWorkflowStageResult(result);
     const receipt = result.receipt;
@@ -430,13 +491,14 @@ async function independent(core, state, candidate, prepared, configuration, pack
       && receipt.provider?.id === descriptor.provider && receipt.provider.model === descriptor.model
       && receipt.digests?.input === sha256Digest(packet) && receipt.digests.instructions === sha256Digest(instructions)
       && receipt.digests.output === sha256Digest(result.output) && receipt.digests.snapshot === request.snapshotDigest
-      && receipt.policy?.repositoryAccess === 'read-only' && receipt.policy.networkAccess === 'deny', 'Independent execution receipt does not match the requested proof');
+      && receipt.policy?.repositoryAccess === 'read-only' && receipt.policy.networkAccess === 'deny'
+      // A receipt that states self-validation must state what was offered.
+      && (receipt.isolation.selfValidation === undefined || receipt.isolation.selfValidation === selfValidation), 'Independent execution receipt does not match the requested proof');
     requireThat(typeof receipt.provider.contextId === 'string' && receipt.provider.contextId
       && !state.implementers.includes(receipt.provider.contextId), 'Evaluator inherited an implementing context');
     // Extra envelope keys are stripped and recorded, never rejected (issue #141).
-    const output = { verdicts: result.output.verdicts };
-    for (const key of Object.keys(result.output)) if (key !== 'verdicts') normalized.push({ rule: 'unknown-property', field: key, id: null });
-    return { output, normalized, artifacts: retained, metrics: receipt.metrics ?? { tokens: null, cost: null }, evaluator: {
+    normalized.push(...envelope.normalized);
+    return { output: envelope.output, normalized, selfValidation, artifacts: retained, metrics: receipt.metrics ?? { tokens: null, cost: null }, evaluator: {
       contextId: receipt.provider.contextId, freshContext: true, inheritedTurns: 0,
       provider: descriptor.provider, model: descriptor.model, reasoningEffort, capabilityProfile: receipt.capabilityProfile,
     } };
@@ -565,7 +627,104 @@ export function validateVerdict(verdict, ...rest) {
   }
   return checked;
 }
-function checkVerdict(verdict, ids, candidate, changes, history, claims, reconsiderClosures = []) {
+// The verdict contract of one review execution (issue #142). The execution
+// records exactly what this returns, and the reviewer's read-only
+// validate_verdict tool answers from the same function with the same context:
+// gates, candidate, delta paths (`changes`), history ({reviewerResult}
+// entries), claims, closures to reconsider, coverage claims (`replacements`,
+// read by id), whether a mandate applies, the repair original and the
+// reviewer's provider, model and selection.
+// An unrequested gate rejects the whole output, as before.
+export function checkReviewVerdicts(returned, context) {
+  const { gates, candidate, changes = null, history = [], claims = [], reconsiderClosures = [], replacements = [],
+    mandate = false, repair = null, provider = null, model = null, reviewerSelection = null } = context;
+  if (!returned.every(item => gates.includes(item?.gate))) {
+    throw Object.assign(new ContractError('Unrequested independent verdict'), { invalidVerdictContract: true });
+  }
+  return gates.map(id => {
+    // Unknown properties are stripped before schema validation (issue #141).
+    const shape = [];
+    try {
+      const selected = returned.filter(item => item.gate === id);
+      requireThat(selected.length === 1, 'Missing or duplicate independent verdict');
+      const original = stripUnknown(VERDICT_SCHEMA, selected[0], id, shape);
+      validateJsonSchema(VERDICT_SCHEMA, original, { label: id });
+      const validated = validateVerdict(original, gates, candidate, changes, history, claims, reconsiderClosures, { provider, reviewerSelection });
+      const canonicalVerdict = shape.length ? { ...validated, normalized: [...shape, ...(validated.normalized ?? [])] } : validated;
+      validateCoverageDecisions(canonicalVerdict, replacements);
+      if (id === 'review' && mandate) {
+        requireThat(OUTCOMES.includes(canonicalVerdict.mandateAssessment?.outcome), 'Autonomous boundary review must assess the fixed human mandate');
+        text(canonicalVerdict.mandateAssessment.evidence, 'Mandate assessment evidence');
+        requireThat(canonicalVerdict.outcome !== 'PASS' || canonicalVerdict.mandateAssessment.outcome === 'PASS', 'Boundary PASS contradicts mandate compliance');
+      }
+      if (repair) validateFormatRepair(stripUnknown(VERDICT_SCHEMA, repair.original, id, []), original, candidate.criteria,
+        repair.eligibleAffected, findingPathResolver(candidate, id), findingLedger(id, history, claims, reconsiderClosures).prior);
+      if (id === 'review' && reviewerSelection) {
+        const verdict = structuredClone(canonicalVerdict);
+        const known = new Set(history.flatMap(item => (item.reviewerResult.findings ?? []).map(finding => finding.id)));
+        const provenance = [];
+        for (const finding of verdict.findings) {
+          const originalId = finding.id;
+          if (!known.has(originalId) && !originalId.startsWith(`${provider}/`)) finding.id = `${provider}/${originalId}`;
+          provenance.push({ id: finding.id, originalId, provider, model });
+        }
+        const findingIds = new Map(provenance.map(({ originalId, id }) => [originalId, id]));
+        requireThat(new Set(findingIds.values()).size === findingIds.size, 'Duplicate namespaced finding identity');
+        for (const disposition of verdict.dispositions) disposition.id = findingIds.get(disposition.id) ?? disposition.id;
+        requireThat(new Set(verdict.dispositions.map(row => row.id)).size === verdict.dispositions.length, 'Duplicate namespaced disposition identity');
+        return { ...verdict, findingProvenance: provenance };
+      }
+      return canonicalVerdict;
+    } catch (error) {
+      const original = returned.find(item => item?.gate === id);
+      return { gate: id, outcome: 'UNAVAILABLE', unavailableReason: 'contract', summary: error.message, findings: [], dispositions: [], invalidVerdictContract: true,
+        ...(shape.length ? { normalized: shape } : {}),
+        ...(error.details?.eligibleAffected ? { eligibleAffected: error.details.eligibleAffected } : {}),
+        ...(original ? { unvalidatedVerdict: original, unvalidatedFindings: original.findings ?? [] } : {}) };
+    }
+  });
+}
+// The envelope a reviewer returns: an object whose `verdicts` is an array.
+// Extra envelope keys are stripped and recorded, never rejected (issue #141).
+export function reviewEnvelope(output) {
+  requireThat(output && typeof output === 'object' && !Array.isArray(output) && Array.isArray(output.verdicts), 'Invalid verdict envelope: verdicts must be an array');
+  return { output: { verdicts: output.verdicts },
+    normalized: Object.keys(output).filter(key => key !== 'verdicts').map(key => ({ rule: 'unknown-property', field: key, id: null })) };
+}
+// What the validate_verdict tool reports for one output (issue #142): the
+// envelope error once, or per requested gate whether the verdict is valid,
+// its first contract error (the text the repair turn would receive), the
+// outcome GateReeve would record and the correction rules it would record.
+export function checkReviewOutput(output, context) {
+  let envelope;
+  try { envelope = reviewEnvelope(output); }
+  catch (error) { return { valid: false, error: error.message, verdicts: [] }; }
+  let verdicts;
+  try { verdicts = checkReviewVerdicts(envelope.output.verdicts, context); }
+  catch (error) { return { valid: false, error: error.message, verdicts: [] }; }
+  // Corrections GateReeve records on every verdict of the execution before
+  // the reviewer answers (for example a dropped stale claim) come first, as
+  // on the recorded result.
+  const shared = [...(context.executionCorrections ?? []), ...envelope.normalized.map(row => row.rule)];
+  const rows = verdicts.map(verdict => verdict.invalidVerdictContract
+    // An invalid verdict is recorded UNAVAILABLE (then repaired once).
+    ? { gate: verdict.gate, valid: false, error: verdict.summary, recordedOutcome: 'UNAVAILABLE', corrections: [...shared, ...(verdict.normalized ?? []).map(row => row.rule)] }
+    : { gate: verdict.gate, valid: true, error: null, recordedOutcome: verdict.outcome, corrections: [...shared, ...(verdict.normalized ?? []).map(row => row.rule)] });
+  return { valid: rows.every(row => row.valid), error: null, verdicts: rows };
+}
+// GateReeve's own disposition status for a peer finding a PASS left without
+// one (issue #142). Reviewers cannot select it, and it closes nothing.
+export const NOT_ASSESSED = 'not-assessed';
+// Whether the earlier finding `id` of this gate was raised by the other
+// provider of the reviewer selection, by the raising result's recorded
+// finding provenance. Without provenance or a selection it is not a peer's.
+function peerRaised(gateId, id, history, provider, reviewerSelection) {
+  if (!provider || !reviewerSelection) return false;
+  const raising = history.find(entry => entry.reviewerResult?.gate === gateId && (entry.reviewerResult.findings ?? []).some(finding => finding?.id === id));
+  const origin = raising?.reviewerResult.findingProvenance?.find(row => row?.id === id);
+  return typeof origin?.provider === 'string' && origin.provider !== provider;
+}
+function checkVerdict(verdict, ids, candidate, changes, history, claims, reconsiderClosures = [], { provider = null, reviewerSelection = null } = {}) {
   requireThat(ids.includes(verdict.gate) && OUTCOMES.includes(verdict.outcome), 'Reviewer returned an unrequested gate or invalid outcome');
   text(verdict.summary, 'Review summary');
   requireThat(verdict.coverage && typeof verdict.coverage.complete === 'boolean'
@@ -609,6 +768,9 @@ function checkVerdict(verdict, ids, candidate, changes, history, claims, reconsi
   }
   const ledger = findingLedger(verdict.gate, history, claims, reconsiderClosures);
   const { prior, required } = ledger;
+  // Open or claimed IDs GateReeve itself requires, before any ID the reviewer
+  // names in historyAssessment.affected joins them.
+  const ledgerRequired = new Set(required);
   const disclosed = new Set([...ledger.disclosed, ...verdict.findings.map(row => row.id)]);
   // The consolidated review names only disclosed findings; other gates may
   // dispose of findings whose retained record was lost. A review disposition
@@ -652,6 +814,14 @@ function checkVerdict(verdict, ids, candidate, changes, history, claims, reconsi
     const claimedIds = new Set(claims.map(claim => claim.findingId));
     for (const id of required) {
       const disposition = dispositions.find(item => item.id === id);
+      // A PASS that says nothing about a finding the paired peer raised only
+      // shows this reviewer did not assess it (issue #142). GateReeve records
+      // that as `not-assessed`, which closes nothing: the finding stays open.
+      if (!disposition && ledgerRequired.has(id) && peerRaised(verdict.gate, id, history, provider, reviewerSelection)) {
+        dispositions.push({ id, status: NOT_ASSESSED, evidence: 'Recorded by GateReeve: this PASS gives no disposition for a finding the paired reviewer raised, so it was not assessed here and stays open.' });
+        normalized.push({ rule: 'peer-not-assessed', field: 'dispositions', id });
+        continue;
+      }
       const at = disposition ? `dispositions[${verdict.dispositions.indexOf(disposition)}]` : null;
       // `present` for an earlier finding that does not block is an honest
       // disposition a PASS can carry (issue #141), for example an advisory
@@ -961,6 +1131,14 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
   if (!brief && input.gates.some(id => ['review', 'reconcile'].includes(id))) {
     support.push(await core.store.capture('plan.md'), await core.store.capture('issues.md'), await core.store.capture('tracker.md'));
   }
+  // Documents the pinned spec incorporates by reference, bound to this
+  // execution's input, and notes for references that could not be included
+  // (issue #142). Full rigor only: a light run's brief is its only basis.
+  let incorporated = null;
+  if (!brief && role === 'independent') {
+    const spec = (await core.store.get(candidate.requirements['spec.md'])).toString('utf8');
+    incorporated = await incorporatedDocuments(core.store, spec, [...Object.keys(candidate.requirements), ...support.map(ref => ref.path)]);
+  }
   let repair = null;
   if (input.repair) {
     requireThat(role === 'independent' && input.gates.length === 1, 'Contract repair needs one independent verdict');
@@ -999,6 +1177,7 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
     environment: await executionEnvironment(core.context, candidate, configuration, role === 'runner', runnerEnvironment, { retainDiagnostics: true }),
     pattern: input.gates.includes('pattern') ? await patternInputs(core.store, core.context, candidate, core.runtime.pythonGuardOptions) : null,
     integrations: definitions[0].at === 'completion' ? state.integrations : null,
+    ...(incorporated ? { incorporated } : {}),
     reviewContract: reviewContract(input.gates, candidate), coverageClaims: replacements, repair, claims, ...(sweepRecords ? { sweepRecords } : {}), ...(claimDrops.length ? { droppedClaims: claimDrops } : {}), requestedHistory: [...(input.history ?? [])].sort((a, b) => a.hash.localeCompare(b.hash)),
     history: history.map(item => item.reference), historyGaps: missingHistory, reconsiderClosures: reconsiderClosures.filter(item => history.some(entry => entry.reviewerResult.findings?.some(finding => finding.id === item.id && entry.reviewerResult.gate === item.gate))), prior: input.prior ?? null,
     validUntil: configuration.validUntil ?? null };
@@ -1028,6 +1207,8 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
         || identity(previous.droppedClaims ?? []) !== identity(value.droppedClaims ?? [])
         || identity(previous.sweepRecords ?? null) !== identity(value.sweepRecords ?? null)
         || identity(previous.agentDecisions ?? null) !== identity(value.agentDecisions ?? null)
+        // A changed incorporated document is a changed review input (issue #142).
+        || identity(previous.incorporated ?? null) !== identity(value.incorporated ?? null)
         || identity(previous.requestedHistory ?? []) !== identity(value.requestedHistory) || identity(previous.historyGaps ?? []) !== identity(missingHistory)) { await record({category:'reuse',startedAt:Date.now(),durationMs:0,outcome:'REJECTED',reason:'inputs-changed'}); continue; }
       try {
         if (result.gate === 'review' && (await findingObligations(core, state, candidate, previous, result)).unreconciledFindings.length) {
@@ -1089,6 +1270,13 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
         source: candidate.repositories.map(repo => ({ alias: repo.alias, base: repo.base, head: repo.head, target: repo.target, metadata: `metadata/${repo.alias}.json`, entries: [...repo.baseFiles, ...repo.files, ...repo.targetFiles].filter(file => file.entryKind).map(({ path, mode, entryKind }) => ({ path, mode, entryKind })) })),
         history: [], historyIndex: null, mandate, ...(mandate ? { mandateAuthority: state.dials.autonomy.authority } : {}), ...(value.agentDecisions ? { agentDecisions: value.agentDecisions } : {}), coverageClaims: replacements, repair: value.repair, historyGaps: missingHistory, reconsiderClosures: value.reconsiderClosures, claims, changedPaths: changes, consumedReferences: consumed, consumed: await Promise.all(consumed.map(ref => core.store.json(ref))) };
       packet.consumedReferences = [...new Map([...packet.consumedReferences, ...replacements.flatMap(claim => claim.kind === 'check-replacement' ? [claim.verification] : [...claim.supersedes, ...claim.replacements])].map(ref => [ref.hash, ref])).values()];
+      if (value.incorporated) packet.incorporated = { documents: value.incorporated.documents.map(({ reference, path }) => ({ reference, path })), notes: value.incorporated.notes };
+      // Rows checked only after merge are never selected; reviewers are told
+      // not to score or report them (issue #142).
+      if (!brief) {
+        const afterMerge = afterMergeCriteria(planningFacts((await core.store.get(candidate.requirements['spec.md'])).toString()));
+        if (afterMerge.length) packet.afterMergeCriteria = afterMerge;
+      }
       if (brief && input.gates.includes('review')) packet.planning = { basis: 'brief', brief: 'requirements/brief.md', authority: state.decisions };
       else if (input.gates.some(id => ['review', 'reconcile', 'triage'].includes(id))) {
         const documents = Object.fromEntries(await Promise.all(value.support.map(async ref => [ref.path, (await core.store.get(ref)).toString()])));
@@ -1103,59 +1291,18 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
       // A round counts once a reviewer's provider is launched on a new revision
       // (AC6), so a precondition that stops packet assembly, source-view
       // creation or adapter checks never charges one (issue #140).
-      const reviewed = await independent(core, state, candidate, prepared, configuration, packet, jobId, history, priorities, ledgers, async () => {
+      const contractContext = { gates: input.gates, candidate, changes, history, claims, reconsiderClosures: value.reconsiderClosures,
+        replacements, mandate: Boolean(mandate), repair: value.repair, provider: configuration.provider, model: configuration.model,
+        reviewerSelection: configuration.reviewerSelection ?? null, executionCorrections: claimDrops.map(row => row.rule) };
+      const reviewed = await independent(core, state, candidate, prepared, configuration, packet, jobId, history, priorities, ledgers, contractContext, value.incorporated?.documents ?? [], async () => {
         // Mark the launch first, so a failed count never hides a running reviewer.
         launched = progress.launched = true;
         if (roundPolicy) await countReviewRound(core, roundPolicy.scope, contentIdentity(candidate), state.candidate);
       });
       evaluator = reviewed.evaluator; metrics = reviewed.metrics; artifacts.push(...reviewed.artifacts);
       executionNormalized.push(...reviewed.normalized);
-      const returned = reviewed.output.verdicts;
-      if (!returned.every(item => input.gates.includes(item?.gate))) {
-        throw Object.assign(new ContractError('Unrequested independent verdict'), { invalidVerdictContract: true });
-      }
-      verdicts = input.gates.map(id => {
-        // Unknown properties are stripped before schema validation (issue #141).
-        const shape = [];
-        try {
-          const selected = returned.filter(item => item.gate === id);
-          requireThat(selected.length === 1, 'Missing or duplicate independent verdict');
-          const original = stripUnknown(VERDICT_SCHEMA, selected[0], id, shape);
-          validateJsonSchema(VERDICT_SCHEMA, original, { label: id });
-          const validated = validateVerdict(original, input.gates, candidate, changes, history, claims, value.reconsiderClosures);
-          const canonicalVerdict = shape.length ? { ...validated, normalized: [...shape, ...(validated.normalized ?? [])] } : validated;
-          validateCoverageDecisions(canonicalVerdict, replacements);
-          if (id === 'review' && mandate) {
-            requireThat(OUTCOMES.includes(canonicalVerdict.mandateAssessment?.outcome), 'Autonomous boundary review must assess the fixed human mandate');
-            text(canonicalVerdict.mandateAssessment.evidence, 'Mandate assessment evidence');
-            requireThat(canonicalVerdict.outcome !== 'PASS' || canonicalVerdict.mandateAssessment.outcome === 'PASS', 'Boundary PASS contradicts mandate compliance');
-          }
-          if (value.repair) validateFormatRepair(stripUnknown(VERDICT_SCHEMA, value.repair.original, id, []), original, candidate.criteria,
-            value.repair.eligibleAffected, findingPathResolver(candidate, id), ledgers[id].prior);
-          if (id === 'review' && configuration.reviewerSelection) {
-            const verdict = structuredClone(canonicalVerdict);
-            const known = new Set(history.flatMap(item => (item.reviewerResult.findings ?? []).map(finding => finding.id)));
-            const provenance = [];
-            for (const finding of verdict.findings) {
-              const originalId = finding.id;
-              if (!known.has(originalId) && !originalId.startsWith(`${configuration.provider}/`)) finding.id = `${configuration.provider}/${originalId}`;
-              provenance.push({ id: finding.id, originalId, provider: configuration.provider, model: configuration.model });
-            }
-            const findingIds = new Map(provenance.map(({ originalId, id }) => [originalId, id]));
-            requireThat(new Set(findingIds.values()).size === findingIds.size, 'Duplicate namespaced finding identity');
-            for (const disposition of verdict.dispositions) disposition.id = findingIds.get(disposition.id) ?? disposition.id;
-            requireThat(new Set(verdict.dispositions.map(row => row.id)).size === verdict.dispositions.length, 'Duplicate namespaced disposition identity');
-            return { ...verdict, findingProvenance: provenance };
-          }
-          return canonicalVerdict;
-        } catch (error) {
-          const original = returned.find(item => item?.gate === id);
-          return { gate: id, outcome: 'UNAVAILABLE', unavailableReason: 'contract', summary: error.message, findings: [], dispositions: [], invalidVerdictContract: true,
-            ...(shape.length ? { normalized: shape } : {}),
-            ...(error.details?.eligibleAffected ? { eligibleAffected: error.details.eligibleAffected } : {}),
-            ...(original ? { unvalidatedVerdict: original, unvalidatedFindings: original.findings ?? [] } : {}) };
-        }
-      });
+      // The same contract the reviewer's validate_verdict tool applies (issue #142).
+      verdicts = checkReviewVerdicts(reviewed.output.verdicts, contractContext);
     } else if (role === 'runner') {
       const ran = await commands(core, state, candidate, configuration, definitions[0].at === 'completion', runnerEnvironment, prepared.hash);
       // Persist completed checks before observing the broad validation backstop.
@@ -1242,8 +1389,12 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
         verdict.rejectionRule = rejectionRule(verdict.summary, verdict.unavailableReason);
     }
   }
+  // Which attempt of a review round this execution was, so its tokens and
+  // duration are attributed (issue #142). A paired round names it; an
+  // individual execution is a repair when it repairs a retained verdict.
+  const attempt = role === 'independent' || role === 'assessment' ? reviewBaseline?.attempt ?? (input.repair ? 'repair' : 'initial') : null;
   const receipt = await core.store.putJson({ contract: CONTRACT, kind: 'execution', runId: state.runId,
-    input: prepared.hash, jobId, gates: input.gates, role, evaluator, startedAt, completedAt: new Date().toISOString(), metrics });
+    input: prepared.hash, jobId, gates: input.gates, role, evaluator, startedAt, completedAt: new Date().toISOString(), metrics, ...(attempt ? { attempt } : {}) });
   const refs = [];
   for (const verdict of verdicts) refs.push(await core.store.putJson({ contract: CONTRACT, kind: 'result', featureId: state.featureId,
     runId: state.runId, ...verdict, input: prepared, receipt, artifacts, ...(runner ? { runner } : {}),
