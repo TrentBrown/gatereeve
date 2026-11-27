@@ -1,0 +1,101 @@
+# Decisions - tb-convergence-severity-calibration
+
+**Feature start:** 2026-11-27
+
+Permanent decision records promoted from `scratchpad.md` and `interview.md` at
+PR boundaries. Goal autonomy: every agent entry below was decided on the
+human's behalf and is listed on the PR for Trent to check.
+
+## DEC-1. Full rigor, goal autonomy
+
+- **Answered by:** human
+- **Decision:** Full rigor with goal autonomy (relayed from the coordinating
+  thread). Planning decisions are `autonomous-evaluator` decisions citing
+  independent planning reviews: design (Codex, round 5 FAIL settled by
+  recorded judgment, DEC-6) and spec (Codex, round 2 PASS).
+- **Source:** scratchpad S1.
+
+## DEC-2. Severity calibration is instruction text, likelihood first
+
+- **Answered by:** agent
+- **Decision:** Code and planning reviewer instructions judge likelihood
+  before consequence. Realistic means ordinary use within the handled
+  conditions with no one acting unusually; two or more independent uncommon
+  conditions at once make a finding low whatever its consequence. No schema
+  field and no mechanical downgrade.
+- **Alternatives:** a `conditions` field with automatic downgrade (schema
+  owned by #142; meaning-changing correction).
+- **Reversibility:** high; versioned instruction text.
+- **Source:** interview D1.
+
+## DEC-3. Reviewers read the failure model from the requirement document
+
+- **Answered by:** agent
+- **Decision:** The instructions name the `Failure model` section of
+  `spec.md` (or `brief.md`); no packet field. Out-of-model triggers are low;
+  failures of the stated refusal behaviour are in the model; without the
+  section nothing is low for being out of model.
+- **Alternatives:** a `packet.failureModel` field (packet assembly owned by
+  #142).
+- **Reversibility:** high.
+- **Source:** interview D2, D6.
+
+## DEC-4. Section check and unbounded-wording lint
+
+- **Answered by:** agent
+- **Decision:** A level-2 `## Failure model` section, nonempty, no `TODO`.
+  The D11 word list on AC and rubric lines, outside code, unless the same line
+  carries "failure model", a numeral (requirement identifiers excluded) or a
+  bounding phrase (`at most`, `at least`, `up to`, `no more than`,
+  `within`). One diagnostic lists every line.
+- **Alternatives:** block-level bounds; a narrower word list.
+- **Reversibility:** high; one constant each.
+- **Source:** interview D3, D4; scratchpad S4.
+
+## DEC-5. Grandfathering follows exact spec bytes or a resumption's implementation approval
+
+- **Answered by:** agent
+- **Decision:** Policy `planning-facts/2`. A spec whose exact bytes were
+  validated in the run under the earlier policy, or already grandfathered,
+  gets the rules as warnings; so does the spec `run.resume-current` validates
+  with a `planning.implementation` approval naming the current commitments.
+  Every other spec, including a rewritten one in an old run or a design-only
+  resumption, is held to the rules.
+- **Alternatives:** grandfather the whole run; hold resumed runs to the rule;
+  an opt-in marker; a date cutoff.
+- **Reversibility:** medium.
+- **Source:** interview D5; scratchpad S3.
+
+## DEC-6. Design approved by judgment at planning round 5
+
+- **Answered by:** agent
+- **Decision:** After five design review rounds, the last finding contested
+  D11's settled resumed-run warning (which round 4 required). Approved under
+  `autonomous-evaluator` authority with a recorded judgment and accepted
+  residual risk (a resumption approval that misstates what the human
+  approved), narrowed by DEC-5.
+- **Alternatives:** park at the round 6 hand-back.
+- **Reversibility:** high.
+- **Source:** scratchpad S2.
+
+## DEC-7. Documentation bar for light runs only
+
+- **Answered by:** agent
+- **Decision:** Light-run reviewer instructions add a "good enough" bar:
+  documentation findings block only when following the text as written leads
+  to a wrong or unsafe outcome; wording and completeness polish is low; the
+  bar never lowers what the brief asks for. Full runs are unchanged.
+- **Alternatives:** demote `*.md` findings mechanically; one reviewer for
+  docs-only changes; apply the bar in full runs too.
+- **Reversibility:** high.
+- **Source:** interview D7.
+
+## DEC-8. Review contract version moves; builders exported for tests
+
+- **Answered by:** agent
+- **Decision:** `REVIEW_CONTRACT_VERSION` becomes
+  `gatereeve-review/2026-11-c2` so in-flight runs keep retained qualification.
+  `evaluatorInstructions` and `planningInstructions` are exported for tests.
+- **Alternatives:** keep the version (forces re-review on upgrade).
+- **Reversibility:** high; expect a trivial merge conflict with #142.
+- **Source:** interview D8; scratchpad S5.

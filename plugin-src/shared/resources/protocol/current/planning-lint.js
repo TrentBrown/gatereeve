@@ -1,11 +1,21 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { planningFacts, planningReferences } from './planning.js';
+import { planningFacts, planningReferences, specificationRules } from './planning.js';
 
-const [kind, root] = process.argv.slice(2);
+const [kind, root, ...options] = process.argv.slice(2);
+// --specification-rules=warn reports the failure-model rules as warnings, for
+// record checks of feature homes that may hold a grandfathered spec (CI).
+const warnRules = options.includes('--specification-rules=warn');
 try {
   if (!['spec', 'issues', 'tracker', 'triage'].includes(kind) || !root) throw new Error('Expected planning kind and feature directory');
   const spec = await readFile(join(root, 'spec.md'), 'utf8'), facts = planningFacts(spec);
+  // No run context here, so the specification rules apply as failures (spec AC5).
+  if (!options.every(option => option === '--specification-rules=warn')) throw new Error(`Unsupported option: ${options.join(' ')}`);
+  if (kind === 'spec') {
+    const problems = specificationRules(spec, facts);
+    if (problems.length && !warnRules) throw new Error(problems.join('; '));
+    facts.warnings.push(...problems.map(problem => `Specification rule (reported, not enforced): ${problem}`));
+  }
   if (kind !== 'spec') {
     const name = kind === 'triage' ? 'scratchpad.md' : `${kind}.md`;
     const body = await readFile(join(root, name), 'utf8');

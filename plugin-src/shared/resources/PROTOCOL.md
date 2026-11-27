@@ -213,6 +213,26 @@ Issue/tracker lint checks references; feature coverage and material-decision tri
 are independent judgments batched into existing reviews. No per-task rubric mapping
 or checkbox can grant passage. `spec.validate` refreshes unchanged commitments
 without new implementation authority. Failed validation remains retained.
+
+Under policy `planning-facts/2`, validation also requires a `## Failure model`
+section (present, not empty, no `TODO`) and refuses unbounded wording in
+criteria: a line of the `Acceptance Criteria` or `Rubric` section (or, when that
+heading is absent, an extracted AC or rubric line) that uses `always`, `any`, `all cases`,
+`never fails`, `converges` or `robust`, outside code, fails unless the same line
+carries a failure-model reference, a numeral (requirement IDs do not count) or
+`at most`, `at least`, `up to`, `no more than` or `within`. One diagnostic names
+every offending line. A grandfathered spec gets both rules as warnings instead
+(returned by `spec.validate` and retained in its proof with
+`grandfathered: true`): its exact bytes were validated in this run under an
+earlier policy or already grandfathered, or `run.resume-current` validated it
+while resuming an active run or a retained activation with an observed
+`planning.implementation` approval of the current commitments. Every other spec,
+including a changed spec in an old run and a fresh start through
+`run.resume-current`, is held to them. The portable `lint_spec.py` applies them
+as failures; `--specification-rules=warn` reports them as warnings instead, for
+record checks of feature homes that may hold a grandfathered spec (CI's
+review-artifact validation and the portable-acceptance record check). Light briefs may carry an optional
+`## Failure model` section and are not linted.
 Python remains a leaf provider for Git integration/context checks; it does not
 control semantic planning acceptance.
 
@@ -297,7 +317,14 @@ same fresh independent-evaluator qualification as full. Blocking findings use
 Rubric criteria and spec/planning paths are rejected. `spec`, `judge`,
 `reconcile` and `triage` need a rubric or planning record and are refused for a
 brief-based candidate; `code`, `pattern`, `explanation` and an enabled Whiteboard
-remain available.
+remain available. Light reviewers hold documentation and operations prose to a
+"good enough" bar: a finding about it blocks only when a reader following the text
+as written, in a realistic scenario, reaches a wrong or unsafe outcome (a wrong
+command, flag, path or value; a missing warning before a destructive or
+irreversible step; a contradiction with the shipped code or the brief). Wording,
+style, structure, narrower restatements, unmentioned rare edge cases and
+suggestions to document more are low. Documentation the brief asks for remains a
+requirement. Full-rigor reviews have no such bar.
 
 Use the test pyramid as a heuristic: choose quick focused deterministic checks
 and useful early independent discovery while implementing. Run wider integration
@@ -752,7 +779,17 @@ with its `count`, and one `verdict-rejection` observation per rejected result,
 carrying only the rule and count.
 
 Every finding carries `severity` (`high`, `medium` or `low`, defined by its
-`failureScenario`), a `classId` and a one-line `classStatement`. Low findings
+`failureScenario`), a `classId` and a one-line `classStatement`. Reviewers judge
+likelihood before consequence: a scenario is realistic when it arises in ordinary
+use within the handled conditions, with no one acting unusually; one that needs two or more independent uncommon conditions at
+once is low whatever its consequence, and the failure scenario names those
+conditions. The stated failure model is the `Failure model` section of the
+requirement basis (`spec.md`, or `brief.md` in a light run): a finding whose
+trigger lies outside its handled conditions is low, a failure of its own
+detect-and-refuse behaviour is in the model, and without the section nothing is
+low merely for lying outside a model. Planning reviewers apply the same rules and
+also judge whether a stated model has an obvious gap. These are reviewer
+instructions; GateReeve does not re-rate findings. Low findings
 never block; a low finding marked blocking is recorded non-blocking under
 `normalized`. A historical finding still present but now rated low takes the
 `present-low` disposition, which no longer blocks. Findings retained from

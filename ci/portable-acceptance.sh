@@ -96,7 +96,8 @@ done
 
 for feature in workflow-state-machine-cli; do
   feature_home="docs/issues/$feature"
-  python3 plugin-src/shared/resources/scripts/lint_spec.py "$feature_home"
+  # This feature predates the failure-model rules (planning-facts/2).
+  python3 plugin-src/shared/resources/scripts/lint_spec.py "$feature_home" --specification-rules=warn
   python3 plugin-src/shared/resources/scripts/lint_issues.py "$feature_home"
   python3 plugin-src/shared/resources/scripts/lint_tracker.py "$feature_home"
   python3 plugin-src/shared/resources/scripts/gate_triage.py "$feature_home"
