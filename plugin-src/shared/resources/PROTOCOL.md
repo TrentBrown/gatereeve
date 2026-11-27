@@ -216,8 +216,8 @@ without new implementation authority. Failed validation remains retained.
 
 Under policy `planning-facts/2`, validation also requires a `## Failure model`
 section (present, not empty, no `TODO`) and refuses unbounded wording in
-criteria: a line of the `Acceptance Criteria` or `Rubric` section (or an
-extracted AC or rubric line) that uses `always`, `any`, `all cases`,
+criteria: a line of the `Acceptance Criteria` or `Rubric` section (or, when that
+heading is absent, an extracted AC or rubric line) that uses `always`, `any`, `all cases`,
 `never fails`, `converges` or `robust`, outside code, fails unless the same line
 carries a failure-model reference, a numeral (requirement IDs do not count) or
 `at most`, `at least`, `up to`, `no more than` or `within`. One diagnostic names

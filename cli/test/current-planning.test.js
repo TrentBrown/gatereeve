@@ -75,6 +75,10 @@ test('criteria with unbounded wording need a same-line bound (AC4)', () => {
   assert.equal(rules(spec(MODEL, '- **AC1.** Any retry succeeds.')).length, 1);
   assert.equal(rules(spec(MODEL, undefined, '| R1 | AC1 any value | value is right | other | test |')).length, 1);
   assert.deepEqual(rules(spec(MODEL, '- **AC1.** The `any` option is exported.')), []);
+  assert.deepEqual(rules(spec(MODEL, '- **AC1.** The `` `any` `` and ``always`` spans are code.')), [], 'a longer code span may contain a backtick');
+  assert.equal(rules(spec(MODEL, '- **AC1.** The ``code`` span ends, then any value.')).length, 1, 'text after a closed span is linted');
+  // With the headings present, an AC appended under Changes is outside the linted sections.
+  assert.deepEqual(rules(spec(MODEL) + '## Changes\n- **AC9.** Any retained label is shown.\n'), []);
   assert.deepEqual(rules(spec(MODEL, '- **AC1.** Export the value.\n```\nalways any\n```')), []);
   assert.deepEqual(rules(spec(MODEL, '- **AC1.** Export the value. Many companies anyway.')), [], 'whole words only');
   // Nested criterion lines are linted; text outside the two sections is not.

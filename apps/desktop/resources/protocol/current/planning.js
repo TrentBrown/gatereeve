@@ -100,14 +100,20 @@ export function specificationRules(body, facts) {
     if (!content.length) problems.push(`Failure model section at line ${model.heading + 1} is empty`);
     else if (content.some(i => /\bTODO\b/u.test(lines[i]))) problems.push(`Failure model section at line ${model.heading + 1} is unresolved (TODO)`);
   }
-  const linted = new Set([...facts.acceptance, ...facts.criteria].map(item => item.line - 1));
-  for (const pattern of [/^ {0,3}##\s+acceptance criteria\s*#*\s*$/iu, /^ {0,3}##\s+rubric\s*#*\s*$/iu]) {
-    for (const section of sections(lines, prose, pattern)) for (const i of section.body) linted.add(i);
+  // The headed sections are linted; extracted AC or rubric lines are the
+  // fallback only for a kind whose heading is absent (spec AC4), so lines
+  // outside the sections, such as an amendment under Changes, are not linted.
+  const linted = new Set();
+  for (const [pattern, entries] of [[/^ {0,3}##\s+acceptance criteria\s*#*\s*$/iu, facts.acceptance], [/^ {0,3}##\s+rubric\s*#*\s*$/iu, facts.criteria]]) {
+    const found = sections(lines, prose, pattern);
+    if (found.length) for (const section of found) for (const i of section.body) linted.add(i);
+    else for (const item of entries) linted.add(item.line - 1);
   }
   const unbounded = [];
   for (const i of [...linted].sort((a, b) => a - b)) {
     if (!prose[i]) continue;
-    const text = lines[i].replace(/`+[^`]*`+/gu, ' ');
+    // A code span closes on a backtick run of the same length (CommonMark).
+    const text = lines[i].replace(/(?<!`)(`+)(?!`)[\s\S]*?(?<!`)\1(?!`)/gu, ' ');
     const words = UNBOUNDED.filter(([, pattern]) => pattern.test(text)).map(([word]) => word);
     if (words.length && !BOUND.test(text.replace(IDENTIFIER, ' '))) unbounded.push(`line ${i + 1} (${words.join(', ')})`);
   }

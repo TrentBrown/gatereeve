@@ -145,3 +145,22 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
 - **Alternatives:** CommonMark's three-space limit (breaks fences nested in
   list items); full list-aware Markdown parsing (out of scope for a lint).
 - **Reversibility:** high.
+
+## S11. Round 5 adjudication, merge of main, round 6 fixes
+
+- **Answered by:** agent (round 5 adjudication); human (merge authorization,
+  relayed by the coordinating thread)
+- **Decision:** Round 5: Claude PASS; Codex raised two new lint false
+  positives (an extracted AC line outside the headed sections; a
+  double-backtick code span containing a backtick). They were adjudicated as
+  accepted residual risk under goal authority and filed as follow-up #170,
+  because any fix would have been round 6. After Trent authorized the merge,
+  main (#160, #162, #164, #166) was merged in; `REVIEW_CONTRACT_VERSION` stays
+  `-c2` (main is `-c1`), and #166's `review-packet.test.js` fixture gained a
+  failure model. Round 6 on the merged candidate: both reviewers blocked on
+  the extracted-line scope (an amendment AC under `## Changes` triggers it in
+  ordinary use). With Trent's continue decision recorded, both are fixed:
+  extracted lines are linted only for a kind whose section heading is absent,
+  and code spans close on a backtick run of the same length. PROTOCOL.md now
+  states the fallback condition.
+- **Reversibility:** high.
