@@ -863,13 +863,15 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
       // A later re-report keeps the raising review in history (its origin),
       // like a `present` disposition (issue #134).
       const known = findingStates.get(`${report.gate}:${finding.id}`);
-      if (known) Object.assign(known, { open: true, closure: null, reopened: ref });
-      else findingStates.set(`${report.gate}:${finding.id}`, { id: finding.id, gate: report.gate, ref, open: true, closure: null });
+      if (known) Object.assign(known, { open: true, closure: null, closures: [], reopened: ref });
+      else findingStates.set(`${report.gate}:${finding.id}`, { id: finding.id, gate: report.gate, ref, open: true, closure: null, closures: [] });
     }
     for (const disposition of report.dispositions ?? []) {
       const finding = findingStates.get(`${report.gate}:${disposition.id}`);
-      if (finding && ['resolved', 'unsupported', 'present-low'].includes(disposition.status)) { finding.open = false; finding.closure = ref; }
-      if (finding && disposition.status === 'present') { finding.open = true; finding.closure = null; finding.reopened = ref; }
+      // Every closure since the last reopening stays in history, so each
+      // reviewer's latest perspective of the closing round is judged (#134).
+      if (finding && ['resolved', 'unsupported', 'present-low'].includes(disposition.status)) { finding.open = false; finding.closure = ref; finding.closures.push(ref); }
+      if (finding && disposition.status === 'present') { finding.open = true; finding.closure = null; finding.closures = []; finding.reopened = ref; }
     }
   }
   const selectedHistory = new Map([...(input.history ?? []), ...[...latestContext.values()].filter(item => item.scoped || item.negative).map(item => item.ref), ...[...negativeContext.values()].map(item => item.ref)].map(ref => [ref.hash, ref]));
@@ -884,7 +886,7 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
       try { await core.currentResult(finding.closure, candidate, state, new Set(), applicabilityMemo, true, true); equivalent = true; } catch { /* Ask the independent evaluator about changed/unknown relevance. */ }
       if (!equivalent) {
         selectedHistory.set(finding.ref.hash, finding.ref);
-        selectedHistory.set(finding.closure.hash, finding.closure);
+        for (const closure of finding.closures) selectedHistory.set(closure.hash, closure);
         if (finding.reopened) selectedHistory.set(finding.reopened.hash, finding.reopened);
         reconsiderClosures.push({ gate: finding.gate, id: finding.id });
       }
@@ -895,13 +897,13 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
   const prioritize = (ref, rank) => { if (ref) priorities.set(ref.hash, Math.min(priorities.get(ref.hash) ?? HISTORY_PRIORITY.context, rank)); };
   for (const finding of findingStates.values()) {
     if (finding.open) { prioritize(finding.ref, HISTORY_PRIORITY.open); prioritize(finding.reopened, HISTORY_PRIORITY.open); }
-    else if (reconsiderClosures.some(item => item.gate === finding.gate && item.id === finding.id)) [finding.ref, finding.closure, finding.reopened].forEach(ref => prioritize(ref, HISTORY_PRIORITY.reconsider));
+    else if (reconsiderClosures.some(item => item.gate === finding.gate && item.id === finding.id)) [finding.ref, ...finding.closures, finding.reopened].forEach(ref => prioritize(ref, HISTORY_PRIORITY.reconsider));
   }
   for (const ref of [...(input.history ?? []), input.prior]) prioritize(ref, HISTORY_PRIORITY.requested);
   for (const claim of input.claims ?? []) for (const finding of findingStates.values()) if (finding.id === claim.findingId) {
-    [finding.ref, finding.closure, finding.reopened].forEach(ref => prioritize(ref, HISTORY_PRIORITY.reconsider));
+    [finding.ref, ...finding.closures, finding.reopened].forEach(ref => prioritize(ref, HISTORY_PRIORITY.reconsider));
     selectedHistory.set(finding.ref.hash, finding.ref);
-    if (finding.closure) selectedHistory.set(finding.closure.hash, finding.closure);
+    for (const closure of finding.closures) selectedHistory.set(closure.hash, closure);
     if (finding.reopened) selectedHistory.set(finding.reopened.hash, finding.reopened);
   }
   // Automatic history has no record-count cutoff; resolved findings must never

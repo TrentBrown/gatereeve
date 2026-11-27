@@ -114,3 +114,25 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
   The new tests fail on the round-1 code. Claims were passed in the old
   `{findingId, claim}` shape because the run uses the installed rc.34 CLI.
 - **Reversibility:** reversible.
+
+## S11. Boundary review round 2 findings
+
+- **Answered by:** agent
+- **Decision:** Round 2 (head e810f4d): codex PASS (low CR-2 only); claude-code
+  FAIL with two medium findings in one class (`round-group-spans-executions`):
+  grouping by scope epoch, round and revision also merged sequential
+  same-revision re-reviews, so (CR2-1) an earlier execution's `present` kept
+  blocking a later dispute re-review's closures, and (CR2-2) a re-report in a
+  same-revision re-review was not counted, so the outcome depended on
+  processing order. Fixed as a class: within a round each provider's latest
+  report is its perspective; a closure is blocked only by another provider's
+  latest report; a re-report counts when an earlier report (not an earlier
+  round) raised the ID; and the next round's history carries every closure
+  since the finding was last reopened (`execution.js`, one more small edit),
+  without which the superseding re-review never reached qualification. Sites
+  found by searching every reader of round keys and finding closures:
+  `review-findings.js` prepass and closure check, `execution.js` finding
+  states and history selection. Tests: three new round-policy tests, which
+  fail on the round-2 code (the order-dependent case in one order, as
+  expected).
+- **Reversibility:** reversible.

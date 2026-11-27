@@ -331,10 +331,14 @@ are not counted. `status.rounds` shows each scope, its round and band, and advic
   later than this one) is also a regression of the previous fix, whether it is
   new or an earlier finding still present, unless it is that record's own
   claimed finding (see Fix claims and sweep records). Peer reviews of one round are
-  judged together: a finding counts as resolved only when no reviewer of that
-  round still marks it present or re-reports it as a finding, so a disagreement
-  keeps its regression status; the round that first raised a finding can still
-  close it. A round is the round policy's scope epoch (how many times the scope
+  judged together: a finding counts as resolved only when no other reviewer of
+  that round still marks it present or re-reports it as a finding (an ID an
+  earlier report raised), so a disagreement keeps its regression status. Within
+  a round each provider's latest report is its perspective, so a same-revision
+  re-review (for example after a disputed claim) supersedes that provider's
+  earlier report, and the round that first raised a finding can still close
+  it; the next round's history carries every closure since the finding was
+  last reopened. A round is the round policy's scope epoch (how many times the scope
   has closed), round and revision (`packet.roundPolicy` carries all of them),
   so two individual selection-tagged reviews of one revision are judged as one
   round. A planning round that failed at

@@ -24,3 +24,7 @@ Append pull-request review boundary entries here.
   closed-scope sweep reuse; medium missing desktop receipt; low help receipt);
   claude-code FAIL (medium CR-1 first raise counted as re-report; lows CR-2,
   CR-3). Fixed: scope epoch, first-raise rule, desktop and help receipts.
+- 2026-11-27 boundary round 2 (head e810f4d): codex PASS (low CR-2);
+  claude-code FAIL (medium CR2-1, CR2-2: round groups spanning sequential
+  executions). Fixed: per-provider latest perspective, report-level re-report
+  rule, all closures in history.
