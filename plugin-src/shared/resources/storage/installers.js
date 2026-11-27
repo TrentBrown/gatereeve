@@ -7,8 +7,8 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { setTimeout as delay } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
-import { activity, processIdentity, privateStorageDirectory as directory,
-  readStorageJson as json, withStorageLock as lock } from './scratch.js';
+import { activity, processIdentity, privateStorageDirectory as directory, matchesRecordedInode as inode,
+  matchesRootRecord as rootMatches, readRootRecord as rootRecord, readStorageJson as json, withStorageLock as lock } from './scratch.js';
 
 const execute = promisify(execFile);
 const KIND = 'gatereeve-installers/1';
@@ -20,6 +20,9 @@ const identity = s => ({ dev: s.dev, ino: s.ino });
 const same = (a, b) => a.dev === b.dev && a.ino === b.ino;
 const stamp = s => ({ ...identity(s), bytes: s.size, mtimeMs: s.mtimeMs });
 const equalFile = (a, b) => same(a, b) && a.bytes === b.bytes && a.mtimeMs === b.mtimeMs;
+// A retained file stamp was recorded by an earlier process: match its inode,
+// and require the file on the root's current device (see scratch.js, #159).
+const equalRecordedFile = (file, record, device) => inode(record, file) && file.dev === device && file.bytes === record.bytes && file.mtimeMs === record.mtimeMs;
 const timestamp = v => typeof v === 'string' && Number.isFinite(Date.parse(v));
 const validHold = h => h === null || (h && timestamp(h.until) && typeof h.reason === 'string' && h.reason.trim() && h.reason.length <= 1000);
 const validProcess = p => Number.isSafeInteger(p?.pid) && p.pid > 0 && typeof p.startedAt === 'string' && p.startedAt.length > 0;
@@ -38,7 +41,11 @@ async function save(path, value) {
   try { await directory.sync(); } finally { await directory.close(); }
 }
 
-async function rootInfo(root, create = false) {
+// A writing caller (`refresh`) re-records a renumbered device under the storage
+// lock, because owner.json also carries the success sequence. Read-only
+// inspection accepts an earlier boot's device without writing; callers already
+// holding the lock (currentRoot) never refresh.
+async function rootInfo(root, create = false, refresh = false) {
   assert(uid() !== undefined, 'Installer storage requires a POSIX host');
   root = resolve(root);
   if (create) await mkdir(dirname(root), { recursive: true });
@@ -52,9 +59,15 @@ async function rootInfo(root, create = false) {
   }
   for (let attempt = 0; ; attempt++) {
     try {
-      const stat = await directory(root), owner = await json(join(root, 'owner.json'));
-      assert(owner.kind === KIND && owner.uid === uid() && same(owner, stat), 'Installer root ownership changed');
+      const stat = await directory(root), { record: owner, written } = await rootRecord(join(root, 'owner.json'));
+      assert(owner.kind === KIND && owner.uid === uid() && rootMatches(owner, written, stat), 'Installer root ownership changed');
       const entries = await directory(join(root, 'entries'));
+      assert(entries.dev === stat.dev, 'Installer root spans filesystems');
+      if (refresh && owner.dev !== stat.dev) await lock(root, async () => {
+        const { record: latest, written: latestWritten } = await rootRecord(join(root, 'owner.json')), current = await directory(root);
+        assert(same(current, stat) && latest.kind === KIND && latest.uid === uid() && rootMatches(latest, latestWritten, current), 'Installer root ownership changed');
+        if (latest.dev !== current.dev) await save(join(root, 'owner.json'), { ...latest, dev: current.dev });
+      });
       return { root, ...identity(stat), entries: identity(entries) };
     } catch (error) {
       if (!create || !absent(error) || attempt >= 20) throw error;
@@ -73,7 +86,7 @@ async function load(info, id) {
   await currentRoot(info);
   const path = join(info.root, 'entries', id), stat = await directory(path);
   const record = await json(join(path, 'owner.json'));
-  assert(record.kind === KIND && record.id === id && record.uid === uid() && same(record, stat)
+  assert(record.kind === KIND && record.id === id && record.uid === uid() && inode(record, stat) && stat.dev === info.dev
     && typeof record.version === 'string' && record.version.length > 0 && record.version.length <= 100
     && timestamp(record.createdAt) && ['active', 'succeeded', 'failed'].includes(record.state)
     && validProcess(record.producer) && validHold(record.hold) && Array.isArray(record.consumers)
@@ -120,7 +133,7 @@ async function inventory(info, { quick = false, probe = processIdentity, inspect
       const f = await fileInfo(item.dmgPath, !quick).catch(error => { if (absent(error)) return null; throw error; });
       if (!f) { entry.status = r.state === 'active' ? 'pending' : 'absent'; entries.push(entry); continue; }
       entry.bytes = f.allocatedBytes; entry.file = f;
-      if (r.state === 'succeeded') assert(equalFile(f, r.file) && (quick || f.sha256 === r.file.sha256), 'Successful installer content changed');
+      if (r.state === 'succeeded') assert(equalRecordedFile(f, r.file, info.dev) && (quick || f.sha256 === r.file.sha256), 'Successful installer content changed');
       if (quick) entry.status = r.hold && Date.parse(r.hold.until) > now ? 'held' : 'needs-check';
       else if (r.hold && Date.parse(r.hold.until) > now) entry.status = 'held';
       else if ((r.state === 'active' && await probe(r.producer.pid) === r.producer.startedAt)
@@ -154,7 +167,7 @@ export async function cleanupInstallers({ root = installerRoot(), apply = false,
   const preview = await inspectInstallers({ root, ...options, quick: false });
   const result = { ...preview, applied: false, removed: [], reclaimedBytes: 0 };
   if (!apply || preview.error || preview.errors.length || !preview.entries.some(e => e.status === 'eligible')) return result;
-  const info = await rootInfo(root);
+  const info = await rootInfo(root, false, true);
   return lock(info.root, async () => {
     result.applied = true;
     for (const old of preview.entries.filter(e => e.status === 'eligible')) {
@@ -181,7 +194,7 @@ export async function cleanupInstallers({ root = installerRoot(), apply = false,
 
 export async function withInstallerBuild({ root = installerRoot(), version, hold = null, ...cleanupOptions }, produce) {
   assert(typeof version === 'string' && version.length > 0 && version.length <= 100 && validHold(hold), 'Invalid installer version or hold');
-  const info = await rootInfo(root, true);
+  const info = await rootInfo(root, true, true);
   const entry = await lock(info.root, async () => {
     await currentRoot(info);
     const id = randomUUID(), path = join(info.root, 'entries', id);
@@ -234,12 +247,12 @@ export async function addInstaller({ path, version, ...options }) {
 export async function setInstallerHold({ root = installerRoot(), id, until = null, reason = '' }) {
   const hold = until === null ? null : { until, reason };
   assert(validHold(hold) && (hold === null || Date.parse(until) > Date.now()), 'Hold needs a future expiry and a reason');
-  const info = await rootInfo(root);
+  const info = await rootInfo(root, false, true);
   return lock(info.root, async () => { const item = await load(info, id); await save(join(item.path, 'owner.json'), { ...item.record, hold }); return { id, hold }; });
 }
 
 export async function withInstallerLease({ root = installerRoot(), id }, consume) {
-  const info = await rootInfo(root), lease = { id: randomUUID(), pid: process.pid, startedAt: await processIdentity(process.pid) };
+  const info = await rootInfo(root, false, true), lease = { id: randomUUID(), pid: process.pid, startedAt: await processIdentity(process.pid) };
   assert(validProcess(lease), 'Consumer process identity unavailable');
   const path = await lock(info.root, async () => {
     const item = await load(info, id);
