@@ -199,3 +199,20 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
   reintroducing round through later present dispositions" (fails on the
   round-6 code). Round 7 needs the human `review-rounds` decision.
 - **Reversibility:** reversible.
+
+## S16. Round 7, the human decisions and a second main merge
+
+- **Answered by:** human (Trent, through the question tool) for the decisions;
+  agent for the merge resolution
+- **Decision:** At the round-6 hand-back the run was parked behind PR #168 and
+  Trent chose `continue` (recorded as a `review-rounds` decision). The agent
+  then returned the run to supervised autonomy, which superseded the
+  autonomous implementation authorization; Trent authorized implementation of
+  the unchanged commitments. Round 7 (head f5a9f25): both PASS; hosted CI
+  green. Main then gained #171 (#143), which conflicts in the evaluator
+  instruction text: main's text is kept and this PR's two additions
+  (`packet.sweepRecords.guide`, missed sites of a swept class in the rounds
+  4-5 band) are reapplied to it. `REVIEW_CONTRACT_VERSION` stays at main's
+  value, so a retained result under that version must match the merged
+  rules exactly.
+- **Reversibility:** reversible.

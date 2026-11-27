@@ -1,0 +1,23 @@
+PASS: factual extraction and references
+Semantic coverage and material decisions require the existing independent review; this lint does not grant passage.
+Warning: Specification rule (reported, not enforced): Specification needs a "## Failure model" section naming the handled conditions and the detect-and-refuse behaviour outside them
+Warning: Specification rule (reported, not enforced): Unbounded wording in criteria without a bound or failure-model reference on the same line: line 85 (any)
+PASS: factual extraction and references
+Semantic coverage and material decisions require the existing independent review; this lint does not grant passage.
+PASS: factual extraction and references
+Semantic coverage and material decisions require the existing independent review; this lint does not grant passage.
+PASS: factual extraction and references
+Semantic coverage and material decisions require the existing independent review; this lint does not grant passage.
+PASS
+PASS: factual extraction and references
+Semantic coverage and material decisions require the existing independent review; this lint does not grant passage.
+PASS: factual extraction and references
+Semantic coverage and material decisions require the existing independent review; this lint does not grant passage.
+PASS: factual extraction and references
+Semantic coverage and material decisions require the existing independent review; this lint does not grant passage.
+PASS: factual extraction and references
+Semantic coverage and material decisions require the existing independent review; this lint does not grant passage.
+PASS
+PASS: factual extraction and references
+Semantic coverage and material decisions require the existing independent review; this lint does not grant passage.
+ci-record-lints-pass

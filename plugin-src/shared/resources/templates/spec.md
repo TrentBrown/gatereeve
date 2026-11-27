@@ -14,6 +14,15 @@ It is `resources/protocol/DEFINITION-OF-DONE.md` in the workflow plugin, and
 boundary reviewers receive it with the review packet. Add project-specific
 items here.
 
+## Failure model
+
+Handled conditions:
+- TODO: The conditions this feature must handle (inputs, states, environments).
+
+Outside the model, the feature detects and refuses with a clear error, never a
+silent best effort:
+- TODO: What happens outside the handled conditions.
+
 ## Acceptance Criteria
 
 - **AC1.** TODO: Observable behavior.

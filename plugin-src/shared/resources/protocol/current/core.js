@@ -15,7 +15,7 @@ import { ID, CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, DIALS, LOWERING_R
   identifier, text, decision, gate, authority, decisionHas, waiverFor, waiverPolicyAllows, latestImplementation, currentAuthorityDecisions, currentDesignApproval, unattendedValue, normalizedDial, autonomyAlias, decisionQuestion } from './contracts.js';
 import { CurrentStore } from './store.js';
 import { requirements, sourceCandidate, assertSourceIsolation, checkCandidate, checkSource, contentIdentity, briefBased } from './evidence.js';
-import { validatePlanning, assertPlanningProof, planningBinding } from './planning.js';
+import { validatePlanning, assertPlanningProof, planningBinding, grandfatheredSpecification } from './planning.js';
 import { executeGates, reviewContract, coreEvidence, retainedContractQualifies } from './execution.js';
 import { prepareMerge, merge, observeIntegration } from './actions.js';
 import { captureStanding, applyStanding, standingValidity, standingReleaseRefusal, qualifyingDecisions, requireUnexpired } from './authorization.js';
@@ -337,7 +337,17 @@ export class CurrentCore {
     const childId = step => `resume_${identity({ run: input.runId ?? active.runId, step, planning }).slice(7)}`;
     if (planning.design) await this.execute({ operation: 'human.decide', operationId: childId('design'), input: { ...planning.design, kind: 'approve-design' } });
     const light = lightRun((await this.state()).state);
-    if (!light && (planning.design || planning.implementation)) await this.execute({ operation: 'spec.validate', operationId: childId('spec') });
+    if (!light && (planning.design || planning.implementation)) {
+      // Resuming an active run or a retained activation with an observed
+      // implementation approval (which binds the exact spec bytes) vouches for
+      // the unchanged spec on disk: that validation is grandfathered (spec AC5,
+      // design D5). A design approval alone does not, and neither does a fresh
+      // start with nothing to resume.
+      this.resumingSpecification = Boolean(active || replacement) && Boolean(planning.implementation)
+        && (await this.commitments()).subject === planning.implementation.subject;
+      try { await this.execute({ operation: 'spec.validate', operationId: childId('spec') }); }
+      finally { this.resumingSpecification = false; }
+    }
     if (planning.implementation) await this.execute({ operation: 'human.decide', operationId: childId('implementation'), input: { ...planning.implementation, kind: 'authorize-implementation' } });
     const transitioned = (await this.state()).state;
     if (!transitioned.transition) {
@@ -395,7 +405,12 @@ export class CurrentCore {
     return (await this.append(state, 'DECISION_PENDING', { decision: value, operation }, { id: `pending_${operation.id}`, hash: operation.hash })).state;
   }
   async specProof(documents, operation, origin) {
-    const proof = await validatePlanning((await this.store.get(documents['spec.md'])).toString());
+    // A spec already validated under an earlier planning policy keeps the
+    // failure-model rules as warnings (spec AC5); every other spec is held to them.
+    const { events } = await this.state();
+    const grandfathered = this.resumingSpecification === true
+      || await grandfatheredSpecification(events, documents['spec.md'].hash, ref => this.store.json(ref));
+    const proof = await validatePlanning((await this.store.get(documents['spec.md'])).toString(), { grandfathered });
     const reference = await this.store.putJson({ ...proof, runId: origin.runId, operation });
     if (!proof.passed) {
       const payload = { documents, proof: reference, outcome: Number.isInteger(proof.exitCode) ? 'FAIL' : 'UNAVAILABLE', operation };
@@ -596,7 +611,8 @@ export class CurrentCore {
     requireThat(approval, 'Current design approval is required');
     const proof = await this.specProof(docs, operation, state);
     for (const ref of Object.values(docs)) await this.store.currentBytes(ref);
-    return this.append(state, 'SPEC_VALIDATED', { spec: docs['spec.md'], design: docs['design.md'], proof }, operation);
+    const warnings = (await this.store.json(proof)).facts.warnings;
+    return { ...await this.append(state, 'SPEC_VALIDATED', { spec: docs['spec.md'], design: docs['design.md'], proof }, operation), warnings };
   }
   async prepare(input, operation) {
     const { state } = await this.state();

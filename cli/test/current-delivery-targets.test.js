@@ -20,7 +20,7 @@ import { sha256Digest } from '../../plugin-src/shared/resources/protocol/agent-w
 const test = isolatedTests(import.meta.url);
 const human = { kind: 'human-confirmed', instruction: 'Merge #12 into main.', context: 'test user conversation' };
 const BRIEF = '# Brief\n\n## Goal\nExport the constant answer.\n\n## Scope\napp/app.js only.\n\n## Findings log\n- none yet\n';
-const SPEC = '# Spec\n\n## Acceptance Criteria\n\n- **AC1.** Export the constant answer with value 42.\n\n## Rubric\n\n| # | Criterion | Pass | Fail | Evidence |\n|---|---|---|---|---|\n| R1 | AC1 | 42 | other | test |\n\n## Changes\n';
+const SPEC = '# Spec\n\n## Failure model\n\nOne local writer; others are refused with an error.\n\n## Acceptance Criteria\n\n- **AC1.** Export the constant answer with value 42.\n\n## Rubric\n\n| # | Criterion | Pass | Fail | Evidence |\n|---|---|---|---|---|\n| R1 | AC1 | 42 | other | test |\n\n## Changes\n';
 const reviewConfig = { provider: 'codex', model: 'fixture' };
 
 async function fixture(t, { rigor = 'full', integration = 'feature-int', release = 'main' } = {}) {

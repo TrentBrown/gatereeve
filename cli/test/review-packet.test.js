@@ -11,7 +11,7 @@ import { planningFacts } from '../../plugin-src/shared/resources/protocol/curren
 import { authorizeFull, candidate, evaluator, fixture, reviewConfig, SPEC } from './helpers/lightweight-fixture.js';
 
 const resources = new URL('../../plugin-src/shared/resources/', import.meta.url);
-const rubric = rows => `# Spec\n\n## Acceptance Criteria\n\n- **AC1.** Export the constant answer with value 42.\n\n## Rubric\n\n| # | Criterion | Pass | Fail | Evidence |\n|---|---|---|---|---|\n${rows}\n## Changes\n`;
+const rubric = rows => `# Spec\n\n## Failure model\n\nOne local writer; others are refused with an error.\n\n## Acceptance Criteria\n\n- **AC1.** Export the constant answer with value 42.\n\n## Rubric\n\n| # | Criterion | Pass | Fail | Evidence |\n|---|---|---|---|---|\n${rows}\n## Changes\n`;
 
 // A full-rigor run whose spec is `spec`, with feature-home `files`, ready
 // for an individual review (verification recorded).

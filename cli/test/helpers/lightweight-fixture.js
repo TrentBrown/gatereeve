@@ -11,7 +11,7 @@ import { sha256Digest } from '../../../plugin-src/shared/resources/protocol/agen
 
 export const human = { kind: 'human-confirmed', instruction: 'Confirmed.', context: 'test user conversation' };
 export const BRIEF = '# Brief\n\n## Goal\nExport the constant answer.\n\n## Scope\napp.js only.\n\n## Findings log\n- none yet\n';
-export const SPEC = '# Spec\n\n## Acceptance Criteria\n\n- **AC1.** Export the constant answer with value 42.\n\n## Rubric\n\n| # | Criterion | Pass | Fail | Evidence |\n|---|---|---|---|---|\n| R1 | AC1 | 42 | other | test |\n\n## Changes\n';
+export const SPEC = '# Spec\n\n## Failure model\n\nOne local writer; others are refused with an error.\n\n## Acceptance Criteria\n\n- **AC1.** Export the constant answer with value 42.\n\n## Rubric\n\n| # | Criterion | Pass | Fail | Evidence |\n|---|---|---|---|---|\n| R1 | AC1 | 42 | other | test |\n\n## Changes\n';
 export const reviewConfig = { provider: 'codex', model: 'fixture' };
 const FULL_DOCUMENTS = { 'interview.md': '# Interview\nSettled.\n', 'design.md': '# Design\n\n**Status:** approved\n', 'spec.md': SPEC,
   'plan.md': '# Plan\n## P1 - Implement R1\n', 'issues.md': '# Issues\n## I-1 - Implement\n**Status:** in-review\n**Plan steps:** P1\n**Rubric criteria:** R1\n',

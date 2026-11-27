@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:c18a8b8ec5582f9fc5117bfe33c0656aa1275f8803ec358b1617e36d2d951f53",
+  "protocolHash": "sha256:b4634b2a494745daa7e3138fac81720eea27074452c95115788d0546d2d04ee4",
   "contract": "gatereeve/current/8",
   "contractSha256": "1df0afc21301595b72a5f9bdad3ab2aade7452ad1c5a4f97455bde354bf1120a",
   "files": [
@@ -62,8 +62,8 @@
     },
     {
       "path": "current/core.js",
-      "size": 115210,
-      "sha256": "ae023989cb9fb65d7c65df0b7d0f319e54d2fa5b8d7b67c30bd2dd04f0d1e8bf"
+      "size": 116335,
+      "sha256": "019d5242da4b5361bc9e65e6e24515a08db1f5afe4294b5400be76a521cb01fc"
     },
     {
       "path": "current/coverage.js",
@@ -72,8 +72,8 @@
     },
     {
       "path": "current/delegation.js",
-      "size": 49930,
-      "sha256": "a49b2b686c5d1a0c94e1c04168d79a12b3294160fc64843f78e1cc86212fea97"
+      "size": 51071,
+      "sha256": "c72959c1ea7a40794b60a22262435651029375a22253d4c791caceb3e1cdf0f6"
     },
     {
       "path": "current/delivery.js",
@@ -102,8 +102,8 @@
     },
     {
       "path": "current/execution.js",
-      "size": 126032,
-      "sha256": "9c41b7b2c5de0a41eb11a60909cf1a8c882e324d782a68bbeaae603beb963c32"
+      "size": 127757,
+      "sha256": "07eed7c94c84b5af802538e475d7611fe4b039e879fef87dd7960be35d4b291d"
     },
     {
       "path": "current/final-handoff.js",
@@ -137,13 +137,13 @@
     },
     {
       "path": "current/planning-lint.js",
-      "size": 1248,
-      "sha256": "2007310382cb1b9fcd65c5c3883d76584604d56af0aac7023d72e2aaeb775126"
+      "size": 1989,
+      "sha256": "53a30dfd96b98958e4e9de51d4e1d411a120fc283d27a6d348d062bcdfc17f5b"
     },
     {
       "path": "current/planning.js",
-      "size": 5041,
-      "sha256": "97d6893eb291808dc0f0cc19b90d6fdbe13cafd37c4319cc9e0c7a2bdafb7485"
+      "size": 10782,
+      "sha256": "842f25b67d422c68adf9af8404a025939ddc9ebe3dc0d08869cf89790cd5f46e"
     },
     {
       "path": "current/pre-tool-use.js",

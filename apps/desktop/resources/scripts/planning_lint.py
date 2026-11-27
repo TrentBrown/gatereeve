@@ -9,4 +9,4 @@ def run(kind: str) -> int:
         print("Expected feature directory", file=sys.stderr)
         return 1
     script = Path(__file__).resolve().parent.parent / "protocol/current/planning-lint.js"
-    return subprocess.run(["node", str(script), kind, sys.argv[1]], check=False).returncode
+    return subprocess.run(["node", str(script), kind, *sys.argv[1:]], check=False).returncode

@@ -1,0 +1,128 @@
+# Design - tb-convergence-severity-calibration
+
+**Status:** draft
+
+GitHub issue #143 (wave 3 of tracking issue #150). Source design:
+`docs/issues/tb-convergence-and-retirement/follow-up-feature.md` and that
+feature's D8, D11 and D14. Settled entries are in `interview.md` (D1-D9).
+
+## Problem
+
+Review rounds, not round cost, are now the main convergence problem. B1 took
+4 rounds and C1 took 6; most late findings needed an unusual combination of
+conditions and were rated high, so they blocked.
+
+- The reviewer instructions define low as "needs an unusual combination of
+  conditions", but reviewers weigh the consequence and rate high. Nothing says
+  likelihood is judged first or what "unusual" means.
+- Specs state no failure model, so "outside the stated failure model" has
+  nothing to point at, and unbounded criteria ("any", "always") invite an
+  endless search for one more edge case.
+- In light runs, strict paired review of operations prose produces narrower
+  and narrower wording findings (seven rounds in one recent run).
+
+## Intent
+
+Reviewers rate unusual-combination and out-of-model findings low, reliably and
+by a stated rule. Full-rigor specs state the conditions they handle, and
+`spec.validate` refuses a spec without a failure model or with unbounded
+criteria. Light-run documentation is held to a "good enough" bar: accurate
+and safe to follow, not perfect prose.
+
+## Chosen shape
+
+**Severity calibration (D1).** The code and planning reviewer instructions
+gain a likelihood-first rule. Realistic means it arises in ordinary use
+within the handled conditions with no one acting unusually. A scenario that
+needs two or more independent uncommon conditions at once is low whatever its
+consequence; a severe consequence never raises an unusual scenario above low.
+Examples of uncommon conditions are named. Instruction text only: no schema
+change and no mechanical downgrade.
+
+**Failure model in reviews (D2).** The instructions name the `Failure model`
+section of `requirements/spec.md` (or `requirements/brief.md`) as the stated
+failure model. A trigger outside its handled conditions is low; a failure of
+the stated detect-and-refuse behaviour is in the model and is rated on its
+scenario. Without the section, nothing is low merely for being outside a
+model. Planning reviewers also judge whether the model has an obvious gap.
+No packet change.
+
+**Failure model in specs (AC8; D3-D5).**
+- The spec template gains a required `## Failure model` section (handled
+  conditions; detect-and-refuse behaviour outside them).
+- `spec.validate`'s trusted parser (`planning.js`) adds two checks:
+  - the section exists, is not empty and has no `TODO`;
+  - the lines of the `Acceptance Criteria` and `Rubric` sections (outside
+    code) don't use `always`, `any`, `all cases`, `never fails`,
+    `converges` or `robust` unless the same line carries a failure-model
+    reference, a numeral or a bounding phrase (`at most`, `at least`,
+    `up to`, `no more than`, `within`).
+  - Each failure names its line; one failure lists every offending line.
+- Versioning: the policy becomes `planning-facts/2`. An old spec is
+  identified by its exact bytes: a spec whose hash equals the spec of a
+  validation this run recorded under an earlier policy, or one the run already
+  grandfathered, gets the two checks as warnings. In a run started by
+  resuming an earlier activation, the spec at its first new-policy validation
+  is grandfathered. Every other spec, including a rewritten spec in an old
+  run, is held to them. The portable `lint_spec.py` always applies them.
+- `spec-draft.md`, `spec-validate.md` and PROTOCOL.md describe the section and
+  the lint.
+
+**Light runs (D6, D7).** The brief may carry an optional `## Failure model`
+section, with no lint. The brief-based reviewer instructions add the
+documentation bar: a finding about documentation or operations prose blocks
+only when a reader following it as written, in a realistic scenario, reaches
+a wrong or unsafe outcome (wrong command, flag, path or value; a missing
+warning before a destructive or irreversible step; a contradiction with the
+shipped code or the brief). Wording, style, structure, narrower restatements,
+rare unmentioned edge cases and suggestions to document more are low. The bar
+never lowers the brief: documentation the brief's goal or scope asks for is a
+requirement, and a missing or wrong part of it is judged like any other unmet
+requirement.
+
+**Contract version (D8).** `REVIEW_CONTRACT_VERSION` moves, so retained
+results of in-flight runs keep their recorded qualification on resume.
+
+## Alternatives considered
+
+- A structured `conditions` field with a mechanical downgrade (D1): changes
+  the verdict schema #142 is editing, and the correction policy forbids
+  meaning-changing corrections.
+- A `packet.failureModel` field (D2): edits packet assembly owned by #142;
+  the reviewer already has the document.
+- Grandfathering a whole run, an opt-in spec marker, or a date cutoff, for
+  versioning (D5): a whole run lets a rewritten spec skip the rule, a marker
+  lets new specs skip it, and dates are not protocol facts.
+- Mechanical demotion of `*.md` findings, single-reviewer docs review, or the
+  docs bar in full runs too (D7): meaning-changing, a protocol gate change, and
+  beyond the issue respectively.
+
+## Constraints
+
+- GateReeve corrects a verdict only where the answer follows from the verdict
+  itself. Low findings already never block; this work changes what reviewers
+  are told, not how GateReeve rewrites their verdicts.
+- Edits to files #142 owns (`execution.js`) stay limited to the instruction
+  text and the contract version constant. No edit to `boundary-review.js`,
+  `local-agent-adapters.js`, packet assembly, sweep records or round-policy
+  dispositions.
+- Existing runs keep working: old runs warn, and retained reviews keep their
+  qualification.
+- The desktop's staged copy of the protocol stays byte-identical to the
+  plugin source.
+
+## Open risks
+
+- Instruction changes shift reviewer behaviour statistically, not certainly.
+  A reviewer may still rate an unusual scenario high; the higher rating still
+  wins between peers. The metrics store will show whether late-round high
+  findings fall.
+- A real defect could be rated low because the reviewer judged a condition
+  "uncommon" that is common in practice. The failure scenario states the
+  conditions, so a human can see and overturn it.
+- The word lint has false positives and can be satisfied superficially
+  (accepted in D11).
+- The documentation bar could let a misleading runbook through if a reviewer
+  misjudges what "following it as written" leads to.
+
+## Changes
