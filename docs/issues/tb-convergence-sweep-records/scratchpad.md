@@ -216,3 +216,15 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
   value, so a retained result under that version must match the merged
   rules exactly.
 - **Reversibility:** reversible.
+
+## S17. Boundary review round 8 finding
+
+- **Answered by:** agent
+- **Decision:** Round 8 (head 94d1183): claude-code PASS (lows CR8-1, EV8-1);
+  codex FAIL with one high (`R1-command-path-cases`): R1 requires refusals
+  through both `gate.execute` and `review.execute`, but an unknown
+  disposition and an unknown claim key were only tested on `checkClaims`.
+  Fixed: the command test now submits every invalid-claim case through both
+  commands. Swept the rubric for other rows that require both commands: R1
+  is the only one.
+- **Reversibility:** reversible.

@@ -95,10 +95,19 @@ test('R1: gate.execute and review.execute refuse an invalid claim before any rev
   const reviewer = state.reviewerSelection.selection.reviewers[0];
   const configuration = { provider: reviewer.provider, model: reviewer.model, reasoningEffort: reviewer.reasoningEffort, reviewerSelection: state.reviewerSelection.event };
   const results = state.results.length;
-  await assert.rejects(f.request('review.execute', { claims: [{ findingId: F0, claim: 'Fixed.' }] }, 'paired-unlabeled'), /claims\[0\]\.disposition must be fixed or disputed/);
-  await assert.rejects(f.request('gate.execute', { gates: ['review'], claims: [without(fixed(F0), 'sweep')], configuration }, 'individual-no-sweep'), /claims\[0\]\.sweep is required for a fixed claim/);
-  await assert.rejects(f.request('gate.execute', { gates: ['review'], claims: [withSweep(record => without(record, 'search'))], configuration }, 'individual-no-search'), /claims\[0\]\.sweep\.search is required/);
-  await assert.rejects(f.request('review.execute', { claims: [{ ...disputed(F0), sweep: sweep() }] }, 'paired-disputed-sweep'), /claims\[0\]\.sweep is not allowed on a disputed claim/);
+  // Every invalid-claim case is refused through both commands (R1).
+  const cases = [
+    ['missing-disposition', { findingId: F0, claim: 'Fixed.' }, /claims\[0\]\.disposition must be fixed or disputed/],
+    ['unknown-disposition', { ...disputed(F0), disposition: 'resolved' }, /claims\[0\]\.disposition must be fixed or disputed/],
+    ['fixed-no-sweep', without(fixed(F0), 'sweep'), /claims\[0\]\.sweep is required for a fixed claim/],
+    ['disputed-sweep', { ...disputed(F0), sweep: sweep() }, /claims\[0\]\.sweep is not allowed on a disputed claim/],
+    ['unknown-key', { ...disputed(F0), note: 'x' }, /claims\[0\]\.note is not allowed; a claim has exactly findingId, claim, disposition, sweep/],
+    ['no-search', withSweep(record => without(record, 'search')), /claims\[0\]\.sweep\.search is required/],
+  ];
+  for (const [name, claim, message] of cases) {
+    await assert.rejects(f.request('review.execute', { claims: [claim] }, `paired-${name}`), message, `review.execute ${name}`);
+    await assert.rejects(f.request('gate.execute', { gates: ['review'], claims: [claim], configuration }, `individual-${name}`), message, `gate.execute ${name}`);
+  }
   assert.equal(launches(), 0, 'no reviewer launched');
   assert.equal((await f.core.state()).state.results.length, results, 'no result recorded');
   // A valid disputed claim naming no retained finding is dropped (#141) and the reviewers run.

@@ -42,3 +42,5 @@ Append pull-request review boundary entries here.
 - 2026-11-27 round 6 hand-back: Trent chose continue. Round 7 (head f5a9f25):
   both PASS, hosted CI green. Merged main again (#171 instruction-text
   conflict resolved); round 8 on the merged head.
+- 2026-11-27 boundary round 8 (head 94d1183): claude-code PASS (two lows);
+  codex FAIL (high: R1 command-path cases incomplete). Fixed in the R1 test.
