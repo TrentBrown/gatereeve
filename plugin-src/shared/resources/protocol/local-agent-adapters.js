@@ -324,22 +324,62 @@ function jsonLines(value) {
   });
 }
 
-function parseObject(value, label) {
+// The balanced top-level `{...}` spans of a text that parse as JSON objects.
+// String state is tracked only inside a span, so quotes and apostrophes in
+// surrounding prose are not read as JSON strings.
+export function jsonObjectCandidates(text) {
+  const found = [];
+  let depth = 0, start = -1, inString = false, escaped = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    if (depth > 0 && inString) {
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === '"') inString = false;
+      continue;
+    }
+    if (depth > 0 && char === '"') { inString = true; continue; }
+    if (char === '{') { if (depth === 0) start = index; depth += 1; continue; }
+    if (char === '}' && depth > 0) {
+      depth -= 1;
+      if (depth === 0) {
+        try {
+          const parsed = JSON.parse(text.slice(start, index + 1));
+          if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) found.push(parsed);
+        } catch { /* braces in prose, not a JSON object */ }
+      }
+    }
+  }
+  return found;
+}
+
+// `normalized`, when given, receives a `prose-unwrapped` row when the object
+// is taken from surrounding text (issue #141): only when the whole text does
+// not parse and exactly one JSON object is inside it. None or several stay
+// malformed JSON, so no competing verdict is ever chosen.
+function parseObject(value, label, normalized = null) {
   // Some CLI versions put the schema result inside a single fenced JSON string.
   // Accept only an entire fenced object; callers still validate its full schema.
   const fenced = typeof value === 'string' ? /^\s*```(?:json)?\s*\n([\s\S]*?)\n```\s*$/u.exec(value) : null;
   let parsed;
   try { parsed = typeof value === 'string' ? JSON.parse(fenced ? fenced[1] : value) : value; }
-  catch { throw Object.assign(new ContractError(`${label} returned malformed JSON; request a fresh structured response.`), {
-    providerFailure: { category: 'malformed-output' },
-  }); }
+  catch {
+    const candidates = normalized && typeof value === 'string' ? jsonObjectCandidates(value) : [];
+    if (candidates.length === 1) {
+      normalized.push({ rule: 'prose-unwrapped', field: 'output', id: null });
+      return candidates[0];
+    }
+    throw Object.assign(new ContractError(`${label} returned malformed JSON${candidates.length > 1 ? ` (${candidates.length} JSON objects; expected exactly one)` : ''}; request a fresh structured response.`), {
+      providerFailure: { category: 'malformed-output' },
+    });
+  }
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
     throw new ContractError(`${label} did not return a JSON object`);
   }
   return parsed;
 }
 
-export function parseClaudeStructuredOutput(stdout) {
+export function parseClaudeStructuredOutput(stdout, { unwrap = false } = {}) {
   const envelope = parseObject(stdout, 'Claude Code');
   const structured = envelope.structured_output ?? envelope.structuredOutput;
   let output = structured ?? envelope.result;
@@ -353,10 +393,12 @@ export function parseClaudeStructuredOutput(stdout) {
       if (!/^\s*[\[{]/mu.test(outside)) output = block[1];
     }
   }
+  const normalized = unwrap ? [] : null;
   return {
-    output: parseObject(output, 'Claude Code structured output'),
+    output: parseObject(output, 'Claude Code structured output', normalized),
     contextId: envelope.session_id ?? envelope.sessionId,
     metrics: providerMetrics([envelope.usage], [envelope.total_cost_usd]),
+    ...(normalized?.length ? { normalized } : {}),
   };
 }
 
@@ -435,7 +477,11 @@ export function createCodexAgentAdapter({
           idleLock: { why: idleInhibitorWhy({ provider: 'codex', stage: request.stage.id, feature: request.featureId ?? request.runId }) },
           ...(hooks.onSpawn ? { onSpawn: hooks.onSpawn } : {}),
         });
-        const output = parseObject(await readFile(outputPath, 'utf8'), 'Codex structured output');
+        // Prose around one JSON object is unwrapped only for a caller that
+        // records the correction (issue #141).
+        const normalized = hooks.onNormalized ? [] : null;
+        const output = parseObject(await readFile(outputPath, 'utf8'), 'Codex structured output', normalized);
+        if (normalized?.length) hooks.onNormalized(normalized);
         const contextId = parseCodexContextId(processResult.stdout);
         return {
           schemaVersion: 1, protocolVersion: request.protocolVersion, stageId: request.stage.id, status: 'completed',
@@ -502,7 +548,8 @@ export function createClaudeCodeAgentAdapter({
         idleLock: { why: idleInhibitorWhy({ provider: 'claude-code', stage: request.stage.id, feature: request.featureId ?? request.runId }) },
         ...(hooks.onSpawn ? { onSpawn: hooks.onSpawn } : {}),
       });
-      const parsed = parseClaudeStructuredOutput(processResult.stdout);
+      const parsed = parseClaudeStructuredOutput(processResult.stdout, { unwrap: Boolean(hooks.onNormalized) });
+      if (parsed.normalized) hooks.onNormalized(parsed.normalized);
       if (typeof parsed.contextId !== 'string' || parsed.contextId === '') {
         throw new ContractError('Claude Code did not report a fresh context ID');
       }

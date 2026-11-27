@@ -20,10 +20,16 @@ qualified delta priors for follow-up; the implementer cannot author reviewer
 clearance. Individual `gate.execute review` assessments cannot satisfy the pair
 by themselves. Missing/unavailable review stays unavailable, never approval.
 
-Limit follow-up fix claims to new or affected repairs. Carry forward unchanged
-closures with supported history applicability; repeating a fix claim requires a
-new supported disposition for that finding. Adding a disposition changes the
-reviewer's judgment and needs a fresh assessment, rather than format-only repair.
+Claim only findings you changed. A claim asks the reviewer to confirm a fix, so
+do not claim advisory findings you intentionally left unchanged; their open
+state already carries forward (a reviewer may still mark one `present` on a
+PASS when it does not block). Limit follow-up fix claims to new or affected
+repairs. Carry forward unchanged closures with supported history applicability;
+repeating a fix claim requires a new supported disposition for that finding. A
+claim naming a finding GateReeve no longer holds is dropped and recorded
+(`claim-not-retained`). In the automatic repair turn the reviewer may supply a
+disposition it omitted, but changing a stated disposition still needs a fresh
+assessment.
 
 Supervised/delegated disputes require material clearance from both perspectives;
 return persistent disputes to the human with evidence. Under explicit autonomous

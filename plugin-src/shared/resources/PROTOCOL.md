@@ -711,11 +711,38 @@ the supplied history, the earlier findings that need a disposition and gives
 them to each reviewer as `dispositionsRequired` (reason `open`, `claimed` or
 `reconsider`). The structured-output schema is built per request: dispositions
 and `historyAssessment.affected` enumerate the finding IDs that request
-disclosed. An ID disclosed anywhere in the supplied history (including inside an
-earlier UNAVAILABLE result) that appears where it is not required, and repeated
-IDs, are dropped and recorded under `normalized`, never rejected. Contract errors
-remain for substantive contradictions: a PASS with a present blocking finding, a
-missing disposition for an open or claimed finding, or an ID disclosed nowhere.
+disclosed. In `historyAssessment.affected`, an ID disclosed anywhere in the
+supplied history (including inside an earlier UNAVAILABLE result) that is not
+required, and repeated IDs, are dropped and recorded under `normalized`. A
+disposition for a disclosed ID that is not required is kept as given.
+
+GateReeve corrects a verdict automatically only where the answer follows from
+the verdict itself, and records each correction under `normalized` with its
+`rule` (and `field`, `id`, `original` where they apply). On a new verdict:
+
+| Rule | Correction |
+| --- | --- |
+| `prose-unwrapped` | The review-gate output was not JSON as a whole but held exactly one balanced JSON object, which is used. None or several stay malformed JSON. Recorded on every result of the execution. Planning reviews and analysis, which cannot record it, parse as before |
+| `unknown-property` | A property the verdict schema does not define, at any level of a verdict or in the `{verdicts}` envelope, is removed before validation (`field` is its path) |
+| `pass-with-blocking-finding` | A PASS reporting a blocking finding that is not low, or marking an earlier blocking finding `present`, is recorded as FAIL (`original.outcome` PASS) |
+| `present-non-blocking` | On a PASS, a required (claimed) earlier finding that does not block (`blocking: false`, or low) carries `present` |
+| `disposition-not-disclosed` | A consolidated-review disposition naming an ID disclosed nowhere (supplied history, claims or the verdict's own findings) is dropped |
+| `claim-not-retained` | An implementer claim naming a finding no retained review reports is dropped before the reviewer starts, recorded on every result of the execution; the reviewer runs without it |
+| `low-never-blocks`, `low-only-fail`, `duplicate-disposition`, `duplicate-affected`, `affected-not-required`, `affected-not-disclosed` | As described below and above |
+
+Anything that changes meaning goes back to the reviewer through the repair turn
+with the exact field path, and is never guessed: a missing or invalid required
+field (for example `review.findings[0].blocking is required`), a missing
+supported disposition for an open or claimed finding on a PASS, an open finding
+carried as `unaffected` (`dispositions[i]`), a PASS with a criterion that is not
+PASS (`criteria[i]`), a duplicate disposition with a different status, and an
+ID disclosed nowhere in an assessed `historyAssessment.affected` list. Every
+UNAVAILABLE result the verdict contract rejected records a stable
+`rejectionRule` (for example `schema-required`, `missing-disposition`,
+`open-carried-unaffected`, `repair-substance`, `malformed-json`). The metrics
+projection stores one `verdict-normalization` observation per rule per result
+with its `count`, and one `verdict-rejection` observation per rejected result,
+carrying only the rule and count.
 
 Every finding carries `severity` (`high`, `medium` or `low`, defined by its
 `failureScenario`), a `classId` and a one-line `classStatement`. Low findings
@@ -739,7 +766,12 @@ repair is judged by substance identity: outcome, mandate assessment, findings wi
 severity and evidence, criterion outcomes, coverage completeness and
 limitations, coverage decisions, dispositions and responsibility outcomes. Text
 that depends on a repaired field may change, and a field the original omitted
-may be supplied. A repair that still fails or changes substance is UNAVAILABLE.
+may be supplied, including a disposition for an ID the original omitted; a
+stated disposition keeps its status. A repair may return FAIL where the
+original said PASS only when the verdict itself shows the blocking finding: the
+original reported it, or a disposition the repair supplied marks an earlier
+blocking finding `present`. A repair that still fails or changes substance is
+UNAVAILABLE.
 Repair turns share the round's baseline and are not rounds. Every UNAVAILABLE
 result carries one `unavailableReason`: `contract`, `malformed-json`,
 `provider-error`, `timeout`, `missing-evidence` or `other`.
@@ -760,7 +792,7 @@ Each `BOUNDARY_REVIEWED` outcome row has one `status`, and every row that is not
 | Status | Meaning |
 | --- | --- |
 | `completed` | The reviewer returned a validated PASS or FAIL |
-| `refused` | This execution launched no reviewer process: a precondition stopped it before the provider started (for example planning lint, a claim naming a finding no retained review reports, or adapter preparation before spawn), an earlier execution of the job is uncertain or already claimed, or a retained result for unchanged inputs was reused (`reused: true`, with its `results`) |
+| `refused` | This execution launched no reviewer process: a precondition stopped it before the provider started (for example planning lint or adapter preparation before spawn), an earlier execution of the job is uncertain or already claimed, or a retained result for unchanged inputs was reused (`reused: true`, with its `results`) |
 | `provider-failed` | The provider failed (`provider-error`, `timeout`, `other`), or the execution failed after the reviewer launched |
 | `verdict-rejected` | The verdict failed the contract, JSON or schema (`contract`, `malformed-json`) |
 | `could-not-assess` | The reviewer itself returned UNAVAILABLE (`missing-evidence`) |

@@ -90,6 +90,12 @@ export async function projectWorkflow(core, store = new MetricsStore()) {
           observations.push(observation(row));
           for (const finding of result.findings ?? []) observations.push(observation({ ...row, id: `${row.id}:finding:${finding.id}`, kind: 'finding', findingId: finding.id }));
           for (const disposition of result.dispositions ?? []) observations.push(observation({ ...row, id: `${row.id}:disposition:${disposition.id}`, kind: 'disposition', findingId: disposition.id, outcome: disposition.status }));
+          // Per-rule verdict normalization and rejection counts (issue #141).
+          // Only the rule identifier and count are projected, never the text.
+          const rules = new Map();
+          for (const item of Array.isArray(result.normalized) ? result.normalized : []) if (text(item?.rule)) rules.set(item.rule, (rules.get(item.rule) ?? 0) + 1);
+          for (const [rule, count] of rules) observations.push(observation({ ...row, id: `${row.id}:normalization:${rule}`, kind: 'event', check: 'verdict-normalization', rule, count }));
+          if (text(result.rejectionRule)) observations.push(observation({ ...row, id: `${row.id}:rejection:${result.rejectionRule}`, kind: 'event', check: 'verdict-rejection', rule: result.rejectionRule, count: 1 }));
         }
       } else observations.push(observation({ ...common, kind: event.type === 'DECIDED' ? 'decision' : event.type === 'MILESTONE' ? 'milestone' : 'event', check: event.type === 'DECISION_PENDING' && value.asked ? `asked:${value.decision.kind}` : value.kind ?? value.name ?? event.type, ...measured(event.type, value) }));
     }

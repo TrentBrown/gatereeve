@@ -51,7 +51,8 @@ export function normalizedObservation(value) {
   if (next.dial === 'autonomy') for (const key of ['dialValue', 'dialPrevious']) if (next[key] === 'autonomous') next[key] = 'mandated';
   return next;
 }
-const MEASUREMENT = ['rigor','autonomy','authorityKind','authorityBasis','dial','dialValue','dialPrevious','dialSource','actor','trigger','blocker','linkBasis','stage','count','categories','actions'];
+// `rule`: a verdict normalization or rejection rule, counted per review result (issue #141).
+const MEASUREMENT = ['rigor','autonomy','authorityKind','authorityBasis','dial','dialValue','dialPrevious','dialSource','actor','trigger','blocker','linkBasis','stage','count','categories','actions','rule'];
 const LISTS = ['links','categories','actions'];
 export const LINK_BASES = Object.freeze(['human-stated','agent-proposed']);
 export function observation(input) {
