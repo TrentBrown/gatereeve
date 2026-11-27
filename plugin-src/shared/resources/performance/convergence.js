@@ -95,7 +95,9 @@ export function roundsMeasure(rows) {
   // revision, so it is not a round (round-policy.js); rows without the scope
   // were projected before these fields.
   const notRecorded = [...pairs, ...counted].filter(row => row.reviewScope == null).length + adjudicated.filter(row => row.reviewScope == null || row.round == null).length
-    + legacyResults(rows);
+    + legacyResults(rows)
+    // A counted reviewer outcome whose status was not recorded leaves the pair's outcome unknown.
+    + rows.filter(row => row.check === 'boundary-reviewer' && Number.isSafeInteger(row.round) && row.reviewerStatus == null).length;
   const uncountedPairs = pairs.filter(row => row.reviewScope != null && row.round == null).length;
   const instances = scopeInstances(rows);
   for (const instance of instances) {
@@ -217,7 +219,10 @@ export function secondOpinionMeasure(rows) {
 // counts and findings by severity.
 export function reviewerTable(rows) {
   const results = rows.filter(row => row.kind === 'artifact' && row.check === 'review');
-  const rules = rows.filter(row => ['verdict-normalization', 'verdict-rejection'].includes(row.check));
+  // Rule counts of review results only; a spec or verification result's rules
+  // carry the same provider and model but are not reviewer outcomes.
+  const reviewResults = new Set(results.map(row => row.reference));
+  const rules = rows.filter(row => ['verdict-normalization', 'verdict-rejection'].includes(row.check) && reviewResults.has(row.reference));
   const findings = reviewFindings(rows);
   const key = row => `${row.provider ?? NOT_RECORDED}\u0000${row.model ?? NOT_RECORDED}`;
   const keys = [...new Set([...results, ...rules, ...findings].map(key))].sort(compare);

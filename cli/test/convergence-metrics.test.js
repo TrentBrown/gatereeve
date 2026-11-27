@@ -55,6 +55,7 @@ function objects() {
       finding('L1', { severity: 'low' }),                                       // low marked blocking: demoted
       finding('X1', { severity: 'high', classStatement: 'two\nlines' }),        // statement omitted
       finding('X2', { severity: 'high', classStatement: 'x'.repeat(201) }),     // statement omitted
+      finding('X3', { severity: 'high', classStatement: 'line\u2028separator' }), // statement omitted
       { id: 'U1', blocking: true, path: 'app/u.js' },                           // earlier-contract shape: unrated
     ] }, policy('feature-final', 4, ['app/M2.js'])),
     ...result(70, 'claude-code', 'opus-x', { outcome: 'FAIL', findings: [finding('K1', { severity: 'high', classId: 'class-M1' })] }, policy('feature-final', 4, ['app/M2.js'])),
@@ -116,7 +117,7 @@ test('R1: finding rows carry severity, class, criterion, effective and reviewer 
   // An earlier-contract finding reads as unrated and blocks as recorded.
   assert.deepEqual(pick(findings.U1, ['severity', 'blocking', 'demoted', 'hasFailureScenario', 'classId']), { severity: 'unrated', blocking: true, demoted: false, hasFailureScenario: false, classId: null });
   // A multi-line or over-long class statement is omitted.
-  assert.equal(findings.X1.classStatement, undefined); assert.equal(findings.X2.classStatement, undefined);
+  assert.equal(findings.X1.classStatement, undefined); assert.equal(findings.X2.classStatement, undefined); assert.equal(findings.X3.classStatement, undefined);
   assert.equal(findings.C1.blocking, false); assert.equal(findings.C1.demoted, false);
   const serialized = JSON.stringify(rows);
   for (const hidden of ['SECRET-SCENARIO', 'SECRET-EVIDENCE', 'app/M1.js', 'app/M2.js', 'SECRET-INSTRUCTION', 'SECRET-REASON']) assert.ok(!serialized.includes(hidden), hidden);
@@ -350,7 +351,7 @@ test('R9: second opinion per provider over final per-round outcomes; the class p
   const value = secondOpinionMeasure(rows);
   // Claude's round-2 provider failure was retried in the same round: one round, counted once.
   assert.deepEqual(value.providers.map(row => [row.provider, row.rounds, row.unavailable, row.findings, row.peerUnmatchedClasses]),
-    [['claude-code', 3, 1, 2, 1], ['codex', 3, 0, 7, 5]]);
+    [['claude-code', 3, 1, 2, 1], ['codex', 3, 0, 8, 6]]);
   assert.equal(value.providers[0].unavailableRate, 1 / 3);
   assert.equal(value.met, false);
   assert.match(value.proxy, /does not establish distinct defects/u);
@@ -380,7 +381,13 @@ test('R10: per provider and model: statuses, UNAVAILABLE reasons, rule counts an
   assert.deepEqual(table['claude-code/opus-x'].normalizations, { 'unknown-property': 2 });
   assert.deepEqual(table['claude-code/opus-x'].findingsBySeverity, { high: 1, low: 1 });
   assert.deepEqual(table['codex/gpt-x'].byStatus, { completed: 4, 'could-not-assess': 1, refused: 1 });
-  assert.deepEqual(table['codex/gpt-x'].findingsBySeverity, { high: 3, low: 1, medium: 2, unrated: 1 });
+  assert.deepEqual(table['codex/gpt-x'].findingsBySeverity, { high: 4, low: 1, medium: 2, unrated: 1 });
+  // A spec or verification result's rule counts are not in the reviewer table.
+  const other = reviewerTable([row({ kind: 'artifact', check: 'review', provider: 'codex', model: 'm', reference: H(1), reviewerStatus: 'completed' }),
+    row({ kind: 'event', check: 'verdict-normalization', provider: 'codex', model: 'm', reference: H(1), rule: 'unknown-property', count: 1, id: 'n1' }),
+    row({ kind: 'event', check: 'verdict-normalization', provider: 'codex', model: 'm', reference: H(2), rule: 'unknown-property', count: 3, id: 'n2' }),
+    row({ kind: 'event', check: 'verdict-rejection', provider: 'codex', model: 'm', reference: H(2), rule: 'schema-required', count: 1, id: 'n3' })]);
+  assert.deepEqual([other[0].normalizations, other[0].rejections], [{ 'unknown-property': 1 }, {}]);
 });
 
 test('R11: rows without the new fields are not recorded, never zero, and make the measure incomplete', () => {
@@ -397,6 +404,8 @@ test('R11: rows without the new fields are not recorded, never zero, and make th
   const { reviewerStatus: _omitted, ...noStatus } = statusClaude;
   const missing = convergence([statusPair, statusCodex, noStatus, findingRow({})]);
   assert.deepEqual([missing.secondOpinion.notRecorded, missing.secondOpinion.coverage, missing.secondOpinion.met, missing.secondOpinion.denominator.reviewerRounds], [1, 'incomplete', null, 1]);
+  // In measure 1 too, a counted reviewer outcome without a status is not recorded.
+  assert.deepEqual([missing.rounds.coverage, missing.rounds.met], ['incomplete', null]);
   // A pair with a scope but no round is not a round: excluded, not "not recorded".
   const uncounted = convergence([pairRow('w1', 'slice', 1, 'PASS', 1), row({ kind: 'event', check: 'BOUNDARY_REVIEWED', reviewScope: 'slice', outcome: 'UNAVAILABLE' }),
     row({ kind: 'artifact', check: 'boundary-reviewer', provider: 'codex', outcome: 'UNAVAILABLE', reviewScope: 'slice', id: 'u:reviewer:0' })].flat());
