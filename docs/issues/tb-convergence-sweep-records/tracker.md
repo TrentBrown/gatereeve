@@ -9,13 +9,13 @@
 
 | # | Criterion (short) | Status | Review | Notes |
 |---|-------------------|--------|----|-------|
-| R1 | Claim disposition | TODO | - | - |
-| R2 | Sweep record | TODO | - | - |
-| R3 | Records reach later rounds | TODO | - | - |
-| R4 | Regression rule | TODO | - | - |
-| R5 | Reviewer guidance | TODO | - | - |
-| R6 | Peer re-reports and individual rounds | TODO | - | - |
-| R7 | Documentation | TODO | - | - |
+| R1 | Claim disposition | DONE | pending paired review | sweep-records.test.js unit + both entry points refuse before launch, no result |
+| R2 | Sweep record | DONE | pending paired review | sweep-records.test.js field paths, types, bounds, sites, one-site accepted |
+| R3 | Records reach later rounds | DONE | pending paired review | sweep-records.test.js paired round, next round, individual review, re-claim, duplicates, dropped claim, closed scope, roundPolicy.revision |
+| R4 | Regression rule | DONE | pending paired review | sweep-records.test.js rounds 4 and 5: new/present swept-class FAIL, other class demoted, claimed finding PASS; predicate unit |
+| R5 | Reviewer guidance | DONE | pending paired review | sweep-records.test.js instruction sentence and guide rules |
+| R6 | Peer re-reports and individual rounds | DONE | pending paired review | round-policy.test.js five #134 variants (resolved/unsupported, both orders, individual reviews); fail without the fix |
+| R7 | Documentation | DONE | pending paired review | PROTOCOL.md Fix claims and sweep records + round policy; pr-review.md; desktop mirror identical |
 
 ## Review Log
 

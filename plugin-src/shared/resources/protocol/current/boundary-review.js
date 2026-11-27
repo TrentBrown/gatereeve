@@ -5,6 +5,7 @@ import { contentIdentity, checkCandidate } from './evidence.js';
 import { findingObligations, retainedReviewScope } from './review-findings.js';
 import { boundaryScope, scheduledRound, currentRevision, assertRoundOpen, scheduledBlocking, roundHandBack, roundDecision, NARROW_FROM, ROUND_POLICY } from './round-policy.js';
 import { isGoal } from './delegation.js';
+import { checkClaims, scopeSweepRecords, sweptClassRegression } from './sweep-records.js';
 
 // The schedule for the current revision of its scope (spec AC6). Regressions
 // of the previous fix are new findings on paths that fix changed.
@@ -36,10 +37,14 @@ async function roundSchedule(core, state, candidate) {
   if (!current && round !== null && round >= NARROW_FROM && revisions.at(-1)?.candidate) {
     try { regressionPaths = new Set(changedPaths(await core.store.json(revisions.at(-1).candidate), candidate)); } catch { /* no regression evidence */ }
   }
+  // A finding of a class a fixed claim swept is a missed site, so a
+  // regression of the previous fix, new or still present (issue #144).
+  const sweeps = round !== null && round >= NARROW_FROM ? await scopeSweepRecords(core, state, scope) : [];
   return { scope, round, regressionPaths, handBack: roundHandBack(state, scope, round, isGoal(state)),
     // `origin` is the candidate hash of the review that raised a prior finding.
     blocks: (finding, prior, origin) => scheduledBlocking(finding, { round,
-      regression: prior ? Boolean(origin && byCandidate.get(origin)?.has(finding.path)) : regressionPaths.has(finding.path) }) };
+      regression: sweptClassRegression(sweeps, finding, round)
+        || (prior ? Boolean(origin && byCandidate.get(origin)?.has(finding.path)) : regressionPaths.has(finding.path)) }) };
 }
 // Spec AC9: the Verification a round consumes needs at least one runner receipt
 // executed on the candidate tree. Consumed proof is already qualified as current
@@ -285,6 +290,7 @@ export async function outcomeRow(core, provider, tried) {
 
 export async function executeBoundaryReviews(core, input, operation) {
   requireThat(input && Object.keys(input).every(key => ['consumed', 'history', 'claims', 'coverageClaims', 'prior', 'configuration'].includes(key)), 'Unsupported boundary review input');
+  checkClaims(input.claims ?? []); // Refused before either reviewer starts (issue #144).
   const currentView = await core.state();
   const { state } = currentView;
   const selected = state.reviewerSelection;

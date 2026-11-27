@@ -500,3 +500,49 @@ test('when peers disagree whether a regression was resolved, it keeps blocking',
   assert.equal(reviewed.round.round, 5);
   assert.equal(reviewed.outcome, 'FAIL', reviewed.summary);
 });
+
+// Issue #134: a peer that re-reports a regression as a finding (not through a
+// `present` disposition) keeps it present for its round, so the other peer's
+// `resolved` or `unsupported` cannot clear its origin, in either processing
+// order; and two individual selection-tagged reviews of one revision are one round.
+const peerReReport = [
+  { name: 'codex re-reports, claude resolves (paired)', reReporter: 'codex', closer: 'claude-code', status: 'resolved' },
+  { name: 'claude re-reports, codex resolves (paired)', reReporter: 'claude-code', closer: 'codex', status: 'resolved' },
+  { name: 'codex re-reports, claude calls it unsupported (paired)', reReporter: 'codex', closer: 'claude-code', status: 'unsupported' },
+  { name: 'individual reviews: the resolving peer first', reReporter: 'codex', closer: 'claude-code', status: 'resolved', individual: ['claude-code', 'codex'] },
+  { name: 'individual reviews: the re-reporting peer first', reReporter: 'codex', closer: 'claude-code', status: 'resolved', individual: ['codex', 'claude-code'] },
+];
+for (const variant of peerReReport) test(`a peer's re-report keeps a regression's origin (#134): ${variant.name}`, async t => {
+  const f = await lightRun(t);
+  await seedRounds(f, 2);
+  const F = 'codex/codex-finding-0';
+  const regression = [{ path: 'app/app.js', evidence: '[medium] The fix broke the export contract.' }];
+  const passRows = verdict => { verdict.dimensions.forEach(row => { row.outcome = 'PASS'; }); verdict.criteria.forEach(row => { row.outcome = 'PASS'; }); };
+  const close = status => (verdict, request) => {
+    verdict.dispositions = [{ id: F, status, evidence: `Reviewer says ${status}.` }];
+    if ((request.input.dispositionsRequired ?? []).some(row => row.id === F && row.reason === 'reconsider')) verdict.historyAssessment = { affected: [F], carryForwardReason: 'No other closures.' };
+  };
+  // Round 3 raises the regression on app.js, which the round-3 fix changed.
+  await revise(f, { 'app.js': 'export const answer = 42; // r3\n' }, 'r3');
+  reviewers(f, { findings: { codex: regression } });
+  await f.request('review.execute', {}, 'round-3');
+  // Round 4 changes another file; one peer re-reports F as a finding, the other closes it.
+  await revise(f, { 'other.js': 'export const other = 2;\n' }, 'r4');
+  reviewers(f, { findings: { [variant.reReporter]: regression.map(row => ({ ...row, id: F })) }, patch: { [variant.closer]: close(variant.status) } });
+  if (variant.individual) {
+    const { state } = await f.core.state();
+    for (const provider of variant.individual) {
+      const reviewer = state.reviewerSelection.selection.reviewers.find(row => row.provider === provider);
+      await f.request('gate.execute', { gates: ['review'], configuration: { provider: reviewer.provider, model: reviewer.model,
+        reasoningEffort: reviewer.reasoningEffort, reviewerSelection: state.reviewerSelection.event } }, `round-4-${provider}`);
+    }
+    assert.equal((await f.request('status')).rounds.scopes[0].round, 4, 'two individual reviews of one revision are one round');
+  } else await f.request('review.execute', {}, 'round-4');
+  // Round 5 changes another file again; codex FAILs on F with every row passing.
+  await revise(f, { 'other.js': 'export const other = 3;\n' }, 'r5');
+  reviewers(f, { findings: { codex: regression.map(row => ({ ...row, id: F })) }, patch: { codex: passRows, 'claude-code': close('resolved') } });
+  await f.request('review.execute', {}, 'round-5');
+  const reviewed = await pair(f);
+  assert.equal(reviewed.round.round, 5);
+  assert.equal(reviewed.outcome, 'FAIL', reviewed.summary);
+});

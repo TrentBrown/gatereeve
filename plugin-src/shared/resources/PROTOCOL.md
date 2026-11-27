@@ -326,9 +326,16 @@ are not counted. `status.rounds` shows each scope, its round and band, and advic
   block. A regression is a finding new in this round on a path (planning: a
   document) the previous round's fix changed; it keeps the status of the round
   that first raised it, even when re-reported, until it is resolved; a finding
-  fixed and later reintroduced is judged afresh. Peer reviews of one round are
+  fixed and later reintroduced is judged afresh. A finding of a class a `fixed`
+  claim swept (its `classId` equals a sweep record's `classId`, from a round no
+  later than this one) is also a regression of the previous fix, whether it is
+  new or an earlier finding still present, unless it is that record's own
+  claimed finding (see Fix claims and sweep records). Peer reviews of one round are
   judged together: a finding counts as resolved only when no reviewer of that
-  round still marks it present, so a disagreement keeps its regression status. A planning round that failed at
+  round still marks it present or re-reports it as a finding, so a disagreement
+  keeps its regression status. A round is the round policy's scope, round and
+  revision (`packet.roundPolicy` carries all three), so two individual
+  selection-tagged reviews of one revision are judged as one round. A planning round that failed at
   the provider keeps its documents as the next round's regression baseline. Reviewers
   receive `packet.roundPolicy` (scope, round, band and the previous fix's changed
   paths) and apply the band themselves. Other findings stop blocking and stay
@@ -682,9 +689,44 @@ coverage is qualified by the existing independent acceptance review, preserving
 prior failures. A renamed or narrower check cannot hide uncovered behavior.
 
 Relevant open findings are included automatically. `history` can add affected
-closed findings and `claims` names asserted fixes; PASS requires supported
+closed findings and `claims` names asserted fixes and rebuttals; PASS requires supported
 dispositions for open/claimed findings. The CLI accepts `--claims`,
 `--message-id` and `--conversation-id` for these optional inputs.
+
+#### Fix claims and sweep records
+
+Each claim is `{findingId, claim, disposition, sweep?}` (at most 128). The
+`disposition` is `fixed` (the implementer changed code to fix the finding) or
+`disputed` (a rebuttal: not a defect, or intentionally unchanged). A `fixed`
+claim must carry a sweep record and a `disputed` claim must not:
+
+```json
+{"findingId":"codex/R-1","claim":"Both readers now use parseRound.","disposition":"fixed",
+ "sweep":{"class":"Round numbers parsed ad hoc","search":"rg -n 'round' src/","sites":[{"path":"app/src/a.js","line":12},{"path":"app/src/b.js","line":40}],
+  "fix":"parseRound in app/src/round.js is the single source","test":"round.test.js covers every reader","dependents":"status and publish read rounds; both tests pass"}}
+```
+
+All six sweep fields are required: `class`, `search`, `fix`, `test` and
+`dependents` are nonempty text of at most 4096 characters, and `sites` lists 1
+to 256 `{path, line}` entries (path at most 1024 characters, line a positive
+integer). One site with the search that proved it is valid. Unknown keys are
+refused. `gate.execute` and `review.execute` refuse an invalid claim before any
+reviewer starts, naming the field (for example `claims[0].sweep.search`), and
+record nothing. GateReeve checks presence and shape only; reviewers verify truth.
+
+A boundary review's packet carries `sweepRecords: {format: "sweep-record/1",
+guide, records}` whenever records exist: the records of this execution's
+retained `fixed` claims plus those in the inputs of earlier boundary reviews of
+revisions in the same open review scope. Each record has `findingId`, `classId`
+(from the claimed finding in retained history), `round` (the round that received
+the claim; null outside the round policy) and the six sweep fields. Records with
+equal content are carried once; a finding claimed fixed again in a later round
+keeps both records. When the scope closes (integration, split or an amendment
+reset), its records are no longer carried. The guide tells reviewers to verify
+each record, to report a missed site with the record's `classId`, and that such
+a finding is a regression of the previous fix (see Round policy). GateReeve never
+changes a reviewer's `blocking` flag; the regression status applies when the pair
+is qualified.
 
 Git symlinks are captured as target text and gitlinks as pinned-commit metadata;
 neither is followed during capture or exposed as a live symlink. Recognized

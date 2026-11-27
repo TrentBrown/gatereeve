@@ -753,7 +753,7 @@ test('review PASS needs dispositions for supplied open findings and claimed fixe
   fakeEvaluator(f, { blocking: true });
   const failed = await f.request('gate.execute', { gates: ['code'], configuration: { provider: 'codex', model: 'fixture' } }, 'find-defect');
   fakeEvaluator(f);
-  const input = { gates: ['code'], claims: [{ findingId: 'finding-1', claim: 'Fixed it' }], configuration: { provider: 'codex', model: 'fixture' } };
+  const input = { gates: ['code'], claims: [fixed('finding-1', 'Fixed it')], configuration: { provider: 'codex', model: 'fixture' } };
   const missing = await f.request('gate.execute', input, 'no-disposition');
   assert.equal((await f.core.store.json(missing.event.payload.results[0])).outcome, 'UNAVAILABLE');
   fakeEvaluator(f, { dispositions: [{ id: 'finding-1', status: 'resolved', evidence: 'Verified the corrected path and related callers.' }] });
@@ -1417,7 +1417,7 @@ test('milestone passage rejects candidate replacement during an otherwise passin
   assert.equal(state.phase, 'IMPLEMENTING'); assert.equal(state.ready, false);
 });
 
-for (const claims of [[], [{ findingId: 'finding-1', claim: 'Corrected the retained defect' }]]) test(`qualified closure reuses equivalent review with claims ${claims.length}`, async t => {
+for (const claims of [[], [fixed('finding-1', 'Corrected the retained defect')]]) test(`qualified closure reuses equivalent review with claims ${claims.length}`, async t => {
   const f = await fixture(t); await authorize(f); await candidate(f);
   const input = { gates: ['code'], configuration: { provider: 'codex', model: 'fixture' } };
   fakeEvaluator(f, { blocking: true }); await f.request('gate.execute', input, 'reuse-open-finding');
@@ -2259,6 +2259,7 @@ for (const path of ['checkpoint.md', '.CHECKPOINTS/checkpoint-2026-10-23.md', '.
 // Real subprocess regressions for external runner input and exception scope.
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
+import { fixed } from './helpers/sweep-fixture.js';
 const execute=promisify(execFile);
 const actualExit=async(command,args,cwd)=>{try{await execute(command,args,{cwd});return 0;}catch(e){return e.code;}};
 async function externalRunnerFixture(t,kind,fail=false){

@@ -20,7 +20,17 @@ qualified delta priors for follow-up; the implementer cannot author reviewer
 clearance. Individual `gate.execute review` assessments cannot satisfy the pair
 by themselves. Missing/unavailable review stays unavailable, never approval.
 
-Claim only findings you changed. A claim asks the reviewer to confirm a fix, so
+Label every claim with `disposition`: `fixed` when you changed code to fix the
+finding, `disputed` when you rebut it. A `fixed` claim carries a sweep record
+(PROTOCOL.md, Fix claims and sweep records): fix the defect class, not just the
+reported line. Name the class, run a search for every site of it, list each site
+found (path and line; one site with its search is a valid answer), say where the
+single source of truth now lives (or why there is none), name the class-level
+test that would fail at any site, and say what depends on the changed code and
+how you checked it. Later rounds verify the record, and a missed site of the
+class is a regression of your fix that blocks in rounds 4-5.
+
+Claim only findings you changed or rebut. A claim asks the reviewer to confirm a fix, so
 do not claim advisory findings you intentionally left unchanged; their open
 state already carries forward (a reviewer may still mark one `present` on a
 PASS when it does not block). Limit follow-up fix claims to new or affected

@@ -33,13 +33,24 @@ export async function findingObligations(core, state, candidate, inputs, result,
   // Peer reviews of one round are judged together: a finding counts as
   // resolved only when no reviewer of that round still marks it present, so a
   // disagreement keeps the finding and its original regression status (AC6).
+  // A round is the round policy's scope, round and revision, so individual
+  // selection-tagged reviews of one revision are judged together; inputs
+  // without one keep the paired round or stand alone. A re-report of an
+  // earlier ID as a finding keeps it present like a `present` disposition
+  // (issue #134).
   const roundKey = new Map(), presentInRound = new Map();
   for (const { reference, report } of history) {
     let key = reference.hash;
-    try { if (report.input) key = (await core.store.json(report.input)).reviewRound ?? key; } catch { /* lost input: its own round */ }
+    try {
+      if (report.input) {
+        const input = await core.store.json(report.input), policy = input.roundPolicy;
+        key = policy?.revision ? `round:${policy.scope}:${policy.round}:${policy.revision}` : input.reviewRound ?? key;
+      }
+    } catch { /* lost input: its own round */ }
     roundKey.set(reference.hash, key);
     const present = presentInRound.get(key) ?? new Set();
     for (const row of report.dispositions ?? []) if (row.status === 'present') present.add(row.id);
+    for (const finding of report.findings ?? []) present.add(finding.id);
     presentInRound.set(key, present);
   }
   for (const { reference, report } of history) {
