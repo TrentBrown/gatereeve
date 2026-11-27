@@ -1,0 +1,775 @@
+
+Shard 1/4
+TAP version 13
+# Subtest: delegation needs a human instruction naming the run and an observed protected release branch
+ok 1 - delegation needs a human instruction naming the run and an observed protected release branch
+  ---
+  duration_ms: 12331.919792
+  type: 'test'
+  ...
+# Subtest: brief scope excludes only the top-level findings section; nested, other-level and fenced headings count
+ok 2 - brief scope excludes only the top-level findings section; nested, other-level and fenced headings count
+  ---
+  duration_ms: 0.744167
+  type: 'test'
+  ...
+# Subtest: delegated delivery: a fully passing SLICE PR into the integration branch is accepted and protected-merged
+ok 3 - delegated delivery: a fully passing SLICE PR into the integration branch is accepted and protected-merged
+  ---
+  duration_ms: 116072.140584
+  type: 'test'
+  ...
+# Subtest: hand-back: an external merge blocker returns the run to supervised
+ok 4 - hand-back: an external merge blocker returns the run to supervised
+  ---
+  duration_ms: 105466.414667
+  type: 'test'
+  ...
+# Subtest: after a tripwire escalation, design and spec reviews must check the delegated brief
+ok 5 - after a tripwire escalation, design and spec reviews must check the delegated brief
+  ---
+  duration_ms: 14471.508417
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 248418.316584
+
+Shard 2/4
+TAP version 13
+# Subtest: delegation at run start records protection; without it no run is created
+ok 1 - delegation at run start records protection; without it no run is created
+  ---
+  duration_ms: 11846.28575
+  type: 'test'
+  ...
+# Subtest: light delegation: a brief review substitutes for the human; a goal or scope change hands back
+ok 2 - light delegation: a brief review substitutes for the human; a goal or scope change hands back
+  ---
+  duration_ms: 18262.472
+  type: 'test'
+  ...
+# Subtest: delegation never authorizes a release merge or an incompletely passing slice
+ok 3 - delegation never authorizes a release merge or an incompletely passing slice
+  ---
+  duration_ms: 114820.627167
+  type: 'test'
+  ...
+# Subtest: a hand-back that cannot be recorded after an external blocker fails closed
+ok 4 - a hand-back that cannot be recorded after an external blocker fails closed
+  ---
+  duration_ms: 134711.736458
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 279713.269083
+
+Shard 3/4
+TAP version 13
+# Subtest: delegated planning decisions need a qualifying independent PASS and are reported as delegated-evaluator
+ok 1 - delegated planning decisions need a qualifying independent PASS and are reported as delegated-evaluator
+  ---
+  duration_ms: 34478.847
+  type: 'test'
+  ...
+# Subtest: light delegation: a human-authorized scope change hands back; a findings-only one does not
+ok 2 - light delegation: a human-authorized scope change hands back; a findings-only one does not
+  ---
+  duration_ms: 4462.195417
+  type: 'test'
+  ...
+# Subtest: hand-back: an explicit agent hand-back stops delegated actions and voids delegated acceptance
+ok 3 - hand-back: an explicit agent hand-back stops delegated actions and voids delegated acceptance
+  ---
+  duration_ms: 92182.344417
+  type: 'test'
+  ...
+# Subtest: hand-back: release-branch protection lost before a delegated action
+ok 4 - hand-back: release-branch protection lost before a delegated action
+  ---
+  duration_ms: 178016.488875
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 309214.207583
+
+Shard 4/4
+TAP version 13
+# Subtest: brief scope covers everything except the findings section
+ok 1 - brief scope covers everything except the findings section
+  ---
+  duration_ms: 1.430875
+  type: 'test'
+  ...
+# Subtest: hand-back voids delegated implementation authority until a human authorizes
+ok 2 - hand-back voids delegated implementation authority until a human authorizes
+  ---
+  duration_ms: 19125.260208
+  type: 'test'
+  ...
+# Subtest: hand-back: an amendment under delegation returns the run to supervised
+ok 3 - hand-back: an amendment under delegation returns the run to supervised
+  ---
+  duration_ms: 14303.803959
+  type: 'test'
+  ...
+# Subtest: tripwires under delegation escalate to full automatically and reject stay-light
+ok 4 - tripwires under delegation escalate to full automatically and reject stay-light
+  ---
+  duration_ms: 44029.387458
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 77536.076917
+Registered 17 cases across 4 disjoint groups.
+✔ core fixtures in isolated process groups (309354.58975ms)
+
+Shard 1/4
+TAP version 13
+# Subtest: delivery pairing: SLICE targets integration; only FEATURE integration -> release targets release
+ok 1 - delivery pairing: SLICE targets integration; only FEATURE integration -> release targets release
+  ---
+  duration_ms: 23072.2785
+  type: 'test'
+  ...
+# Subtest: per-PR human authorize-merge lets the agent merge the FEATURE PR into release (light)
+ok 2 - per-PR human authorize-merge lets the agent merge the FEATURE PR into release (light)
+  ---
+  duration_ms: 133010.871958
+  type: 'test'
+  ...
+# Subtest: merge.prepare refuses a PR that is not open in default open delivery
+ok 3 - merge.prepare refuses a PR that is not open in default open delivery
+  ---
+  duration_ms: 50815.110083
+  type: 'test'
+  ...
+# Subtest: model-authored review text cannot close or forge the published section
+ok 4 - model-authored review text cannot close or forge the published section
+  ---
+  duration_ms: 0.4475
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 206969.047708
+
+Shard 2/4
+TAP version 13
+# Subtest: integration == release: any scope targets release and no standing authority exists
+ok 1 - integration == release: any scope targets release and no standing authority exists
+  ---
+  duration_ms: 14997.71875
+  type: 'test'
+  ...
+# Subtest: an authorized closed PR publishes its retained review after GitHub refreshes the head
+ok 2 - an authorized closed PR publishes its retained review after GitHub refreshes the head
+  ---
+  duration_ms: 147313.472292
+  type: 'test'
+  ...
+# Subtest: only an unmerged, hosting-rule refusal is classified as an external blocker
+ok 3 - only an unmerged, hosting-rule refusal is classified as an external blocker
+  ---
+  duration_ms: 0.695291
+  type: 'test'
+  ...
+# Subtest: final handoff leads with pinned HTML and reuses advisory mutation evidence
+ok 4 - final handoff leads with pinned HTML and reuses advisory mutation evidence
+  ---
+  duration_ms: 158267.408208
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 320656.446916
+
+Shard 3/4
+TAP version 13
+# Subtest: standing grants: new release grants are refused; existing ones are reported and never authorize
+ok 1 - standing grants: new release grants are refused; existing ones are reported and never authorize
+  ---
+  duration_ms: 94238.599833
+  type: 'test'
+  ...
+# Subtest: a hosting-rule merge refusal is an external blocker, not a gate failure
+ok 2 - a hosting-rule merge refusal is an external blocker, not a gate failure
+  ---
+  duration_ms: 198009.253375
+  type: 'test'
+  ...
+# Subtest: review publication writes and replaces one section idempotently and refuses without a current review
+ok 3 - review publication writes and replaces one section idempotently and refuses without a current review
+  ---
+  duration_ms: 129794.890083
+  type: 'test'
+  ...
+# Subtest: final handoff leads with mutation evidence scoped to each repository
+ok 4 - final handoff leads with mutation evidence scoped to each repository
+  ---
+  duration_ms: 62740.755291
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 485203.886208
+
+Shard 4/4
+TAP version 13
+# Subtest: per-PR human authorize-merge lets the agent merge the FEATURE PR into release (full)
+ok 1 - per-PR human authorize-merge lets the agent merge the FEATURE PR into release (full)
+  ---
+  duration_ms: 145317.580333
+  type: 'test'
+  ...
+# Subtest: merge.prepare accepts a PR ready for review; a draft flip after authorization still merges
+ok 2 - merge.prepare accepts a PR ready for review; a draft flip after authorization still merges
+  ---
+  duration_ms: 123766.682625
+  type: 'test'
+  ...
+# Subtest: publication presents the latest qualifying review, even when it is UNAVAILABLE, and authorization matches
+ok 3 - publication presents the latest qualifying review, even when it is UNAVAILABLE, and authorization matches
+  ---
+  duration_ms: 57726.080292
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 326891.410292
+Registered 15 cases across 4 disjoint groups.
+✔ core fixtures in isolated process groups (485717.621333ms)
+✔ schema constrains criterion IDs and contract repair cannot erase findings (1.790791ms)
+✔ invalid reviewer criterion remains visible and independent targeted repair preserves the defect (19858.526292ms)
+✔ replacement coverage is qualified in the existing review and cannot be self-declared (23161.734792ms)
+✔ two fresh complete assessments consolidate planning/code/spec and administrative gates need no launches (32006.838209ms)
+✔ failed command diagnostics bound retained excerpts and redact private inherited values (0.998667ms)
+✔ generated outputs require preparation provenance and preserve build/check identity (17865.020708ms)
+✔ derived coverage cannot assert proof, and resume returns pending work without launching it (14288.77825ms)
+﹣ native evaluator repairs a retained synthetic malformed response without erasing its finding (0.097083ms) # SKIP
+✔ criterion repair preserves assessments while fixing only invalid identifiers (0.39775ms)
+✔ independent spec correction can repair an invalid row ID without redoing its assessment (19290.52475ms)
+✔ generated output identity includes directory permissions (10173.798416ms)
+✔ agent decision entries are parsed by file and heading from the three record files (5417.064291ms)
+✔ the decisions section is written only when decisions are supplied (0.32525ms)
+✔ a goal run blocks its milestones while interview.md differs from the approved record and never re-pins on grant (12597.179458ms)
+✔ goal planning review input carries the agent decisions with an assessment rule (7684.020375ms)
+✔ a goal boundary review receives the agent decisions and the published PR lists them (26293.681584ms)
+✔ a goal planning decision cites only a review that assessed the current agent decision entries (10051.709291ms)
+✔ nested headings inside an agent entry stay part of that entry, so a changed choice changes the entries (0.291417ms)
+✔ entries beneath a grouping heading keep their own identity and provenance (0.133083ms)
+✔ agent entries are found at any heading depth, before any heading, and in plain or bold provenance form (0.169ms)
+✔ indented headings, CommonMark fence lengths and ordered-list or quoted provenance are handled (0.140459ms)
+✔ a goal run may adjudicate eligible residual risk without human clearance (35320.12025ms)
+✔ a goal run accepts and protected-merges a fully passing SLICE PR into the integration branch (97442.767958ms)
+✔ a tripwire hit in a goal light run escalates it to full rigor automatically (3870.916583ms)
+✔ goal autonomy requires the same named-run human grant, mandate and release protection as mandated (5867.86875ms)
+✔ goal autonomy can be chosen at run start with a mandate and is refused without one (7116.220416ms)
+✔ the retired autonomous name is accepted as an alias and retained autonomous events replay as mandated (2237.020584ms)
+✔ a goal run renews authority through an in-mandate amendment without a human handback (8313.67575ms)
+✔ goal delivery reports ready-pr at a published final PR and never authorizes its release merge (121591.6485ms)
+✔ a goal run parks behind an open PR with blockers and only a human continue resumes it (10046.753042ms)
+✔ leaving goal autonomy clears a park and removes the goal object (3519.992834ms)
+✔ ready-pr requires every condition: open PR at the candidate head, FEATURE scope, the current candidate, acceptance and unchanged decisions (0.36775ms)
+✔ a recorded ready state is withdrawn by any later review, evidence, decision or dial event (2282.700458ms)
+✔ guard corpus: every merge form is recognized and unrelated commands are not (3.239542ms)
+✔ merge denials carry milestone reasons and name the bundled adapter when no CLI is on PATH (12028.317167ms)
+✔ pushes to the configured integration or release branch are denied; topic pushes are not (2602.744167ms)
+✔ a push is checked in every repository it could act on, per the documented coverage list (NEW6-NEW23) (8110.558ms)
+✔ an unconfigured Git workspace names no protected branches (163.75325ms)
+✔ entry points: the CLI is named only when it is on PATH; an unusable adapter is never named (795.197708ms)
+✔ status recovery actions and messages name only installed entry points (1942.945458ms)
+
+Shard 1/4
+TAP version 13
+# Subtest: a light run reaches implementation with only brief.md and a human authorization
+ok 1 - a light run reaches implementation with only brief.md and a human authorization
+  ---
+  duration_ms: 5831.403625
+  type: 'test'
+  ...
+# Subtest: light acceptance requires exactly the full required gate set
+ok 2 - light acceptance requires exactly the full required gate set
+  ---
+  duration_ms: 78684.8915
+  type: 'test'
+  ...
+# Subtest: raising rigor requires full commitments before implementation and acceptance
+ok 3 - raising rigor requires full commitments before implementation and acceptance
+  ---
+  duration_ms: 59259.249459
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 143840.128125
+
+Shard 2/4
+TAP version 13
+# Subtest: a brief without goal, scope and findings log cannot be authorized
+ok 1 - a brief without goal, scope and findings log cannot be authorized
+  ---
+  duration_ms: 2719.081541
+  type: 'test'
+  ...
+# Subtest: light review assesses the brief through an independent fresh evaluator
+ok 2 - light review assesses the brief through an independent fresh evaluator
+  ---
+  duration_ms: 19645.602458
+  type: 'test'
+  ...
+# Subtest: verification records agent-run provenance with receipts and no CI checks
+ok 3 - verification records agent-run provenance with receipts and no CI checks
+  ---
+  duration_ms: 10698.886
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 33125.265833
+
+Shard 3/4
+TAP version 13
+# Subtest: a changed brief invalidates implementation authority until it is re-authorized
+ok 1 - a changed brief invalidates implementation authority until it is re-authorized
+  ---
+  duration_ms: 11954.048042
+  type: 'test'
+  ...
+# Subtest: light review rejects rubric criteria and accepts brief findings
+ok 2 - light review rejects rubric criteria and accepts brief findings
+  ---
+  duration_ms: 29516.73875
+  type: 'test'
+  ...
+# Subtest: verification records hosted CI on the exact head and never presents an empty CI run as passing
+ok 3 - verification records hosted CI on the exact head and never presents an empty CI run as passing
+  ---
+  duration_ms: 11179.675667
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 52714.227917
+
+Shard 4/4
+TAP version 13
+# Subtest: a light candidate uses the single brief criterion and captures only the brief
+ok 1 - a light candidate uses the single brief criterion and captures only the brief
+  ---
+  duration_ms: 15374.324417
+  type: 'test'
+  ...
+# Subtest: spec, judge, reconcile and triage are refused in a light run; code remains available
+ok 2 - spec, judge, reconcile and triage are refused in a light run; code remains available
+  ---
+  duration_ms: 16536.569166
+  type: 'test'
+  ...
+# Subtest: hosted merge checks report an absent check set as no CI checks
+ok 3 - hosted merge checks report an absent check set as no CI checks
+  ---
+  duration_ms: 3717.621792
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 35690.047125
+Registered 12 cases across 4 disjoint groups.
+✔ core fixtures in isolated process groups (144001.180125ms)
+
+Shard 1/2
+TAP version 13
+# Subtest: light: an explicit human waiver of review and verification gets past reused CI coverage with an UNAVAILABLE reviewer
+ok 1 - light: an explicit human waiver of review and verification gets past reused CI coverage with an UNAVAILABLE reviewer
+  ---
+  duration_ms: 100221.241417
+  type: 'test'
+  ...
+# Subtest: a waived verification residual is not a passing gate for standing, delegated or autonomous authority
+ok 2 - a waived verification residual is not a passing gate for standing, delegated or autonomous authority
+  ---
+  duration_ms: 0.131958
+  type: 'test'
+  ...
+# Subtest: brief comparison follows Markdown whitespace: indentation and code count, prose whitespace does not
+ok 3 - brief comparison follows Markdown whitespace: indentation and code count, prose whitespace does not
+  ---
+  duration_ms: 0.831166
+  type: 'test'
+  ...
+# Subtest: light: a findings-log append keeps implementation authority; a scope edit does not
+ok 4 - light: a findings-log append keeps implementation authority; a scope edit does not
+  ---
+  duration_ms: 6044.892667
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 106349.000958
+
+Shard 2/2
+TAP version 13
+# Subtest: full: an explicit human waiver of review and verification gets past reused CI coverage with an UNAVAILABLE reviewer
+ok 1 - full: an explicit human waiver of review and verification gets past reused CI coverage with an UNAVAILABLE reviewer
+  ---
+  duration_ms: 84478.308834
+  type: 'test'
+  ...
+# Subtest: standing application refuses a verification PASS whose coverage a human waived without accepting
+ok 2 - standing application refuses a verification PASS whose coverage a human waived without accepting
+  ---
+  duration_ms: 44134.738666
+  type: 'test'
+  ...
+# Subtest: without a verification waiver the uncovered coverage still blocks, and the refusal names it
+ok 3 - without a verification waiver the uncovered coverage still blocks, and the refusal names it
+  ---
+  duration_ms: 33467.721666
+  type: 'test'
+  ...
+# Subtest: light: re-indenting a scope list outside the findings log needs a new authorization
+ok 4 - light: re-indenting a scope list outside the findings log needs a new authorization
+  ---
+  duration_ms: 509.00825
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 162680.025333
+Registered 8 cases across 2 disjoint groups.
+✔ core fixtures in isolated process groups (162837.32675ms)
+
+Shard 1/4
+TAP version 13
+# Subtest: absent: run start writes the minimal configuration, excludes it locally, records and reports it
+ok 1 - absent: run start writes the minimal configuration, excludes it locally, records and reports it
+  ---
+  duration_ms: 1194.642583
+  type: 'test'
+  ...
+# Subtest: different feature: run start stops, writes nothing, and replaces only on a human instruction
+ok 2 - different feature: run start stops, writes nothing, and replaces only on a human instruction
+  ---
+  duration_ms: 1180.585125
+  type: 'test'
+  ...
+# Subtest: run.resume-current: an unconfigured fresh resume writes the configuration as run.start does; genuine resumption writes nothing
+ok 3 - run.resume-current: an unconfigured fresh resume writes the configuration as run.start does; genuine resumption writes nothing
+  ---
+  duration_ms: 2750.248084
+  type: 'test'
+  ...
+# Subtest: workspace.configure writes the configuration for an existing unconfigured run, once
+ok 4 - workspace.configure writes the configuration for an existing unconfigured run, once
+  ---
+  duration_ms: 2465.66575
+  type: 'test'
+  ...
+# Subtest: freshly configured repository completes a per-PR human merge into the default branch (full)
+ok 5 - freshly configured repository completes a per-PR human merge into the default branch (full)
+  ---
+  duration_ms: 93327.651375
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 101011.758833
+
+Shard 2/4
+TAP version 13
+# Subtest: nothing is left behind when run start cannot proceed, and delegation at start writes nothing
+ok 1 - nothing is left behind when run start cannot proceed, and delegation at start writes nothing
+  ---
+  duration_ms: 653.358625
+  type: 'test'
+  ...
+# Subtest: different feature: a human confirmation starts the run in the configured feature unchanged
+ok 2 - different feature: a human confirmation starts the run in the configured feature unchanged
+  ---
+  duration_ms: 945.153666
+  type: 'test'
+  ...
+# Subtest: no GitHub remote: nothing is written, the run starts, status and merge preparation say what delivery needs
+ok 3 - no GitHub remote: nothing is written, the run starts, status and merge preparation say what delivery needs
+  ---
+  duration_ms: 2878.480417
+  type: 'test'
+  ...
+# Subtest: run start writes featureBaseSha and FEATURE scope prepares straight after it (full)
+ok 4 - run start writes featureBaseSha and FEATURE scope prepares straight after it (full)
+  ---
+  duration_ms: 5322.417209
+  type: 'test'
+  ...
+# Subtest: freshly configured repository completes a per-PR human merge into the default branch (light)
+ok 5 - freshly configured repository completes a per-PR human merge into the default branch (light)
+  ---
+  duration_ms: 85634.167792
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 95508.812833
+
+Shard 3/4
+TAP version 13
+# Subtest: the guard protects the written default branch, including the matching refspec
+ok 1 - the guard protects the written default branch, including the matching refspec
+  ---
+  duration_ms: 1096.223834
+  type: 'test'
+  ...
+# Subtest: different feature: a stale configuration whose feature has a run stops start instead of pointing at that run
+ok 2 - different feature: a stale configuration whose feature has a run stops start instead of pointing at that run
+  ---
+  duration_ms: 1686.242041
+  type: 'test'
+  ...
+# Subtest: merge preparation in an unconfigured workspace names workspace.configure through an available entry point
+ok 3 - merge preparation in an unconfigured workspace names workspace.configure through an available entry point
+  ---
+  duration_ms: 2156.703041
+  type: 'test'
+  ...
+# Subtest: run start writes featureBaseSha and FEATURE scope prepares straight after it (light)
+ok 4 - run start writes featureBaseSha and FEATURE scope prepares straight after it (light)
+  ---
+  duration_ms: 3532.813958
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8536.596042
+
+Shard 4/4
+TAP version 13
+# Subtest: same feature: an existing configuration naming the feature is used unchanged
+ok 1 - same feature: an existing configuration naming the feature is used unchanged
+  ---
+  duration_ms: 2883.180625
+  type: 'test'
+  ...
+# Subtest: run.resume-current starting a fresh run applies the different-feature check before creating anything
+ok 2 - run.resume-current starting a fresh run applies the different-feature check before creating anything
+  ---
+  duration_ms: 2882.719833
+  type: 'test'
+  ...
+# Subtest: default branch unobservable: nothing is written, the run starts and the reason is recorded
+ok 3 - default branch unobservable: nothing is written, the run starts and the reason is recorded
+  ---
+  duration_ms: 4656.841792
+  type: 'test'
+  ...
+# Subtest: run start writes no featureBaseSha when no merge base resolves, and says why
+ok 4 - run start writes no featureBaseSha when no merge base resolves, and says why
+  ---
+  duration_ms: 2474.178584
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 12965.216208
+Registered 18 cases across 4 disjoint groups.
+✔ core fixtures in isolated process groups (101186.050417ms)
+✔ read-only fresh store has no writes and defaults are enabled (98.7535ms)
+✔ private metadata and idempotent imports do not copy secrets (239.713041ms)
+✔ parallel/nested accounting separates elapsed from worker time (17.080333ms)
+✔ unknown identities do not establish equivalence and clocks do not fabricate elapsed time (14.412541ms)
+✔ observer preserves success, throw identity and unfinished attempts (21.716083ms)
+GateReeve metrics: capture incomplete; underlying work continues.
+✔ off switch bypasses storage and collection failure does not replace result (32.715291ms)
+✔ retention summarizes expired details and protects live producers (194.43025ms)
+✔ small budget remains bounded and cleanup never traverses links (75.80175ms)
+✔ a writer waits for another writer and reports busy only after its timeout (383.405417ms)
+✔ concurrent writers in separate processes lose no observations (2391.224ms)
+✔ framework imports accept initial adapters and preserve incomplete data (270.285458ms)
+✔ CI reimports count one attempt and distinct attempts stay distinct (44.141875ms)
+✔ MCP requires handshake and management is disabled by default (6.330417ms)
+✔ actual MCP stdio process supports initialization and tools (46.491208ms)
+✖ CLI wrapper preserves argv, output and nonzero exit (75.003833ms)
+✔ collector reports bounded diagnostics only when explicitly enabled (291.142709ms)
+✔ nested worker accounting retains exclusive parent setup (91.27225ms)
+✖ wrapper forwards termination and preserves terminal signal (28.832667ms)
+✔ poll observations accumulate without unbounded per-poll records (18.169083ms)
+✔ shared execution keeps multiple feature inclusions without duplicate cost (198.457208ms)
+✔ summary retention preserves nested accounting (33.165041ms)
+✔ unavailable importer timing remains visible after the import response is gone (159.228375ms)
+✔ Playwright retries remain separate idempotent attempts with recovered success (116.347916ms)
+✔ collector loss has persistent bounded health even when a whole span was dropped (131.803ms)
+✖ real command receipt correlates with its wrapper without duplicate worker time (66.416375ms)
+{"reconciliation":"native-runner","receiptHash":"sha256:f1679a101685c3b6f38c242c069601eab64cc439477fbf3295f8acb3d53aec42","expectedChecks":3,"observedChecks":3,"expectedWorkerMs":42290,"observedWorkerMs":42290}
+✔ retained native runner receipt reconciles exactly and reimport does not duplicate work (96.348625ms)
+✔ writes never rescan the store and per-record legacy files migrate once (470.64975ms)
+✔ records from a newer collector with unknown vocabulary stay readable (307.43725ms)
+✔ a feature query on a large store reads only that feature (13027.233958ms)
+ℹ 50k load=12689ms featureReport=19ms put=0.91ms status=13ms bytes=73670656
+✔ estimated timestamps retain measured work without inventing elapsed placement or overlap (39.019625ms)
+✔ live Node reporter preserves normal output and treats delivery timestamps as estimates (253.674666ms)
+✔ candidate.prepare fails naming a missing decisions log (8139.877875ms)
+✔ a declared check replacement is covered once both paired reviewers accept it, and not by a single assessment or a rejection (38565.481416ms)
+✔ job.abandon accepts a gone runner job, refuses a live or delivery job, and older proof qualifies again (11600.793584ms)
+ℹ tests 79
+ℹ suites 0
+ℹ pass 75
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 485834.849333
+
+✖ failing tests:
+
+test at cli/test/performance.test.js:120:1
+✖ CLI wrapper preserves argv, output and nonzero exit (75.003833ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 7
+  
+      at TestContext.<anonymous> (file://[redacted]/.t3/worktrees/gatereeve/tb-convergence-sweep-re-5023071aed90a45f/cli/test/performance.test.js:123:10)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 7,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at cli/test/performance.test.js:135:1
+✖ wrapper forwards termination and preserves terminal signal (28.832667ms)
+  Error: Wrapper exited before readiness: 1
+      at ChildProcess.<anonymous> (file://[redacted]/.t3/worktrees/gatereeve/tb-convergence-sweep-re-5023071aed90a45f/cli/test/performance.test.js:142:99)
+      at Object.onceWrapper (node:events:631:26)
+      at ChildProcess.emit (node:events:509:28)
+      at ChildProcess._handle.onexit (node:internal/child_process:295:12)
+
+test at cli/test/performance.test.js:181:1
+✖ real command receipt correlates with its wrapper without duplicate worker time (66.416375ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file://[redacted]/.t3/worktrees/gatereeve/tb-convergence-sweep-re-5023071aed90a45f/cli/test/performance.test.js:184:203)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

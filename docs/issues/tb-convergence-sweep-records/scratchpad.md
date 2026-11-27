@@ -83,3 +83,12 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
 - **Decision:** The `--claims` option description now names `disposition` and
   the sweep record.
 - **Reversibility:** text only.
+
+## S9. Verification round 1 failed on a missing dependency install
+
+- **Answered by:** agent
+- **Decision:** The first local Verification failed three checks because this
+  fresh worktree had no `cli/node_modules` (`Cannot find package
+  'commander'`). Installed with `npm ci --prefix cli` and reran the same
+  checks with unchanged arguments.
+- **Reversibility:** not applicable (environment).
