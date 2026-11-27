@@ -44,3 +44,35 @@ scope changes, and every widening is stricter (fail closed).
 (two or more) does not matter, as it does not when rendered.
 
 **Reversibility:** fully reversible; no stored data depends on it.
+
+## Decision 3: state the fail-closed contract instead of chasing every lookalike
+
+**Answered by:** agent
+
+**Question:** after four review rounds, the remaining findings are text that
+only looks like an opening tag or comment (a link destination such as
+`[x](<pre>)`, a paragraph comment spread over lines, a code span wrapped across
+lines). Each makes nearby prose compare verbatim, which forces a recoverable
+re-authorization. None lets a rendered change pass. Keep patching, or state the
+contract?
+
+**Options considered:**
+- Keep adding special cases: each round has found new lookalikes, and an exact
+  answer needs a CommonMark inline parser (links, autolinks, multi-line spans
+  and comments), which goes beyond the mandate's "small, well-tested change".
+- Fall back to the mandate's alternative: fix #156 only and leave #157 open.
+  That throws away a working, tested fix for the issue's actual risk (a changed
+  `<pre>` or hard break comparing equal).
+- Keep the fix and amend the brief's Goal to state the fail-closed contract
+  that #157 itself allows ("Fail closed for any raw HTML block if that is
+  simpler"): no tags, no comments and no trailing double spaces mean the
+  comparison is exactly as before. Lookalike text may compare strictly, and
+  rendered changes never compare equal.
+
+**Choice:** the third. The amended brief gets a fresh independent review and
+authorization.
+
+**Reversibility:** fully reversible. A later change can narrow the strict
+cases. Nothing stored depends on them, and the strict direction only asks for
+re-authorization.
+

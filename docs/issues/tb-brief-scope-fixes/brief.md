@@ -24,7 +24,13 @@ documentation agree with each other and with how Markdown renders a brief:
      break marker. Adding or removing a hard break changes the scope; changing
      the number of trailing spaces, or trailing spaces before a blank line, a
      heading or the end of the brief, does not.
-   Every other existing comparison result is unchanged.
+   A brief with none of these tags, no HTML comment and no trailing double
+   space compares exactly as before. Detection fails closed, as #157 allows:
+   text that only looks like an opening tag or comment (for example in a link
+   destination, a comment spread over several lines of a paragraph, or a code
+   span wrapped across lines) may make nearby prose compare verbatim, so a
+   whitespace edit there needs re-authorization. A change to rendered `<pre>`
+   content or to a hard break must never compare equal.
 3. PROTOCOL.md describes both constructs alongside the existing rule.
 
 ## Scope
@@ -57,3 +63,12 @@ other threads own tonight (`execution.js`, `boundary-review.js`, the
   Fence tracking is likewise unchanged. A hard break is marked before any
   non-blank, non-heading line (a list item or fence included), which is
   stricter than rendering but never looser.
+- 2026-11-27: Boundary review rounds 1-4 found successive edge cases. Each
+  fail-open case (a later change compared equal) was fixed with a test:
+  closing tags after a length-changing case fold, an indented tag continuing a
+  paragraph, a tag after an unclosed inline comment. Fail-closed cases where
+  plain text shows a tag (indented or fenced code, comments, escapes) were also
+  fixed. The remaining cases need text that only looks like markup in rarer
+  positions. Matching CommonMark exactly would need a full inline parser,
+  which is not a small change, so the Goal now states the fail-closed
+  contract instead of promising that every other result is unchanged.
