@@ -121,11 +121,11 @@ function evaluator(f, { summary = 'Fixture assessment: the change exports 42.' }
     },
   };
 }
-async function accepted(f) {
+async function accepted(f, reviewer = {}) {
   await f.request('candidate.ready', {}, 'ready');
   const refs = [...(await f.request('gate.execute', { gates: ['verification'], configuration: { validation: { kind: 'alternative', reason: 'Fixture has no hosted CI', scope: 'The approved criterion' },
     checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Fixture verification' }] } }, 'verify')).event.payload.results];
-  evaluator(f);
+  evaluator(f, reviewer);
   await f.request('review.select', selection(), 'select'); pairExistingEvaluator(f);
   refs.push(...await passingReviewRefs(f, 'review'));
   refs.push(...(await f.request('gate.execute', { gates: ['context'] }, 'context')).event.payload.results);
@@ -449,6 +449,72 @@ test('model-authored review text cannot close or forge the published section', (
   assert.equal(section.split(SUMMARY_START).length, 2); assert.equal(section.split(SUMMARY_END).length, 2);
   assert.ok(section.startsWith(SUMMARY_START) && section.endsWith(SUMMARY_END));
   assert.equal(publishedSection(withSummary('Description', section)), section);
+});
+
+// GitHub and gh as observed on a real PR with gh 2.97.0 (#155). GitHub stores
+// the description bytes, except that it drops a raw NUL. gh's control-character
+// sanitizer rewrites what it reads: a JSON-style escape for a C0 or C1 control
+// other than tab, LF, VT and CR (after any number of backslashes), and a raw C0
+// or C1 control that GitHub's JSON sends unescaped, become caret notation.
+const caret = code => `^${String.fromCharCode((code & 0x1f) + 0x40)}`;
+const ghRewrites = code => code <= 0x08 || code === 0x0c || (code >= 0x0e && code <= 0x1f) || (code >= 0x80 && code <= 0x9f);
+const githubRoundTrip = text => text.replace(/\u0000/gu, '')
+  .replace(/\\u00([0-9a-fA-F]{2})/gu, (match, hex) => ghRewrites(Number.parseInt(hex, 16)) ? `\\${caret(Number.parseInt(hex, 16))}` : match)
+  .replace(/[\u0001-\u0007\u000e-\u001f\u0080-\u009f]/gu, char => caret(char.charCodeAt(0)));
+// Written and read-back pairs recorded from the real PR.
+const OBSERVED_ROUND_TRIPS = [
+  ['A: [\\u0000] B: [\\\\u0000] C: [\\u0001] D: [\\u0000abc] E: [\\U0000] F: [`\\u0000`] G: [\\x00] H: [\\0]',
+    'A: [\\^@] B: [\\\\^@] C: [\\^A] D: [\\^@abc] E: [\\U0000] F: [`\\^@`] G: [\\x00] H: [\\0]'],
+  ['[\\u0008] [\\u0009] [\\u000A] [\\u000b] [\\u000C] [\\u000d] [\\u001F] [\\u0020] [\\u007f] [\\u0080] [\\u009B] [\\u00a0] [\\\\\\u0007]',
+    '[\\^H] [\\u0009] [\\u000A] [\\u000b] [\\^L] [\\u000d] [\\^_] [\\u0020] [\\u007f] [\\^@] [\\^[] [\\u00a0] [\\\\\\^G]'],
+  ['R00[\u0000] R01[\u0001] R07[\u0007] R08[\u0008] R09[\t] R0b[\u000b] R0c[\u000c] R0d[\r] R1b[\u001b] R7f[\u007f] R85[\u0085] R9b[\u009b] [�] [&#92;u0000]',
+    'R00[] R01[^A] R07[^G] R08[\u0008] R09[\t] R0b[\u000b] R0c[\u000c] R0d[\r] R1b[^[] R7f[\u007f] R85[^E] R9b[^[] [�] [&#92;u0000]'],
+];
+const REWRITTEN = 'quotes "\\u0000", \\\\u0001, \\u001B and \\u0085; raw [\u0001] [\u001b] [\u0085] [\u0000]';
+
+test('the GitHub round-trip double reproduces the rewrites observed on a real PR', () => {
+  for (const [written, read] of OBSERVED_ROUND_TRIPS) assert.equal(githubRoundTrip(written), read);
+});
+
+test('text GitHub or gh rewrites is neutralized, so the published section reads back exactly', () => {
+  assert.notEqual(githubRoundTrip(REWRITTEN), REWRITTEN, 'the hazard text is rewritten when written as is');
+  const section = renderSummary({ candidateRef: { hash: `sha256:${'1'.repeat(64)}` },
+    candidate: { scope: 'SLICE', criteria: ['brief'], requirements: { 'brief.md': {} } },
+    pin: { alias: 'app', head: 'a'.repeat(40), base: 'b'.repeat(40), target: 'b'.repeat(40) },
+    review: { ref: { hash: `sha256:${'2'.repeat(64)}` }, receipt: { evaluator: { provider: 'codex', model: 'm', contextId: 'c' } },
+      result: { outcome: 'PASS', summary: `${REWRITTEN}\nKept: \\u0041 \\U0000 \\x00 tab[\t]`, criteria: [{ id: 'brief', outcome: 'PASS', evidence: REWRITTEN }],
+        findings: [{ id: 'f', blocking: false, criterion: 'brief', path: 'app/app.js', evidence: REWRITTEN }] } } });
+  assert.equal(githubRoundTrip(section), section);
+  assert.equal(publishedSection(githubRoundTrip(withSummary('Description', section))), section);
+  // Escapes keep a backslash GitHub renders (an entity); raw controls become U+FFFD.
+  assert.match(section, /quotes "&#92;u0000", \\&#92;u0001, &#92;u001B and &#92;u0085; raw \[�\] \[�\] \[�\] \[�\]/u);
+  assert.match(section, /Kept: \\u0041 \\U0000 \\x00 tab\[\t\]/u);
+});
+
+test('review publication survives GitHub rewrites and still refuses any other read-back difference', async t => {
+  const f = await fixture(t, { rigor: 'light' });
+  const head = await branchWith(f, 'topic', 'export const answer = 42;\n');
+  await candidate(f, 'SLICE', head);
+  openPr(f, 'topic', f.integration, head, 'Intro text.');
+  await accepted(f, { summary: `Fixture assessment ${REWRITTEN}` });
+  const transport = f.core.runtime.gh;
+  let read = githubRoundTrip;
+  f.core.runtime.gh = async (root, args) => {
+    if (args[1] === 'view') return JSON.stringify({ ...f.gh.pr, body: read(f.gh.pr.body) });
+    if (args[1] !== 'edit') return transport(root, args);
+    f.gh.calls.push('edit'); f.gh.pr.body = args[args.indexOf('--body') + 1].replace(/\u0000/gu, '');
+    return '';
+  };
+  const published = await f.request('review.publish', { repository: 'app', number: 12 }, 'publish-rewrites');
+  assert.equal(published.changed, true);
+  assert.match(f.gh.pr.body, /&#92;u0000/u);
+  assert.equal(publishedSection(read(f.gh.pr.body)), published.section);
+  const { requirePublishedReview } = await import('../../plugin-src/shared/resources/protocol/current/publication.js');
+  await requirePublishedReview(f.core, await f.request('merge.prepare', { repository: 'app', number: 12 }));
+  // The read-back stays exact: a host that alters anything else fails publication.
+  f.gh.pr.body = 'Intro text.';
+  read = text => githubRoundTrip(text).replace('Fixture assessment', 'Fixture  assessment');
+  await assert.rejects(f.request('review.publish', { repository: 'app', number: 12 }, 'publish-altered'), /could not be verified on the PR/u);
 });
 
 test('final handoff leads with pinned HTML and reuses advisory mutation evidence', async t => {
