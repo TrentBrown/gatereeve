@@ -65,6 +65,8 @@ Root records (installer and scratch owner.json) match their directory by inode a
 
 ## [4] Extends [3]: a changed root device also requires the root to share its parent's device
 
+**Reverted by [5]** after the round 4 brief review.
+
 [ ] **Promote**
 
 **Answered by:** agent
@@ -81,4 +83,23 @@ When the recorded dev differs from the root's, acceptance now also requires lsta
 
 **Alternatives considered:**
 (1) Leave [3] unchanged: rejected; a mount at the root path is cheap to detect. (2) Read the mount table (mount, /proc/self/mountinfo) to refuse any root under a mount newer than the record: rejected; platform-specific parsing per open, and it still accepts a clone mounted at boot.
+
+## [5] Reverts [4]: no parent-device condition; [3] is the rule
+
+[ ] **Promote**
+
+**Answered by:** agent
+
+**Confidence:** HIGH
+
+**Reversibility:** Reversible: re-adding the condition is one line in rootMatches.
+
+**Blast Radius:** Installer and scratch root ownership checks after a device change
+
+The parent-device condition from [4] is removed. It refused a renumbered root that is itself a volume's mount point, contradicting the goal for that configuration, and it added almost no detection: a volume mounted at a non-mount-point root's path presents its volume-root directory, whose inode differs from the recorded one, so the inode check already refuses it. The residual case stays as described in [3] and the brief's threat model: a filesystem reproducing the recorded inode and records at the root's path, which takes a clone of the user's own volume or deliberate same-user preparation.
+
+**Triggered by:** Brief planning review round 4 (codex) F2: the parent-device condition refuses a legitimately renumbered root located at a volume mount point
+
+**Alternatives considered:**
+(1) Keep [4]: rejected for the mount-point regression. (2) Apply the parent condition only when the recorded inode is a typical volume-root inode: rejected as filesystem-specific guesswork.
 

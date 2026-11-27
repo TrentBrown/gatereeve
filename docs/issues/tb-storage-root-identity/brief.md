@@ -12,14 +12,14 @@ Observable outcomes:
 - A root whose `owner.json` names the same inode, owner, kind and private mode
   but an older `dev` opens when that record file was last written before the
   current boot (its modification time precedes the boot's start, from
-  `os.uptime()`) and the root is on the same device as its parent directory. A writing operation re-records the current `dev`; a read-only
+  `os.uptime()`). This holds for a root at a volume's mount point too. A writing operation re-records the current `dev`; a read-only
   operation (preview, Doctor) accepts the old value without writing. No record
   field is added: existing records on affected hosts are covered as they are.
 - A root is still refused with the existing ownership error when its `dev`
-  differs from a record written in the current boot, when its `dev` changed and
-  it is a mount point (another filesystem mounted at the root path), when its
-  inode differs (a copied, restored or recreated directory), or when its owner,
-  kind or private mode is wrong.
+  differs from a record written in the current boot, when its inode differs (a
+  copied, restored or recreated directory, or another volume mounted at the root
+  path, whose top directory has the volume-root inode), or when its owner, kind
+  or private mode is wrong.
 - Records inside a verified root (installer entries and their retained file
   stamps, scratch runs) match by inode and must sit on the root's current
   device, so a renumbered device does not leave every entry `uncertain` and
@@ -43,13 +43,17 @@ substitution is caught as before.
 
 One case cannot be told apart from the renumbering the issue requires us to
 accept, by this rule or any rule based on records inside the filesystem: a
-filesystem mounted at an ancestor of the root that has a directory at the same
-path with the same inode number and a copy of the root's records. In practice
-that is a clone of the user's own volume (for example a block-level restore),
-whose records describe GateReeve's own managed data. An arbitrary foreign
-filesystem does not reproduce the inode, and one mounted at the root path itself
-is refused. The previous check refused this case only because it also refused
-the genuine root after every renumbering, which is the bug.
+filesystem that, at the root's path, has a directory with the recorded inode
+number and a copy of the root's records, written before this boot and not yet
+re-recorded in it. An arbitrary foreign filesystem does not reproduce the inode
+and records; producing them takes either a clone of the user's own volume (for
+example a block-level restore, whose records describe GateReeve's own managed
+data) or deliberate same-user preparation, which is outside the boundary above.
+Accepting the renumbered genuine root is the issue's goal, and that root and
+such a replica are identical to every check that reads the filesystem, so a
+stricter rule would refuse the genuine root again. The previous check refused
+the replica only because it also refused the genuine root after every
+renumbering, which is the bug.
 
 ## Rigor
 
@@ -118,10 +122,12 @@ Out:
   reboot; the branch opens it.
 - 2026-11-27: Brief review round 3 (FAIL) found that a foreign filesystem
   mounted before the first writing operation of a boot could carry a copied
-  record and the same inode. A changed `dev` now also requires the root to share
-  its parent directory's device, so a filesystem mounted at the root path itself
-  is refused; the remaining case needs a directory with the same inode at the
-  same path on the mounted filesystem, which in practice is a clone of the
-  user's own volume. Scratchpad entry [4]. The mount-point condition is not
-  exercised by a test fixture: creating a mount needs privileges the test suite
-  does not have.
+  record and the same inode. A parent-device condition was added (entry [4]) and
+  then reverted after round 4 showed it refuses a legitimately renumbered root
+  at a mount point while adding almost nothing: a volume mounted at the root
+  path has the volume-root inode, which a non-mount-point root's record does not
+  name. Entry [5].
+- 2026-11-27: Brief review rounds 1-4 repeated two dissents that further
+  revisions cannot resolve: the light-rigor choice for a security-relevant
+  change, and the replica case in the threat model. They are settled by recorded
+  autonomous judgment rather than by more review rounds.

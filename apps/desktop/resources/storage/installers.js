@@ -60,13 +60,12 @@ async function rootInfo(root, create = false, refresh = false) {
   for (let attempt = 0; ; attempt++) {
     try {
       const stat = await directory(root), { record: owner, written } = await rootRecord(join(root, 'owner.json'));
-      const parent = await lstat(dirname(root));
-      assert(owner.kind === KIND && owner.uid === uid() && rootMatches(owner, written, stat, parent), 'Installer root ownership changed');
+      assert(owner.kind === KIND && owner.uid === uid() && rootMatches(owner, written, stat), 'Installer root ownership changed');
       const entries = await directory(join(root, 'entries'));
       assert(entries.dev === stat.dev, 'Installer root spans filesystems');
       if (refresh && owner.dev !== stat.dev) await lock(root, async () => {
         const { record: latest, written: latestWritten } = await rootRecord(join(root, 'owner.json')), current = await directory(root);
-        assert(same(current, stat) && latest.kind === KIND && latest.uid === uid() && rootMatches(latest, latestWritten, current, parent), 'Installer root ownership changed');
+        assert(same(current, stat) && latest.kind === KIND && latest.uid === uid() && rootMatches(latest, latestWritten, current), 'Installer root ownership changed');
         if (latest.dev !== current.dev) await save(join(root, 'owner.json'), { ...latest, dev: current.dev });
       });
       return { root, ...identity(stat), entries: identity(entries) };

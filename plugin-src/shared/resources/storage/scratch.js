@@ -22,18 +22,16 @@ const identity = stat => ({ dev: stat.dev, ino: stat.ino });
 // a reboot or an OS update while a directory's inode, owner and mode stay the
 // same, so a record written in an earlier boot cannot require the device it
 // saw. A root record matches its directory by inode, and by device too unless
-// the record file was last written before this boot and the root still shares
-// its parent directory's device: a device change against a record written in
-// this boot, or a filesystem mounted at the root path itself, is refused, and a
-// copied, restored or recreated root has a different inode. A record inside a
+// the record file was last written before this boot: a device change against a
+// record written in this boot is refused, and a copied, restored or recreated
+// root, or another volume mounted at its path, has a different inode. A record inside a
 // verified root (a run, an installer entry or its file) matches by inode and
 // must sit on the root's current device. Checks within one process (`same`)
 // always compare both.
 const inode = (record, stat) => Number.isSafeInteger(record?.dev) && Number.isSafeInteger(record?.ino) && record.ino === stat.ino;
 // os.uptime() includes sleep on macOS and Linux, so this is the boot's wall-clock start.
 const bootStartedAt = () => Date.now() - uptime() * 1000;
-const rootMatches = (owner, written, stat, parent) => inode(owner, stat)
-  && (owner.dev === stat.dev || (written < bootStartedAt() && parent.dev === stat.dev));
+const rootMatches = (owner, written, stat) => inode(owner, stat) && (owner.dev === stat.dev || written < bootStartedAt());
 const json = async path => JSON.parse(await readFile(path, 'utf8'));
 const absent = error => error.code === 'ENOENT';
 const contains = (parent, child) => child === parent || child.startsWith(`${parent}${sep}`);
@@ -92,7 +90,7 @@ async function rootInfo(root, create = false, refresh = false) {
   for (let attempt = 0; ; attempt++) {
     try {
       const stat = await directory(root), { record: owner, written } = await rootRecord(join(root, 'owner.json'));
-      assert(owner.kind === KIND && owner.uid === uid() && rootMatches(owner, written, stat, await lstat(dirname(root))), 'Scratch root ownership changed');
+      assert(owner.kind === KIND && owner.uid === uid() && rootMatches(owner, written, stat), 'Scratch root ownership changed');
       for (const name of ['runs', 'reports']) assert((await directory(join(root, name))).dev === stat.dev, 'Scratch root spans filesystems');
       // The root record never changes otherwise, so concurrent refreshes write
       // the same content by atomic rename and need no lock.

@@ -296,7 +296,8 @@ test('a device renumbered in an earlier boot keeps the installer root and its re
   // Read-only inspection opens the root and accepts every record without writing.
   const preview = await inspectInstallers({ root: f.root, ...inactive });
   assert.equal(preview.error, undefined); assert.deepEqual(preview.errors, []);
-  assert.deepEqual(preview.entries.map(e => e.status), [one, two].map(e => e.id === preview.keeper ? 'latest-successful' : 'eligible'));
+  assert.equal(preview.keeper, two.id);
+  assert.deepEqual(Object.fromEntries(preview.entries.map(e => [e.id, e.status])), { [one.id]: 'eligible', [two.id]: 'latest-successful' });
   assert.equal((await recorded()).dev, actual.dev + 1);
   // A writing operation re-records the current device and keeps the success sequence.
   const result = await f.cleanup({ apply: true });

@@ -23,9 +23,8 @@ stealing. Compact checksum and deletion receipts survive; repeat cleanup is safe
 The installer and scratch root records identify their directory by inode and
 device, with the owner, kind and private-mode checks. macOS can renumber a
 volume's device across a reboot or OS update, so a changed device is accepted
-when the inode still matches, the record file was last written before the
-current boot and the root is not a mount point; a device change against a record
-written in this boot, or a filesystem mounted at the root path, is refused. A writing operation re-records the
+when the inode still matches and the record file was last written before the
+current boot; a device change against a record written in this boot is refused. A writing operation re-records the
 root's device; previews and Doctor accept the old value without writing. Records
 inside a verified root (installer entries, their file stamps and scratch runs)
 match by inode and must be on the root's current device. A copied, restored or
