@@ -282,7 +282,7 @@ function providerMetrics(usages, costs = []) {
   };
   return { tokens: Object.values(tokens).some(value => value !== null) ? tokens : null, cost: sum(costs) };
 }
-function receiptFor(request, descriptor, output, contextId, method, processResult, metrics) {
+function receiptFor(request, descriptor, output, contextId, method, processResult, metrics, selfValidation = false) {
   return {
     schemaVersion: 1,
     kind: 'gatereeve-agent-workflow-receipt',
@@ -299,7 +299,7 @@ function receiptFor(request, descriptor, output, contextId, method, processResul
       reasoningEffort: descriptor.reasoningEffort,
       contextId,
     },
-    isolation: { method, freshContext: true, inheritedTurns: 0, idleInhibitor: processResult.idleInhibitor === true },
+    isolation: { method, freshContext: true, inheritedTurns: 0, idleInhibitor: processResult.idleInhibitor === true, selfValidation },
     policy: {
       repositoryAccess: request.policy.repositoryAccess,
       networkAccess: request.policy.networkAccess,
@@ -425,6 +425,32 @@ function descriptor({ id, provider, model, reasoningEffort, isolationMethod }) {
   });
 }
 
+// GateReeve's read-only verdict self-check (issue #142), offered as one MCP
+// tool when the request carries its launch. Nothing else is added: the
+// sandbox, built-in tools and network policy stay exactly as they are.
+function selfValidationLaunch(request) {
+  const launch = request.selfValidation;
+  if (launch == null) return null;
+  if (!launch || typeof launch.server !== 'string' || !/^[a-z][a-z0-9_-]*$/u.test(launch.server) || typeof launch.tool !== 'string' || !/^[a-z][a-z0-9_]*$/u.test(launch.tool)
+      || typeof launch.command !== 'string' || !isAbsolute(launch.command) || !Array.isArray(launch.args) || !launch.args.every(value => typeof value === 'string')
+      || (launch.env !== undefined && (!launch.env || typeof launch.env !== 'object' || !Object.entries(launch.env).every(([key, value]) => /^[A-Z_][A-Z0-9_]*$/u.test(key) && typeof value === 'string')))) {
+    throw new ContractError('Evaluator self-validation launch must name a server, a tool, an absolute command and string arguments');
+  }
+  return { server: launch.server, tool: launch.tool, command: launch.command, args: [...launch.args], env: { ...(launch.env ?? {}) } };
+}
+// Codex reads `-c` values as TOML; JSON strings and string arrays are valid TOML.
+export function codexSelfValidationArgs(launch) {
+  if (!launch) return [];
+  const table = `{${Object.entries(launch.env).map(([key, value]) => `${key}=${JSON.stringify(value)}`).join(',')}}`;
+  return ['--config', `mcp_servers.${launch.server}.command=${JSON.stringify(launch.command)}`,
+    '--config', `mcp_servers.${launch.server}.args=${JSON.stringify(launch.args)}`,
+    '--config', `mcp_servers.${launch.server}.env=${table}`];
+}
+export function claudeSelfValidation(launch) {
+  if (!launch) return { mcpConfig: { mcpServers: {} }, tools: [], allowed: [] };
+  const tool = `mcp__${launch.server}__${launch.tool}`;
+  return { mcpConfig: { mcpServers: { [launch.server]: { type: 'stdio', command: launch.command, args: launch.args, env: launch.env } } }, tools: [tool], allowed: ['--allowedTools', tool] };
+}
 export function codexShellEnvironmentArgs(platform = process.platform) {
   const args = ['--config', 'shell_environment_policy.inherit="none"'];
   // Linux Codex uses the command environment to discover distro Bubblewrap.
@@ -448,6 +474,8 @@ export function createCodexAgentAdapter({
   return Object.freeze({
     // runStage reports the actual process spawn through hooks.onSpawn.
     reportsSpawn: true,
+    // runStage offers GateReeve's validate_verdict tool when the request carries it.
+    selfValidation: true,
     async describe() { return structuredClone(details); },
     async runStage(request, hooks = {}) {
       validateEvaluatorCapability(request.capabilityProfile, reasoningEffort);
@@ -455,6 +483,7 @@ export function createCodexAgentAdapter({
           || request.policy.networkAccess !== 'deny' || request.policy.scratch !== 'isolated') {
         throw new ContractError('Evaluator request must use the current receipt and isolation contract');
       }
+      const selfCheck = selfValidationLaunch(request);
       return withScratch({ purpose: 'codex-evaluator' }, async scratchRun => {
         const scratch = scratchRun.path;
         const schemaPath = join(scratch, 'output.schema.json');
@@ -465,6 +494,7 @@ export function createCodexAgentAdapter({
           '--skip-git-repo-check', '--sandbox', 'read-only', '--model', model,
           '--config', `model_reasoning_effort="${reasoningEffort}"`,
           ...codexShellEnvironmentArgs(),
+          ...codexSelfValidationArgs(selfCheck),
           '--cd', request.repositoryPath,
           '--output-schema', schemaPath,
           '--output-last-message', outputPath,
@@ -487,7 +517,7 @@ export function createCodexAgentAdapter({
           schemaVersion: 1, protocolVersion: request.protocolVersion, stageId: request.stage.id, status: 'completed',
           output,
           receipt: receiptFor(request, details, output, contextId, 'codex-ephemeral-exec', processResult,
-            providerMetrics(jsonLines(processResult.stdout).filter(event => event.type === 'turn.completed').map(event => event.usage))),
+            providerMetrics(jsonLines(processResult.stdout).filter(event => event.type === 'turn.completed').map(event => event.usage)), Boolean(selfCheck)),
         };
   });
     },
@@ -509,6 +539,8 @@ export function createClaudeCodeAgentAdapter({
   return Object.freeze({
     // runStage reports the actual process spawn through hooks.onSpawn.
     reportsSpawn: true,
+    // runStage offers GateReeve's validate_verdict tool when the request carries it.
+    selfValidation: true,
     async describe() { return structuredClone(details); },
     async runStage(request, hooks = {}) {
       validateEvaluatorCapability(request.capabilityProfile, reasoningEffort);
@@ -516,13 +548,15 @@ export function createClaudeCodeAgentAdapter({
           || request.policy.networkAccess !== 'deny' || request.policy.scratch !== 'isolated') {
         throw new ContractError('Evaluator request must use the current receipt and isolation contract');
       }
+      const selfCheck = selfValidationLaunch(request);
+      const offered = claudeSelfValidation(selfCheck);
       return withScratch({ purpose: 'claude-evaluator' }, async scratchRun => {
       const agentName = 'gatereeve-stage';
       const agents = {
         [agentName]: {
           description: `GateReeve ${request.stage.role}`,
           prompt: request.instructions,
-          tools: ['Read', 'Glob', 'Grep'],
+          tools: ['Read', 'Glob', 'Grep', ...offered.tools],
         },
       };
       // The prompt goes on standard input (`--print` reads it there when no
@@ -532,11 +566,11 @@ export function createClaudeCodeAgentAdapter({
       const args = [
         '--print', '--restricted', '--permission-mode', 'dontAsk',
         '--permission-prompts', 'none', '--no-session-persistence',
-        '--setting-sources', '', '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}',
+        '--setting-sources', '', '--strict-mcp-config', '--mcp-config', JSON.stringify(offered.mcpConfig),
         '--disable-slash-commands', '--no-chrome',
         '--model', model, '--effort', reasoningEffort,
         '--agents', JSON.stringify(agents), '--agent', agentName,
-        '--tools', 'Read,Glob,Grep', '--json-schema', JSON.stringify(request.outputSchema),
+        '--tools', 'Read,Glob,Grep', ...offered.allowed, '--json-schema', JSON.stringify(request.outputSchema),
         '--output-format', 'json', '--input-format', 'text',
       ];
       assertArgumentSizes(args);
@@ -557,7 +591,7 @@ export function createClaudeCodeAgentAdapter({
         schemaVersion: 1, protocolVersion: request.protocolVersion, stageId: request.stage.id, status: 'completed',
         output: parsed.output,
         receipt: receiptFor(
-          request, details, parsed.output, parsed.contextId, 'claude-custom-agent', processResult, parsed.metrics
+          request, details, parsed.output, parsed.contextId, 'claude-custom-agent', processResult, parsed.metrics, Boolean(selfCheck)
         ),
       };
       });
