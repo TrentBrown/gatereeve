@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:16e96981442ef238b0660757d08882949e2410225138205bffde17a043828d1a",
+  "protocolHash": "sha256:2ea5c10e688200ce4392797ad7cb3072d22be11561e5a27736042c45639d8798",
   "contract": "gatereeve/current/8",
   "contractSha256": "1df0afc21301595b72a5f9bdad3ab2aade7452ad1c5a4f97455bde354bf1120a",
   "files": [
@@ -167,8 +167,8 @@
     },
     {
       "path": "current/review-packet.js",
-      "size": 6734,
-      "sha256": "eff891b51b4e94d4bfcc916cb96f2c942190c253d5f59ae59d14cb57f2f81b92"
+      "size": 6931,
+      "sha256": "4796109397497a491f362fe311864ba98f2cef1a6f54618da08663e05b1d10dd"
     },
     {
       "path": "current/reviewer-selection.js",

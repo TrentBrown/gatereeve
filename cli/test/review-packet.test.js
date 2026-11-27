@@ -63,6 +63,8 @@ test('R7: links are read from prose, never from code, and classified', () => {
   // Balanced parentheses, escapes and angle brackets in a destination (round 1, codex high).
   assert.deepEqual(markdownLinks('[draft](docs/(draft).md) [esc](a\\)b.md) [angle](<two words.md>) [t](plain.md "Title")'),
     ['docs/(draft).md', 'a)b.md', 'two words.md', 'plain.md']);
+  // Labels never hide a link: nested or escaped brackets (round 3, codex high).
+  assert.deepEqual(markdownLinks('[see [v2] notes](docs/v2.md) ![a [b [c]]](img/x.png) [esc \\] x](e.md)\n[r\\]x]: ref.md'), ['docs/v2.md', 'img/x.png', 'e.md', 'ref.md']);
   // Any depth of balanced parentheses (round 2, codex high); unbalanced is not a link.
   assert.deepEqual(markdownLinks('[n](docs/(a(b)).md) [deep](x/((((y)))).md "T") [bad](docs/(open.md'), ['docs/(a(b)).md', 'x/((((y)))).md']);
   assert.deepEqual(linkedPath('docs/(draft).md'), { path: 'docs/(draft).md' });

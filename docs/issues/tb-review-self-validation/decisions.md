@@ -138,8 +138,10 @@ summary).
 
 ## PR description (mandate evidence)
 
-The PR for this run is TrentBrown/gatereeve#166, opened as a **draft**, not
-merged, against `main`. Its description starts with "Closes #142" and has a
+The PR for this run is TrentBrown/gatereeve#166 against `main`: open, ready
+for review (no longer a draft) and not merged. The verification the review
+consumes observes it with `gh pr view` (state, draft flag, base, merge state
+and body), so this is retained runner evidence, not only this note. Its description starts with "Closes #142" and has a
 "Decisions made for you (please check)" section listing DEC-2 to DEC-9 and
 DEC-12 in plain words, with the test methods used (CLI tests, a
 real-provider smoke check of both adapters, the launch on Node 22 and 24) and

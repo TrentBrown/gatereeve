@@ -32,3 +32,7 @@ Append pull-request review boundary entries here.
   resolved; low `N1`); Codex FAIL high `codex/nested-parenthesized-link`
   (fixed: a parenthesis-balancing scanner for link destinations) and mandate
   UNAVAILABLE (PR description not in evidence; recorded in `decisions.md`).
+- 2026-11-27 boundary round 3 (head d95da48): Codex FAIL high
+  `codex/nested-markdown-link-label` (fixed: links found from the closing `](`)
+  and mandate UNAVAILABLE (PR state now observed by a verification receipt);
+  Claude delta refused (agent decisions changed after its prior).

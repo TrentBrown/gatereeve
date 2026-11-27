@@ -58,14 +58,17 @@ function inlineDestination(body, index) {
   return rest ? target : null;
 }
 // Link targets in Markdown text: inline links and images `[x](target "t")`
-// and reference definitions `[x]: target`, in document order.
+// and reference definitions `[x]: target`, in document order. An inline
+// link is found from the `](` that closes its label, so whatever the label
+// holds (nested brackets, code, escapes) never hides it; a stray `](` that
+// is not followed by a destination is ignored.
 export function markdownLinks(text) {
   const body = prose(text), found = [];
-  for (const match of body.matchAll(/!?\[[^\]\n]*\]\(/gu)) {
-    const target = inlineDestination(body, match.index + match[0].length);
+  for (const match of body.matchAll(/\]\(/gu)) {
+    const target = inlineDestination(body, match.index + 2);
     if (target !== null) found.push({ index: match.index, target });
   }
-  for (const match of body.matchAll(/^[ ]{0,3}\[[^\]\n]+\]:\s*(<[^>\n]*>|\S+)/gmu)) found.push({ index: match.index, target: match[1] });
+  for (const match of body.matchAll(/^[ ]{0,3}\[(?:[^\]\\\n]|\\.)+\]:[ \t]*(<[^>\n]*>|\S+)/gmu)) found.push({ index: match.index, target: match[1] });
   // Angle brackets delimit a destination; a backslash escapes ASCII punctuation.
   return found.sort((a, b) => a.index - b.index).map(item => item.target.replace(/^<|>$/gu, '').replace(/\\([!-/:-@[-`{-~])/gu, '$1'));
 }

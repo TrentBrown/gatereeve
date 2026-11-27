@@ -151,3 +151,19 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
   assessment was UNAVAILABLE because the PR description is not in the
   pinned evidence, so `decisions.md` now records what it contains.
 - **Reversibility:** code only.
+
+## S10. Review round 3 fixes; the PR state is observed by verification
+
+- **Answered by:** agent
+- **Decision:** Fixed codex/nested-markdown-link-label (high): inline links
+  are found from the `](` that closes their label, so label content never
+  hides a link; reference-definition labels accept escaped brackets; tests
+  added. For the Codex mandate assessment (UNAVAILABLE: the PR state was only
+  an implementer note), the PR was marked ready for review and a
+  verification check observes it with `gh pr view` (number, state, draft
+  flag, base, merged time, body), giving a retained receipt. Claude's round 3
+  delta was refused because the agent decision entries changed after its
+  prior PASS, so round 4 runs both reviewers in full.
+- **Alternatives:** keep parsing labels (rejected: each nested form is a new
+  edge case); leave the mandate UNAVAILABLE (rejected: not adjudicable).
+- **Reversibility:** code and verification configuration.
