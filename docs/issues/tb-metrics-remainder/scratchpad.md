@@ -10,12 +10,16 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
 
 ## S1. Rigor full, goal autonomy
 
+- **Promoted:** DEC-1 in `decisions.md` (2026-11-27)
+
 - **Answered by:** human
 - **Decision:** Full rigor and goal autonomy, from Trent's overnight grant
   relayed by the coordinating thread. Planning decisions are
   `autonomous-evaluator` decisions citing independent planning reviews.
 
 ## S2. Design approval settled by autonomous judgment (design review round 4)
+
+- **Promoted:** DEC-2 in `decisions.md` (2026-11-27)
 
 - **Answered by:** agent
 - **Decision:** Approve the design under `autonomous-evaluator` authority with
@@ -32,6 +36,8 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
 
 ## S3. Implementation authorization settled by autonomous judgment (spec review round 5)
 
+- **Promoted:** DEC-3 in `decisions.md` (2026-11-27)
+
 - **Answered by:** agent
 - **Decision:** Authorize implementation after five Codex spec reviews; rounds
   1-4 findings fixed. Round 5 (mandate PASS) found that AC6's waiver wording
@@ -43,6 +49,8 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
 - **Reversibility:** high; a later spec amendment can narrow the rule.
 
 ## S4. Reprojection keeps earlier rows unconverted
+
+- **Promoted:** DEC-6 in `decisions.md` (2026-11-27)
 
 - **Answered by:** agent
 - **Decision:** Interview D8 said an earlier-version workflow is reprojected
@@ -56,6 +64,8 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
 - **Reversibility:** high.
 
 ## S5. Rounds and statuses from real journals
+
+- **Promoted:** DEC-7 in `decisions.md` (2026-11-27)
 
 - **Answered by:** agent
 - **Decision:** A dry run over five retained local run journals (read-only,
@@ -71,6 +81,8 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
 
 ## S6. Desktop delivered; Mac-only test failure is pre-existing
 
+- **Promoted:** DEC-8 in `decisions.md` (2026-11-27)
+
 - **Answered by:** agent
 - **Decision:** The desktop part was small (an IPC action and a card control),
   so the AC13 fallback was not used. `desktop reevaluation uses the staged
@@ -80,6 +92,8 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
 - **Reversibility:** n/a.
 
 ## S7. #136 and the live-store purge not folded in
+
+- **Promoted:** DEC-9 in `decisions.md` (2026-11-27)
 
 - **Answered by:** agent
 - **Decision:** As interview D11: #136 is a planning-qualification fix in
