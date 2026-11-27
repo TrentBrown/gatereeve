@@ -84,10 +84,15 @@ findings log section (with its nested sub-headings), `commitments`
 keeps the authorized subject and no new decision is needed. Whitespace compares
 as Markdown renders it: in prose, trailing whitespace and inner whitespace runs
 are ignored, a blank line counts as a block separator (runs of blank lines count
-as one; blank lines at the ends are ignored), and leading indentation counts (it carries list
-structure); fenced code, lines indented four or more columns (tabs advance to the
-next multiple of four; indented code, including blank lines between such lines)
-and inline code spans compare verbatim. The same
+as one; blank lines at the ends are ignored), leading indentation counts (it carries list
+structure), and a hard line break counts (two or more trailing spaces before a line
+that is neither blank nor a heading; the number of spaces does not matter); fenced
+code, lines indented four or more columns (tabs advance to the
+next multiple of four; indented code, including blank lines between such lines),
+raw HTML `<pre>`, `<textarea>`, `<script>` and `<style>` content (from the line
+that opens the tag, unescaped and outside code and HTML comments, to the line that closes it,
+or to the end when unclosed; tracked outside the findings log only, and headings
+are still found there) and inline code spans compare verbatim. The same
 comparison decides a delegated hand-back. Any other change
 (goal, scope, preamble or another section) no longer matches the authorized
 subject, so implementation, candidates and gates stop until the changed brief is
@@ -755,12 +760,14 @@ the verdict itself, and records each correction under `normalized` with its
 | `present-non-blocking` | On a PASS, a required (claimed) earlier finding that does not block (`blocking: false`, or low) carries `present` |
 | `disposition-not-disclosed` | A consolidated-review disposition naming an ID disclosed nowhere (supplied history, claims or the verdict's own findings) is dropped |
 | `claim-not-retained` | An implementer claim naming a finding no retained review reports is dropped before the reviewer starts, recorded on every result of the execution; the reviewer runs without it |
+| `peer-not-assessed` | On a selection-tagged review PASS, an open or claimed earlier finding that the other provider of the selection raised (by its recorded `findingProvenance`) and that the verdict gives no disposition row is recorded with a GateReeve-authored `not-assessed` disposition. `not-assessed` is not in the reviewer schema and closes nothing: the finding stays open in every ledger and the member stays unreconciled for it until it is disposed |
 | `low-never-blocks`, `low-only-fail`, `duplicate-disposition`, `duplicate-affected`, `affected-not-required`, `affected-not-disclosed` | As described below and above |
 
 Anything that changes meaning goes back to the reviewer through the repair turn
 with the exact field path, and is never guessed: a missing or invalid required
 field (for example `review.findings[0].blocking is required`), a missing
-supported disposition for an open or claimed finding on a PASS, an open finding
+supported disposition for an open or claimed finding on a PASS (except a
+peer's finding with no row at all, recorded `not-assessed` above), an open finding
 carried as `unaffected` (`dispositions[i]`), a PASS with a criterion that is not
 PASS (`criteria[i]`), a duplicate disposition with a different status, and an
 ID disclosed nowhere in an assessed `historyAssessment.affected` list. Every
@@ -809,6 +816,35 @@ original said PASS only when the verdict itself shows the blocking finding: the
 original reported it, or a disposition the repair supplied marks an earlier
 blocking finding `present`. A repair that still fails or changes substance is
 UNAVAILABLE.
+**Self-validation (issue #142).** A reviewer can check its verdict against
+this contract before it answers. For an adapter that declares the capability
+(both local adapters do), GateReeve writes the check's context (gates,
+candidate criteria and source paths, delta paths, history results, claims,
+closures to reconsider, coverage claims, mandate, repair original, provider
+and selection) to `validation/context.json` in the reviewer view before it is
+sealed, sets `packet.selfValidation`, and gives the adapter the launch of a
+stdio MCP server, `protocol/current/verdict-check-server.js`, with one tool,
+`validate_verdict` (annotated read-only, idempotent, closed world). The tool
+runs `checkReviewOutput`, the same function the execution records with
+(`checkReviewVerdicts`), and reports per gate whether the verdict is valid,
+the first contract error with its field path (the text a repair turn would
+receive), the outcome GateReeve would record and the correction rules it
+would record; an envelope error is reported once. It never changes the
+verdict. The server is launched under Node's permission model
+(`--permission`, read access only to the protocol resources and its context
+file; no write, child-process, worker, addon or WASI permission), so a write
+or spawn would be refused at runtime; it opens no network connection and
+answers only on standard output. Under Electron's Node mode, which takes no
+permission flags, the launch sets only `ELECTRON_RUN_AS_NODE` (the desktop
+does not run reviews). The Claude Code adapter keeps `--restricted`,
+`--strict-mcp-config` and `--tools Read,Glob,Grep`; its `--mcp-config` names
+only this server, and `mcp__gatereeve__validate_verdict` joins the stage
+agent's tools and `--allowedTools`. The Codex adapter keeps
+`--sandbox read-only` and adds only `mcp_servers.gatereeve` (its command,
+arguments and environment, which turns the server's metrics off). Receipts record
+`isolation.selfValidation`. Other adapters run exactly as before, and the
+recorded verdict is still checked and repaired as above.
+
 Repair turns share the round's baseline and are not rounds. Every UNAVAILABLE
 result carries one `unavailableReason`: `contract`, `malformed-json`,
 `provider-error`, `timeout`, `missing-evidence` or `other`.
@@ -834,6 +870,15 @@ Each `BOUNDARY_REVIEWED` outcome row has one `status`, and every row that is not
 | `verdict-rejected` | The verdict failed the contract, JSON or schema (`contract`, `malformed-json`) |
 | `could-not-assess` | The reviewer itself returned UNAVAILABLE (`missing-evidence`) |
 
+Each row lists its `attempts` in order, one per execution: `kind`
+(`initial`, `transient-retry` or `repair`), `status`, `results`, the
+provider `tokens` and the execution's `durationMs`. An attempt that launched
+nothing or reused a retained result has null usage and duration; unknown
+usage is null, never zero. Each review execution receipt records its
+`attempt`, and the metrics projection stores every review result's `attempt`,
+`durationMs` and `tokens` on its result observation (not on its finding or
+disposition rows), so repair turns and retries are attributed.
+
 A row describes the reviewer across its attempts in the round (first attempt,
 transient retry, repair turn): it is `refused` only when no attempt launched a
 reviewer, and otherwise follows the latest attempt that did. The local adapters
@@ -848,6 +893,31 @@ automatically under its own operation identity on the round baseline, and is not
 a new round. Rejections name the offending field path or finding/claim ID.
 Events recorded before these statuses keep their `completed`/`unavailable` values
 and count exactly as before.
+
+### Complete review packets
+
+A full-rigor review packet carries the documents the pinned `spec.md`
+incorporates by reference (issue #142). The global Definition of Done is
+`protocol/DEFINITION-OF-DONE.md`, shipped with the protocol; a spec containing
+the phrase "global Definition of Done" (any case or whitespace; the spec
+template's sentence) incorporates it. Relative Markdown links in `spec.md`
+to feature-home files the packet does not already carry are incorporated
+too. Each document is captured into the execution input (`incorporated`, also
+part of the reuse comparison) and written to `incorporated/gatereeve/` or
+`incorporated/feature/<path>` in the reviewer view; `packet.incorporated`
+lists them. A link that cannot be included (missing, outside the feature
+home, a hidden or workflow-record path, not a regular file, over 256 KiB, or
+past 16 documents) is a non-blocking note there. External links are never
+fetched. Reviewers treat a missing document as a note, not by itself a reason
+for UNAVAILABLE, and fail a selected criterion that cannot be judged without
+it.
+
+A rubric row whose criterion text starts with `After merge:` is checked only
+after merge (release, deployment or live acceptance). `candidate.prepare`
+refuses to select it, and a FEATURE candidate covers every row that is not so
+marked. The packet lists such rows in `afterMergeCriteria`, and reviewers do
+not score them or report them as limitations, findings or UNAVAILABLE.
+Completion does not assess them; the planning parser is unchanged.
 
 Missing historical evidence is recorded in `historyGaps` and shown in status and
 desktop. It never qualifies proof. Fresh full evidence can replace its current

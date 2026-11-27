@@ -44,6 +44,13 @@ function measured(type, value) {
   }
 }
 
+// Attempt kind, duration and tokens of one evaluator execution receipt. A
+// receipt from before attempts were recorded reads as unknown.
+function attemptMeasures(receipt) {
+  const started = Date.parse(receipt.startedAt), completed = Date.parse(receipt.completedAt);
+  return defined({ attempt: text(receipt.attempt), durationMs: Number.isFinite(started) && Number.isFinite(completed) && completed >= started ? completed - started : undefined,
+    tokens: receipt.metrics?.tokens ?? undefined });
+}
 // Derived, replaceable reporting memory. Failure never changes workflow authority.
 export async function projectWorkflow(core, store = new MetricsStore()) {
   if (process.env.GATEREEVE_METRICS === 'off') return;
@@ -87,7 +94,11 @@ export async function projectWorkflow(core, store = new MetricsStore()) {
           const result = await core.store.json(ref), input = await core.store.json(result.input), receipt = await core.store.json(result.receipt);
           const row = { ...common, id: `${source}:${ref.hash}`, kind: 'artifact', check: result.gate, outcome: result.outcome, model: receipt.evaluator?.model ?? null,
             provider: receipt.evaluator?.provider ?? null, strategy: result.mode, reference: ref.hash, links: [result.receipt.hash] };
-          observations.push(observation(row));
+          // Each evaluator attempt's execution time and provider usage, so a
+          // repair turn or transient retry is attributed (issue #142). Only
+          // the result row carries them; finding and disposition rows do not.
+          const evaluated = receipt.evaluator ? attemptMeasures(receipt) : {};
+          observations.push(observation({ ...row, ...evaluated }));
           for (const finding of result.findings ?? []) observations.push(observation({ ...row, id: `${row.id}:finding:${finding.id}`, kind: 'finding', findingId: finding.id }));
           for (const disposition of result.dispositions ?? []) observations.push(observation({ ...row, id: `${row.id}:disposition:${disposition.id}`, kind: 'disposition', findingId: disposition.id, outcome: disposition.status }));
           // Per-rule verdict normalization and rejection counts (issue #141).
