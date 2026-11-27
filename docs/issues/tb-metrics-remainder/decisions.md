@@ -16,7 +16,7 @@ are in `interview.md`.
 
 ## DEC-2. Follow-up dependency settled by judgment at the design gate
 
-- **Answered by:** agent
+- **Answered by:** agent; confirmed by the human on 2026-11-27 (scratchpad S9)
 - **Decision:** Measure 2's Completion-decision part and measure 3's
   follow-up link wait for #148's follow-up records; the design defines the
   `followUp` field so they start counting without another metrics change, and
@@ -28,7 +28,7 @@ are in `interview.md`.
 
 ## DEC-3. A review waiver closes only the latest reviewed scope
 
-- **Answered by:** agent
+- **Answered by:** agent; approved by the human as spec amendment A1 on 2026-11-27 (scratchpad S9)
 - **Decision:** At the spec gate, AC6's waiver wording (closing every
   unpassed scope whose latest pair precedes the waiver) was accepted as
   residual risk. Boundary review round 1 rated that reading high in both
@@ -38,7 +38,7 @@ are in `interview.md`.
   earlier abandoned scope stays open.
 - **Alternatives:** amend the spec (round-6 hand-back).
 - **Reversibility:** high.
-- **Source:** scratchpad S3 and S8.
+- **Source:** scratchpad S3, S8 and S9.
 
 ## DEC-4. "Second reviewer" read as every reviewer provider
 

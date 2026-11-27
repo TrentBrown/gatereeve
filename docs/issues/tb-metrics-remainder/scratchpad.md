@@ -121,3 +121,13 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
   reads "not measurable" rather than "met".
 - **Alternatives:** keep AC6's literal reading (both reviewers block on it).
 - **Reversibility:** high.
+
+## S9. Human answers to the park (PR #169)
+
+- **Promoted:** DEC-2 and DEC-3 updates in `decisions.md` (2026-11-27)
+
+- **Answered by:** human
+- **Decision:** "Confirm #148 + amend AC6 (Recommended)": the
+  Completion-decision half of measure 2 ships with #148; AC6 is amended to
+  the narrowed waiver rule and scope instances (spec Changes A1, A2). This
+  confirms agent entries S2 and S8 and supersedes S3.

@@ -166,3 +166,28 @@ today), and concurrent projection of one workflow from two hosts.
 ## Changes
 
 Append spec amendments here. Do not remove or weaken original criteria.
+
+### A1. AC6 waiver rule and scope instances (2026-11-27, human-approved)
+
+Approved by Trent on the PR #169 park question ("Confirm #148 + amend AC6").
+Supersedes AC6's definition of a waived scope:
+
+- A boundary review scope is measured per **scope instance**: rows of one
+  workflow and scope are split at each `ROUND_COUNTED` of round 1 (the next
+  slice PR, a split part, or the rounds after an amendment).
+- A `waive` naming `review` closes only the scope instance of the
+  workflow's latest reviewed round before it, and only when that instance
+  never passed. It is a waive after a FAIL streak when that round FAILed. An
+  earlier unpassed scope instance stays open.
+- The `met` rule of AC6 is unchanged.
+
+The measure 1 rubric row is assessed against this rule (tests: "scope
+instances, one waiver per latest scope, re-reviews and reused results").
+
+### A2. Measure 2's decided part ships with #148 (2026-11-27, human-confirmed)
+
+Trent confirmed that the Completion-decision half of measure 2 (AC7
+`decided`) and the follow-up count in AC8 are measured once #148 records
+follow-up decisions. This feature delivers the `followUp` field and the
+computation; until #148 the decided part reads "not measurable". AC7 and AC8
+are unchanged.

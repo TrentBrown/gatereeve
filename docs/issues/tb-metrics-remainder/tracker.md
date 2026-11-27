@@ -27,3 +27,7 @@
 ## Review Log
 
 Append pull-request review boundary entries here.
+
+- 2026-11-27 boundary round 1 (head 3b5460b): Codex FAIL, Claude FAIL; 12 findings fixed in b52be14 and 35271d4.
+- 2026-11-27 boundary round 2 (head 35271d4): Claude PASS (one low note on AC6 text); Codex FAIL on the #148 dependency and the AC6 text. Hosted CI run 45990995350 passed. Parked on PR #169.
+- 2026-11-27 Trent: "Confirm #148 + amend AC6"; spec amendment A1/A2 recorded, rounds restart.
