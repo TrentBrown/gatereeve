@@ -47,3 +47,7 @@ Append pull-request review boundary entries here.
 - 2026-11-27 boundary round 9 (head 698bff4): claude-code PASS; codex FAIL
   (high: valid disputed claim not accepted through the commands in tests).
   Fixed; every R1 condition now tested through both commands.
+- 2026-11-27 rounds 10-11: round 10 both PASS, CI green on a66d1f2; main
+  gained #169; round 11 against it: codex PASS, claude-code FAIL (medium
+  CR11-1, metrics projection ignores swept-class regressions). Merged main,
+  fixed.

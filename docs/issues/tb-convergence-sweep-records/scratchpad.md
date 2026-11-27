@@ -243,3 +243,22 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
   and no result on refusal, and acceptance through both commands are now
   each tested through both commands.
 - **Reversibility:** reversible.
+
+## S19. Round 11: the metrics projection's copy of the blocking rule
+
+- **Answered by:** agent
+- **Decision:** Main gained #169 (#149 convergence metrics) after round 10.
+  Round 11 assessed the candidate against that target: codex PASS (low
+  CR8-1); claude-code FAIL with one medium (`CR11-1`, class
+  `blocking-rule-mirror-drift`): the metrics projection
+  (`performance/workflow-projection.js`) recomputes whether a finding
+  blocked from the recorded round and regression paths only, so a missed
+  site of a swept class that blocked qualification was recorded as demoted.
+  Merged main and fixed it: the projection also applies
+  `sweptClassRegression` with the review input's `sweepRecords`. Swept for
+  other copies of the blocking rule: `delegation.js` judges planning
+  reviews, which take no claims, so the projection was the only one.
+  PERFORMANCE.md says so. Test: convergence-metrics.test.js "a finding of a
+  class swept by an earlier fixed claim is recorded as blocking" (fails
+  without the fix); the suite joins the local Verification.
+- **Reversibility:** reversible.
