@@ -3,13 +3,14 @@
 import { existsSync } from 'node:fs';
 import { open, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { resolveTool, run } from './process.js';
+import { parseToml, resolveTool, run } from './process.js';
+import { readCommitted } from './scope.js';
 
 // Bump when the comparison, neutralization or scoping rules change, so cached
 // baselines from an earlier wrapper are never reused.
-export const WRAPPER_VERSION = 'gatereeve-code-health/3';
+export const WRAPPER_VERSION = 'gatereeve-code-health/4';
 
-const COMMANDS = ['eslint', 'ruff', 'knip', 'deptry'];
+const COMMANDS = ['eslint', 'ruff', 'knip', 'deptry', 'jscpd'];
 const PACKAGES = ['typescript', 'typescript-eslint', '@typescript-eslint/parser', '@typescript-eslint/eslint-plugin', 'ts-morph'];
 const PLUGIN_VERSIONS = 'import importlib.metadata as m, json\nprint(json.dumps({d.metadata["Name"]: d.version for d in m.distributions() if (d.metadata["Name"] or "").lower().startswith("habit-hooks")}, sort_keys=True))';
 
@@ -25,7 +26,7 @@ async function firstLine(path) {
 
 // Habit Hooks plugins are Python distributions installed beside habit-sensors;
 // its own interpreter (from the script's shebang) reports their versions.
-async function pluginVersions(sensors, env) {
+export async function pluginVersions(sensors, env) {
   let interpreter = null;
   try {
     const line = await firstLine(sensors);
@@ -67,4 +68,49 @@ export async function toolVersions({ root, sensors, sensorsVersion, env }) {
   }
   for (const name of PACKAGES) versions[name] = await packageVersion(root, name);
   return versions;
+}
+
+// The tool each Habit Hooks 1.5.0 plugin sensor needs, and how to install it.
+export const SENSOR_TOOLS = Object.freeze({
+  typescript: [['eslint', 'node-module', 'eslint'], ['knip', 'node-module', 'knip'], ['comment', 'node-module', 'ts-morph']],
+  python: [['ruff', 'command', 'ruff'], ['deptry', 'command', 'deptry']],
+  generic: [['jscpd', 'command', 'jscpd']],
+  gatereeve: [['ruff-s110', 'command', 'ruff']],
+});
+export const INSTALL = Object.freeze({
+  eslint: 'npm install --save-dev eslint typescript typescript-eslint', knip: 'npm install --save-dev knip', 'ts-morph': 'npm install --save-dev ts-morph',
+  ruff: 'pip install ruff', deptry: 'pip install deptry', jscpd: 'npm install --save-dev jscpd',
+});
+
+async function vendoredSensors(root, head, plugin) {
+  const text = await readCommitted(root, head, `.habit-hooks/${plugin}/config.toml`);
+  if (text === null) return null;
+  try {
+    return (await parseToml(text)).sensors ?? [];
+  } catch {
+    return [];
+  }
+}
+
+// Every configured plugin and every enabled sensor's tool, checked before any
+// run, so a missing piece is UNAVAILABLE even when nothing is in scope.
+export async function missingTooling({ root, head, config, env, sensors }) {
+  const missing = [];
+  const installed = await pluginVersions(sensors, env);
+  const tools = [];
+  for (const plugin of config.plugins ?? []) {
+    const vendored = await vendoredSensors(root, head, plugin);
+    if (vendored === null && installed && !installed[`habit-hooks-${plugin}`]) missing.push(`Habit Hooks plugin ${plugin} (pip install habit-hooks-${plugin})`);
+    tools.push(...(SENSOR_TOOLS[plugin] ?? []).filter(([sensor]) => vendored === null || vendored.includes(sensor)));
+  }
+  const seen = new Set();
+  for (const [sensor, kind, tool] of tools) {
+    if (config.sensors?.[sensor]?.disabled === true || seen.has(tool)) continue;
+    seen.add(tool);
+    const present = kind === 'node-module'
+      ? existsSync(join(root, 'node_modules', tool, 'package.json'))
+      : Boolean(await resolveTool(tool, { root, env }));
+    if (!present) missing.push(`${tool}, needed by sensor ${sensor} (${INSTALL[tool] ?? `install ${tool}`})`);
+  }
+  return missing;
 }

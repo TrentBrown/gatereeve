@@ -7,7 +7,7 @@ import { governedChange, identity } from './governed.js';
 import { git, resolveTool, selector, Unavailable } from './process.js';
 import { changedFiles, readCommitted, readConfig, resolveRevisions } from './scope.js';
 import { coach, sense, toolVersion, writeRunConfig } from './sensors.js';
-import { toolVersions } from './tools.js';
+import { missingTooling, toolVersions } from './tools.js';
 import { thresholds } from './thresholds.js';
 import { Worktrees } from './worktree.js';
 import { withScratch } from '../storage/scratch.js';
@@ -118,6 +118,8 @@ async function evaluate(result, { cwd, base, approved, env, habitSensors, habitM
     const mapper = await resolveTool('habit-mapper', { root, override: habitMapper ?? env.GATEREEVE_HABIT_MAPPER ?? join(dirname(sensors), 'habit-mapper'), env });
     if (!mapper) throw new Unavailable('missing-tool', 'habit-mapper (part of habit-hooks) is not installed next to habit-sensors; coaching cannot be rendered.');
     result.tools = await toolVersions({ root, sensors, sensorsVersion: await toolVersion(sensors, env), env });
+    const missing = await missingTooling({ root, head: result.head, config, env, sensors });
+    if (missing.length) throw new Unavailable('missing-tool', `Code-health tooling is missing:\n  ${missing.join('\n  ')}`);
 
     const files = await changedFiles(root, result.mergeBase, result.head, config.files);
     result.scope.files = files;

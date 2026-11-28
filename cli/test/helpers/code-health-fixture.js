@@ -23,6 +23,7 @@ if (process.env.FAKE_SENSORS_LOG) {
 if (mode === 'crash') { console.error('sensor exploded'); process.exit(3); }
 if (mode === 'badjson') { console.log('not json'); process.exit(0); }
 if (mode === 'notarray') { console.log('{"smell":"x"}'); process.exit(0); }
+if (mode === 'badissue') { console.log('[{"smell":"oversized-function","issues":[{}]}]'); process.exit(0); }
 const bySmell = new Map();
 const add = (smell, issue) => { if (!bySmell.has(smell)) bySmell.set(smell, []); bySmell.get(smell).push(issue); };
 if (mode === 'incomplete') add('incomplete-run', { key: "sensor 'ruff' needs the 'ruff' command", details: { content: "sensor 'ruff' needs the 'ruff' command" } });
@@ -55,6 +56,9 @@ process.exit(findings.length ? 1 : 0);
 
 export const BASE_CONFIG = `plugins = ["generic", "gatereeve"]
 files = ["src/**/*.js", "src/**/*.py", "!**/test/**", "!**/*.test.*"]
+
+[sensors.jscpd]
+disabled = true
 
 [smells."@typescript-eslint/no-floating-promises"]
 severity = "enforced"

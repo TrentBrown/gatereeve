@@ -9,7 +9,7 @@ import { runCodeHealth } from '../../plugin-src/shared/resources/code-health/run
 import { renderText } from '../../plugin-src/shared/resources/code-health/render.js';
 import { stringifyToml } from '../../plugin-src/shared/resources/code-health/process.js';
 import { parseToml, TomlError } from '../../plugin-src/shared/resources/code-health/toml.js';
-import { commit, fakeTools, fixtureRepository, read, write } from './helpers/code-health-fixture.js';
+import { BASE_CONFIG, commit, fakeTools, fixtureRepository, read, write } from './helpers/code-health-fixture.js';
 
 const tools = fakeTools();
 const cache = join(tools.directory, 'cache');
@@ -66,7 +66,7 @@ test('effective ESLint thresholds come from the resolved tool and tool versions 
   const first = await check(root, { useCache: true, env });
   assert.deepEqual(first.thresholds.eslint, { functionLines: 40, parameters: 5, complexity: 15, depth: 4, fileLines: 500 });
   assert.equal(first.tools.eslint, 'v9.0.0');
-  assert.equal(first.tools.wrapper, 'gatereeve-code-health/3');
+  assert.equal(first.tools.wrapper, 'gatereeve-code-health/4');
   assert.equal(first.tools.habitSensors, 'habit-sensors 9.9.9-fake');
   assert.equal((await check(root, { useCache: true, env })).cache.hit, true);
   const upgraded = await check(root, { useCache: true, env: { ...env, FAKE_ESLINT_VERSION: '10.0.0' } });
@@ -186,6 +186,34 @@ test('round 2: prototype keys, vendored plugin, reported paths and probe parse e
   commit(probeBroken, 'js only');
   const probed = await check(probeBroken, { env: { FAKE_SENSORS_MODE: 'parse' } });
   assert.equal(probed.verdict, 'PASS', 'a parse error in an untouched probe file does not block the change');
+});
+
+test('round 3: malformed issues, a symlinked run-config path, and tools checked with nothing in scope', async () => {
+  const root = fixtureRepository({ files: { 'src/a.js': 'SMELL:oversized-function:eslint:x\n' } });
+  write(root, { 'src/a.js': 'SMELL:oversized-function:eslint:x\n// touched\n' });
+  commit(root, 'touch');
+  const malformed = await check(root, { env: { FAKE_SENSORS_MODE: 'badissue' } });
+  assert.equal(malformed.verdict, 'UNAVAILABLE');
+  assert.equal(malformed.reasons[0].cause, 'sensor-failed');
+
+  const linked = fixtureRepository({ files: { 'src/a.js': 'x\n', '.gitignore': 'node_modules\n' } });
+  write(linked, { 'node_modules/shared/config.toml': 'ORIGINAL\n' });
+  symlinkSync('../node_modules/shared/config.toml', join(linked, '.habit-hooks', '.gatereeve-code-health.toml'));
+  commit(linked, 'tracked symlink at the run-config path');
+  const subject = (await check(linked)).governed.subject;
+  write(linked, { 'src/a.js': 'y\n' });
+  commit(linked, 'change');
+  assert.equal((await check(linked, { approved: [subject] })).verdict, 'PASS');
+  assert.equal(read(linked, 'node_modules/shared/config.toml'), 'ORIGINAL\n');
+
+  const jscpd = fixtureRepository({ config: BASE_CONFIG.replace('[sensors.jscpd]\ndisabled = true\n', ''), files: { 'README.md': 'x\n' } });
+  write(jscpd, { 'README.md': 'docs only\n' });
+  commit(jscpd, 'docs');
+  const missing = await check(jscpd, { env: { PATH: [dirname(process.execPath), '/usr/bin', '/bin'].join(delimiter) } });
+  assert.equal(missing.verdict, 'UNAVAILABLE', 'nothing in scope still checks the tools');
+  assert.equal(missing.reasons[0].cause, 'missing-tool');
+  assert.match(missing.reasons[0].message, /jscpd, needed by sensor jscpd \(npm install --save-dev jscpd\)/);
+  assert.ok('jscpd' in (await check(root)).tools, 'jscpd identity is part of the tool versions');
 });
 
 test.after(() => rmSync(tools.directory, { recursive: true, force: true }));
