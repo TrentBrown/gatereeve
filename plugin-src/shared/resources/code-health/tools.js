@@ -1,15 +1,16 @@
 // Tool identity for the base-result cache and the receipt (design §4): the
 // wrapper itself, Habit Hooks and its plugins, and the analysers they run.
 import { existsSync } from 'node:fs';
-import { mkdtemp, open, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, open, readFile, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, relative, sep } from 'node:path';
 import { parseToml, resolveTool, run } from './process.js';
 import { readCommitted } from './scope.js';
+import { environmentLinks } from './worktree.js';
 
 // Bump when the comparison, neutralization or scoping rules change, so cached
 // baselines from an earlier wrapper are never reused.
-export const WRAPPER_VERSION = 'gatereeve-code-health/4';
+export const WRAPPER_VERSION = 'gatereeve-code-health/5';
 
 const COMMANDS = ['eslint', 'ruff', 'knip', 'deptry', 'jscpd'];
 const PACKAGES = ['typescript', 'typescript-eslint', '@typescript-eslint/parser', '@typescript-eslint/eslint-plugin', 'ts-morph'];
@@ -47,16 +48,16 @@ async function habitPython(sensors, env) {
 }
 
 // Habit Hooks plugins are Python distributions installed beside habit-sensors;
-// its own interpreter reports their versions. -P (not -I) keeps user-site
-// installs visible while never importing from the working directory, which
-// is a fresh temporary directory anyway.
+// its own interpreter reports their versions. Not -I, which hides user-site
+// installs, and not -P, which Python 3.10 lacks: the working directory is a
+// fresh empty temporary directory, so nothing can be imported from it.
 export async function pluginVersions(sensors, env) {
   const interpreter = await habitPython(sensors, env);
   if (!interpreter) return null;
   const [command, ...args] = interpreter;
   const cwd = await mkdtemp(join(tmpdir(), 'gatereeve-habit-python-'));
   try {
-    const result = await run(command, [...args, '-P', '-c', PLUGIN_VERSIONS], { cwd, env, timeoutMs: 30000 });
+    const result = await run(command, [...args, '-c', PLUGIN_VERSIONS], { cwd, env, timeoutMs: 30000 });
     if (result.code !== 0) return null;
     const parsed = JSON.parse(result.stdout);
     return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
@@ -67,8 +68,8 @@ export async function pluginVersions(sensors, env) {
   }
 }
 
-async function packageVersion(root, name) {
-  const path = join(root, 'node_modules', name, 'package.json');
+async function packageVersion(directory, name) {
+  const path = join(directory, name, 'package.json');
   if (!existsSync(path)) return null;
   try {
     return JSON.parse(await readFile(path, 'utf8')).version ?? null;
@@ -77,18 +78,60 @@ async function packageVersion(root, name) {
   }
 }
 
+// The node_modules directory holding an executable, if it is a package's bin
+// (node_modules/.bin/x or node_modules/pkg/bin/x, possibly global).
+async function enclosingModules(executable) {
+  let path;
+  try {
+    path = await realpath(executable);
+  } catch {
+    return null;
+  }
+  const parts = path.split(sep);
+  const index = parts.lastIndexOf('node_modules');
+  return index > 0 ? parts.slice(0, index + 1).join(sep) : null;
+}
+
+// Every node_modules the analysers can load packages from: the root's, each
+// package-local one the worktrees link, and the one holding each resolved
+// command. A package's identity is its version in each place, so upgrading a
+// package-local typescript-eslint changes the cache key (codex/F2, round 6).
+async function moduleDirectories(root, executables) {
+  const directories = new Set((await environmentLinks(root)).filter(name => name.endsWith('node_modules')).map(name => join(root, name)));
+  for (const executable of executables) {
+    const directory = await enclosingModules(executable);
+    if (directory) directories.add(directory);
+  }
+  return [...directories].sort();
+}
+
+const label = (root, directory) => {
+  const path = relative(root, directory);
+  return path.startsWith('..') ? directory : path.split(sep).join('/');
+};
+
 export async function toolVersions({ root, sensors, sensorsVersion, env }) {
   const versions = { wrapper: WRAPPER_VERSION, habitSensors: sensorsVersion, plugins: await pluginVersions(sensors, env) };
+  const executables = [];
   for (const name of COMMANDS) {
     const executable = await resolveTool(name, { root, env });
     if (!executable) {
       versions[name] = null;
       continue;
     }
+    executables.push(executable);
     const result = await run(executable, ['--version'], { cwd: root, env, timeoutMs: 30000 });
     versions[name] = result.code === 0 ? result.stdout.trim().split('\n')[0] : null;
   }
-  for (const name of PACKAGES) versions[name] = await packageVersion(root, name);
+  const directories = await moduleDirectories(root, executables);
+  for (const name of PACKAGES) {
+    const found = {};
+    for (const directory of directories) {
+      const version = await packageVersion(directory, name);
+      if (version !== null) found[label(root, directory)] = version;
+    }
+    versions[name] = Object.keys(found).length ? found : null;
+  }
   return versions;
 }
 

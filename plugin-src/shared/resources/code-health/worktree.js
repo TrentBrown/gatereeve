@@ -32,7 +32,7 @@ const LINKED = ['node_modules', '.venv', 'venv'];
 
 // Package-local installs (a monorepo's cli/node_modules) are linked too: every
 // directory with a tracked package.json gets its node_modules.
-async function environmentLinks(root) {
+export async function environmentLinks(root) {
   const tracked = (await git(root, ['ls-files', '-z', '--', 'package.json', '*/package.json', '*/*/package.json'])).split('\0').filter(Boolean);
   const nested = tracked.map(path => dirname(path)).filter(directory => directory !== '.').map(directory => join(directory, 'node_modules'));
   return [...LINKED, ...nested].filter(path => existsSync(join(root, path)));

@@ -10,9 +10,10 @@ export const DEFAULT_GOVERNED = Object.freeze([
   '**/eslint.config.{js,mjs,cjs,ts,mts,cts}',
   '**/.eslintrc',
   '**/.eslintrc.*',
-  '**/tsconfig.json',
-  '**/tsconfig.*.json',
-  '**/jsconfig.json',
+  // Any tsconfig/jsconfig name: tsconfig.base.json, tsconfig-base.json and
+  // tsconfigLint.json can all be extended and decide type-aware findings.
+  '**/tsconfig*.json',
+  '**/jsconfig*.json',
   '**/ruff.toml',
   '**/.ruff.toml',
   '**/knip.json',

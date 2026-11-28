@@ -66,7 +66,7 @@ test('effective ESLint thresholds come from the resolved tool and tool versions 
   const first = await check(root, { useCache: true, env });
   assert.deepEqual(first.thresholds.eslint, { functionLines: 40, parameters: 5, complexity: 15, depth: 4, fileLines: 500 });
   assert.equal(first.tools.eslint, 'v9.0.0');
-  assert.equal(first.tools.wrapper, 'gatereeve-code-health/4');
+  assert.equal(first.tools.wrapper, 'gatereeve-code-health/5');
   assert.equal(first.tools.habitSensors, 'habit-sensors 9.9.9-fake');
   assert.equal((await check(root, { useCache: true, env })).cache.hit, true);
   const upgraded = await check(root, { useCache: true, env: { ...env, FAKE_ESLINT_VERSION: '10.0.0' } });
@@ -263,6 +263,34 @@ test('round 4: plugin inventory, issue file validation and overlay directories',
   const result = await check(linked, { approved: [subject] });
   assert.equal(result.verdict, 'UNAVAILABLE');
   assert.equal(existsSync(join(linked, 'node_modules', 'shared', 'newdir')), false, 'nothing is created through the symlink');
+});
+
+test('a package-local analyser package is part of the tool identity (round 6 codex/F2)', async () => {
+  const root = fixtureRepository({ files: { 'src/a.js': 'x\n', 'pkg/package.json': '{}\n', '.gitignore': 'node_modules\n' } });
+  write(root, { 'src/a.js': 'y\n' });
+  commit(root, 'touch');
+  const install = version => write(root, { 'pkg/node_modules/typescript-eslint/package.json': JSON.stringify({ name: 'typescript-eslint', version }) });
+  install('8.0.0');
+  const env = { GATEREEVE_CODE_HEALTH_CACHE: join(tools.directory, `cache-local-${Date.now()}`) };
+  const first = await check(root, { useCache: true, env });
+  assert.deepEqual(first.tools['typescript-eslint'], { 'pkg/node_modules': '8.0.0' });
+  assert.equal((await check(root, { useCache: true, env })).cache.hit, true);
+  install('8.1.0');
+  const upgraded = await check(root, { useCache: true, env });
+  assert.deepEqual(upgraded.tools['typescript-eslint'], { 'pkg/node_modules': '8.1.0' });
+  assert.equal(upgraded.cache.hit, false, 'a package-local upgrade never reuses the old baseline');
+});
+
+test('every tsconfig and jsconfig name is governed (round 6 codex/F14)', async () => {
+  for (const name of ['tsconfig-base.json', 'tsconfigLint.json', 'tsconfig.base.json', 'pkg/jsconfig.app.json']) {
+    const root = fixtureRepository({ files: { 'src/a.js': 'x\n', [name]: '{}\n' } });
+    write(root, { [name]: '{ "compilerOptions": { "strict": false } }\n' });
+    commit(root, `change ${name}`);
+    const result = await check(root);
+    assert.equal(result.verdict, 'UNAVAILABLE', `${name} needs an approval`);
+    assert.ok(result.governed.subject, name);
+    assert.equal((await check(root, { approved: [result.governed.subject] })).verdict, 'PASS', name);
+  }
 });
 
 test.after(() => rmSync(tools.directory, { recursive: true, force: true }));
