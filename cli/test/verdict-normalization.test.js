@@ -136,7 +136,7 @@ const adapters = {
     return { code: 0, signal: null, stdout: '{"type":"thread.started","thread_id":"fresh"}\n', stderr: '', startedAt: new Date(), completedAt: new Date() };
   } }),
   'claude-code': () => createClaudeCodeAgentAdapter({ model: 'claude-test', runner: async () => ({ code: 0, signal: null,
-    stdout: JSON.stringify({ session_id: 'fresh', result: wrapped }), stderr: '', startedAt: new Date(), completedAt: new Date() }) }),
+    stdout: `${JSON.stringify({ type: 'result', subtype: 'success', session_id: 'fresh', result: wrapped })}\n`, stderr: '', startedAt: new Date(), completedAt: new Date() }) }),
 };
 for (const [provider, create] of Object.entries(adapters)) test(`${provider}: prose-wrapped output is unwrapped through the hook; without it, malformed JSON`, async () => {
   const reported = [];

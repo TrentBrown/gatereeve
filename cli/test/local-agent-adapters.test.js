@@ -41,6 +41,10 @@ function request() {
   };
 }
 
+// Claude Code's stream-json output (issue #147): events, then the result
+// envelope as its last event.
+const claudeStream = envelope => `${JSON.stringify({ type: 'system', subtype: 'init', session_id: envelope.session_id })}\n${JSON.stringify({ type: 'result', subtype: 'success', ...envelope })}\n`;
+
 test('only Linux Codex adds the fixed distro helper path to the scrubbed shell', () => {
   const scrubbed = ['--config', 'shell_environment_policy.inherit="none"'];
   assert.deepEqual(codexShellEnvironmentArgs('linux'), [
@@ -92,7 +96,7 @@ test('Claude Code adapter launches a non-persistent restricted custom agent', as
       calls.push({ executable, args, options });
       return {
         code: 0, signal: null,
-        stdout: JSON.stringify({
+        stdout: claudeStream({
           session_id: 'claude-context-1',
           structured_output: { verdict: 'PASS' },
           usage: { input_tokens: 20, output_tokens: 9, cache_read_input_tokens: 3, cache_creation_input_tokens: 4 }, total_cost_usd: 0.03,
@@ -127,7 +131,7 @@ test('Claude Code adapter passes the prompt on standard input, never in argv, in
     model: 'claude-test',
     runner: async (executable, args, options) => {
       calls.push({ executable, args, options });
-      return { code: 0, signal: null, stdout: JSON.stringify({ session_id: 'claude-context-2', structured_output: { verdict: 'PASS' } }), stderr: '',
+      return { code: 0, signal: null, stdout: claudeStream({ session_id: 'claude-context-2', structured_output: { verdict: 'PASS' } }), stderr: '',
         startedAt: new Date('2026-09-24T12:00:00Z'), completedAt: new Date('2026-09-24T12:01:00Z') };
     },
   });
@@ -139,7 +143,7 @@ test('Claude Code adapter passes the prompt on standard input, never in argv, in
   assert.ok(options.input.includes('Review the pinned evidence.') && options.input.includes('x'.repeat(1024)));
   assert.ok(args.every(arg => !String(arg).includes('x'.repeat(1024)) && Buffer.byteLength(String(arg)) < MAX_ARGUMENT_BYTES), 'no argv element carries the prompt or exceeds the limit');
   assert.ok(!args.some(arg => String(arg).includes('<gatereeve-output-schema>')));
-  assert.deepEqual(args.slice(-4), ['--output-format', 'json', '--input-format', 'text']);
+  assert.deepEqual(args.slice(-5), ['--output-format', 'stream-json', '--verbose', '--input-format', 'text']);
   // The bounded prompt limit still applies on stdin.
   await assert.rejects(adapter.runStage({ ...request(), input: { diff: 'x'.repeat(600 * 1024) } }), /exceeds the bounded 524288-character provider limit/);
   assert.equal(calls.length, 1);
@@ -336,7 +340,7 @@ test('both local adapters advertise spawn reporting and forward onSpawn to their
   const onSpawn = async () => {};
   for (const [create, output] of [
     [createCodexAgentAdapter, async (args) => { await writeFile(args[args.indexOf('--output-last-message') + 1], '{"verdict":"PASS"}\n'); return '{"type":"thread.started","thread_id":"codex-context-1"}\n'; }],
-    [createClaudeCodeAgentAdapter, async () => JSON.stringify({ session_id: 'claude-context-1', structured_output: { verdict: 'PASS' } })],
+    [createClaudeCodeAgentAdapter, async () => claudeStream({ session_id: 'claude-context-1', structured_output: { verdict: 'PASS' } })],
   ]) {
     const received = [];
     const adapter = create({ model: 'model-test', runner: async (executable, args, options) => {
@@ -362,7 +366,7 @@ async function launchArgs(create, value) {
     const outputPath = args.includes('--output-last-message') ? args[args.indexOf('--output-last-message') + 1] : null;
     if (outputPath) await writeFile(outputPath, '{"verdict":"PASS"}\n');
     return { code: 0, signal: null, stderr: '', startedAt: new Date('2026-11-26T00:00:00Z'), completedAt: new Date('2026-11-26T00:01:00Z'),
-      stdout: outputPath ? '{"type":"thread.started","thread_id":"codex-context"}\n' : JSON.stringify({ session_id: 'claude-context', structured_output: { verdict: 'PASS' } }) };
+      stdout: outputPath ? '{"type":"thread.started","thread_id":"codex-context"}\n' : claudeStream({ session_id: 'claude-context', structured_output: { verdict: 'PASS' } }) };
   } });
   assert.equal(adapter.selfValidation, true);
   const result = await adapter.runStage(value);
