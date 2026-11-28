@@ -52,7 +52,7 @@ async function round(f, label, findings, patch = {}) {
 }
 const decide = (f, input, id) => f.request('followup.decide', { reason: 'Test decision.', authority: { ...human, instruction: 'Decide these.' }, ...input }, id);
 // GitHub issues double: list and create, recording every call.
-function issues(f, { fail = () => false } = {}) {
+function issues(f, { fail = () => false, searchLag = false } = {}) {
   const host = { issues: [], calls: [] };
   const previous = f.core.runtime.gh;
   f.core.runtime.gh = async (root, args) => {
@@ -60,7 +60,8 @@ function issues(f, { fail = () => false } = {}) {
     host.calls.push(args);
     const repo = args[args.indexOf('--repo') + 1];
     if (fail(args, host)) throw Object.assign(new Error('Command failed: gh issue'), { stderr: 'HTTP 502' });
-    if (args[1] === 'list') return JSON.stringify(host.issues.filter(issue => issue.repo === repo && issue.state === 'open'));
+    // searchLag: the search index has not seen any issue yet; a plain list has.
+    if (args[1] === 'list') return JSON.stringify(searchLag && args.includes('--search') ? [] : host.issues.filter(issue => issue.repo === repo && issue.state === 'open'));
     if (args[1] === 'create') {
       const number = host.issues.length + 100;
       host.issues.push({ repo, number, url: `https://github.com/${repo}/issues/${number}`, title: args[args.indexOf('--title') + 1], body: args[args.indexOf('--body') + 1], state: 'open' });
@@ -238,12 +239,12 @@ test('R3: decisions by IDs and by select, supersession, policy defaults skipping
   assert.equal((await f.core.state()).events.length, count, 'nothing recorded');
 });
 
-test('R3, R5: a bulk new-work call whose second filing fails records nothing; the retry reuses the first issue', async t => {
+test('R3, R5: a bulk new-work call whose second filing fails records nothing; the retry reuses the first issue, even before search sees it', async t => {
   const f = await run(t);
   await round(f, 1, [medium({ blocking: false }), medium({ blocking: false, path: 'app/other.js' })]);
   const ids = (await records(f)).map(row => row.id);
   let creates = 0;
-  const host = issues(f, { fail: args => args[1] === 'create' && ++creates === 2 });
+  const host = issues(f, { fail: args => args[1] === 'create' && ++creates === 2, searchLag: true });
   await assert.rejects(decide(f, { followUps: ids, decision: 'new-work' }, 'bulk'), /Filing follow-up fu-[0-9a-f]{12} as new work failed; nothing was recorded/);
   assert.equal((await f.core.state()).events.filter(event => event.type === 'FOLLOW_UP_DECIDED').length, 0);
   assert.equal(host.issues.length, 1);

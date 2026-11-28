@@ -274,8 +274,12 @@ async function fileIssue(core, state, record, pr, gh) {
   const target = await ownerRepo(core, record.repository);
   if (!target) return { kind: 'seed', repository: record.repository };
   const marker = followUpMarker(record.dedupKey);
-  const listed = JSON.parse(await gh(repository.path, ['issue', 'list', '--repo', target, '--state', 'open', '--search', `"${marker}" in:body`, '--json', 'number,url,body', '--limit', '20']) || '[]');
-  const existing = listed.find(issue => String(issue.body ?? '').includes(marker));
+  // Search finds older issues; the newest open issues cover one created
+  // moments ago that the search index has not seen yet (a retry after a lost
+  // response).
+  const find = async args => JSON.parse(await gh(repository.path, ['issue', 'list', '--repo', target, '--state', 'open', ...args, '--json', 'number,url,body']) || '[]')
+    .find(issue => String(issue.body ?? '').includes(marker));
+  const existing = await find(['--search', `"${marker}" in:body`, '--limit', '20']) ?? await find(['--limit', '100']);
   if (existing) return { kind: 'issue', repository: record.repository, number: existing.number, url: existing.url, reused: true };
   const { title, body } = issueText(record, redactor(core, state, record.repository, target.split('/')[1]), pr);
   const url = (await gh(repository.path, ['issue', 'create', '--repo', target, '--title', title, '--body', body])).trim().split(/\s+/u).at(-1);
@@ -350,8 +354,10 @@ export async function decideFollowUps(core, input, operation, gh) {
   }
   const payload = { authority, reason: input.reason, decisions: rows, ...(input.pr ? { pr: input.pr } : {}) };
   const recorded = await core.append(state, 'FOLLOW_UP_DECIDED', payload, operation);
-  await renderFollowUps(core);
-  return { decided: rows, skipped, event: recorded.event };
+  // The decision is recorded; a failed regeneration of the view is reported,
+  // and followup.render retries it.
+  const rendered = await renderFollowUps(core).catch(error => ({ error: `follow-ups.md was not regenerated: ${error.message}; run followup.render` }));
+  return { decided: rows, skipped, event: recorded.event, rendered };
 }
 
 // follow-ups.md (spec AC7): generated, never hand-edited.
