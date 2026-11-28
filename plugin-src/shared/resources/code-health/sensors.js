@@ -54,8 +54,12 @@ export async function writeRunConfig(worktree, config, files) {
   return path;
 }
 
-const validIssue = issue => issue && typeof issue === 'object'
-  && (typeof issue.details?.file === 'string' || typeof issue.key === 'string');
+// An issue names its file: details.file when present, else key. Either way it
+// must be a non-empty string, or the run's output is malformed.
+const nonEmpty = value => typeof value === 'string' && value.length > 0;
+const validIssue = issue => issue && typeof issue === 'object' && !Array.isArray(issue)
+  && (issue.details === undefined || (issue.details && typeof issue.details === 'object'))
+  && (issue.details?.file === undefined ? nonEmpty(issue.key) : nonEmpty(issue.details.file));
 
 function validFindings(value) {
   return Array.isArray(value) && value.every(finding => finding && typeof finding.smell === 'string'

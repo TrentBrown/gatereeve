@@ -24,6 +24,9 @@ if (mode === 'crash') { console.error('sensor exploded'); process.exit(3); }
 if (mode === 'badjson') { console.log('not json'); process.exit(0); }
 if (mode === 'notarray') { console.log('{"smell":"x"}'); process.exit(0); }
 if (mode === 'badissue') { console.log('[{"smell":"oversized-function","issues":[{}]}]'); process.exit(0); }
+if (mode === 'emptykey') { console.log('[{"smell":"oversized-function","issues":[{"key":""}]}]'); process.exit(0); }
+if (mode === 'badfile') { console.log('[{"smell":"oversized-function","issues":[{"key":"src/a.js","details":{"file":123}}]}]'); process.exit(0); }
+if (mode === 'emptyfile') { console.log('[{"smell":"oversized-function","issues":[{"key":"src/a.js","details":{"file":""}}]}]'); process.exit(0); }
 const bySmell = new Map();
 const add = (smell, issue) => { if (!bySmell.has(smell)) bySmell.set(smell, []); bySmell.get(smell).push(issue); };
 if (mode === 'incomplete') add('incomplete-run', { key: "sensor 'ruff' needs the 'ruff' command", details: { content: "sensor 'ruff' needs the 'ruff' command" } });
@@ -78,13 +81,19 @@ if (process.argv[2] === '--print-config') { console.log(JSON.stringify({ rules: 
 process.exit(2);
 `;
 
+// Stands in for the Python beside habit-sensors: answers the plugin inventory query.
+const FAKE_PYTHON = `#!/usr/bin/env node
+if (process.env.FAKE_PYTHON_MODE === 'fail') process.exit(1);
+console.log(process.env.FAKE_PLUGINS || JSON.stringify({ 'habit-hooks': '9.9.9', 'habit-hooks-generic': '9.9.9', 'habit-hooks-python': '9.9.9', 'habit-hooks-typescript': '9.9.9' }));
+`;
+
 export function fakeTools() {
   const directory = mkdtempSync(join(tmpdir(), 'gatereeve-code-health-tools-'));
   const sensors = join(directory, 'habit-sensors');
   const mapper = join(directory, 'habit-mapper');
   const eslintDirectory = join(directory, 'eslint-bin');
   mkdirSync(eslintDirectory);
-  for (const [path, content] of [[sensors, FAKE_SENSORS], [mapper, FAKE_MAPPER], [join(eslintDirectory, 'eslint'), FAKE_ESLINT]]) {
+  for (const [path, content] of [[sensors, FAKE_SENSORS], [mapper, FAKE_MAPPER], [join(directory, 'python'), FAKE_PYTHON], [join(eslintDirectory, 'eslint'), FAKE_ESLINT]]) {
     writeFileSync(path, content);
     chmodSync(path, 0o755);
   }

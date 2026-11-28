@@ -51,6 +51,23 @@ async function inside(worktree, path) {
   return parent === base || parent.startsWith(base + sep);
 }
 
+// Create each missing parent of a repository-relative directory, refusing a
+// symlinked component before anything is created beneath it.
+async function directoriesWithin(worktree, relative) {
+  let current = worktree;
+  for (const part of relative.split('/').filter(segment => segment && segment !== '.')) {
+    current = join(current, part);
+    let stat = null;
+    try {
+      stat = await lstat(current);
+    } catch {
+      await mkdir(current);
+      continue;
+    }
+    if (stat.isSymbolicLink() || !stat.isDirectory()) throw new Error(`Refusing to write outside the temporary worktree: ${relative} passes through ${current}`);
+  }
+}
+
 async function isSymlink(path) {
   try {
     return (await lstat(path)).isSymbolicLink();
@@ -85,8 +102,7 @@ export class Worktrees {
   async overlay(path, headCommit, baseHashes, headHashes) {
     for (const file of new Set([...Object.keys(baseHashes), ...Object.keys(headHashes)])) {
       const target = join(path, file);
-      await mkdir(dirname(target), { recursive: true });
-      if (!await inside(path, target)) throw new Error(`Refusing to write outside the temporary worktree: ${file}`);
+      await directoriesWithin(path, dirname(file));
       await rm(target, { force: true });
       if (!(file in headHashes)) continue;
       const entry = (await git(this.root, ['ls-tree', headCommit, '--', file])).split('\t')[0].split(' ');

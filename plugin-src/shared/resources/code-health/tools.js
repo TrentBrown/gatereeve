@@ -1,8 +1,9 @@
 // Tool identity for the base-result cache and the receipt (design §4): the
 // wrapper itself, Habit Hooks and its plugins, and the analysers they run.
 import { existsSync } from 'node:fs';
-import { open, readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { mkdtemp, open, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { parseToml, resolveTool, run } from './process.js';
 import { readCommitted } from './scope.js';
 
@@ -24,24 +25,45 @@ async function firstLine(path) {
   }
 }
 
-// Habit Hooks plugins are Python distributions installed beside habit-sensors;
-// its own interpreter (from the script's shebang) reports their versions.
-export async function pluginVersions(sensors, env) {
-  let interpreter = null;
+// The Python that runs habit-sensors: GATEREEVE_HABIT_PYTHON, the script's
+// python shebang, or the interpreter installed beside it (a venv or pipx
+// launcher that is not itself a Python script).
+async function habitPython(sensors, env) {
+  if (env.GATEREEVE_HABIT_PYTHON) return [env.GATEREEVE_HABIT_PYTHON];
   try {
     const line = await firstLine(sensors);
-    if (line.startsWith('#!') && /python/.test(line)) interpreter = line.slice(2).trim().split(/\s+/);
+    if (line.startsWith('#!') && /python/.test(line)) {
+      const interpreter = line.slice(2).trim().split(/\s+/);
+      return interpreter[0].endsWith('/env') ? interpreter.slice(1) : interpreter;
+    }
   } catch {
     return null;
   }
+  for (const name of ['python3', 'python']) {
+    const sibling = join(dirname(sensors), name);
+    if (existsSync(sibling)) return [sibling];
+  }
+  return null;
+}
+
+// Habit Hooks plugins are Python distributions installed beside habit-sensors;
+// its own interpreter reports their versions. -P (not -I) keeps user-site
+// installs visible while never importing from the working directory, which
+// is a fresh temporary directory anyway.
+export async function pluginVersions(sensors, env) {
+  const interpreter = await habitPython(sensors, env);
   if (!interpreter) return null;
-  const [command, ...args] = interpreter[0].endsWith('/env') ? interpreter.slice(1) : interpreter;
-  const result = await run(command, [...args, '-I', '-c', PLUGIN_VERSIONS], { env, timeoutMs: 30000 });
-  if (result.code !== 0) return null;
+  const [command, ...args] = interpreter;
+  const cwd = await mkdtemp(join(tmpdir(), 'gatereeve-habit-python-'));
   try {
-    return JSON.parse(result.stdout);
+    const result = await run(command, [...args, '-P', '-c', PLUGIN_VERSIONS], { cwd, env, timeoutMs: 30000 });
+    if (result.code !== 0) return null;
+    const parsed = JSON.parse(result.stdout);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
   } catch {
     return null;
+  } finally {
+    await rm(cwd, { recursive: true, force: true });
   }
 }
 
@@ -86,7 +108,8 @@ async function vendoredSensors(root, head, plugin) {
   const text = await readCommitted(root, head, `.habit-hooks/${plugin}/config.toml`);
   if (text === null) return null;
   try {
-    return (await parseToml(text)).sensors ?? [];
+    const sensors = (await parseToml(text)).sensors ?? [];
+    return Array.isArray(sensors) ? sensors : [];
   } catch {
     return [];
   }
@@ -97,6 +120,9 @@ async function vendoredSensors(root, head, plugin) {
 export async function missingTooling({ root, head, config, env, sensors }) {
   const missing = [];
   const installed = await pluginVersions(sensors, env);
+  // Unknown plugin inventory is not "everything installed": the run cannot
+  // prove its plugins, and cached baselines could not be keyed by them.
+  if (!installed) missing.push('the Habit Hooks plugin inventory (could not find the Python that runs habit-sensors; set GATEREEVE_HABIT_PYTHON to it)');
   const tools = [];
   for (const plugin of config.plugins ?? []) {
     const vendored = await vendoredSensors(root, head, plugin);
@@ -107,9 +133,10 @@ export async function missingTooling({ root, head, config, env, sensors }) {
   for (const [sensor, kind, tool] of tools) {
     if (config.sensors?.[sensor]?.disabled === true || seen.has(tool)) continue;
     seen.add(tool);
-    const present = kind === 'node-module'
-      ? existsSync(join(root, 'node_modules', tool, 'package.json'))
-      : Boolean(await resolveTool(tool, { root, env }));
+    // A node module may be a root dependency or only resolvable as a command
+    // (.venv/bin, node_modules/.bin, PATH), as Habit Hooks accepts.
+    const present = (kind === 'node-module' && existsSync(join(root, 'node_modules', tool, 'package.json')))
+      || Boolean(await resolveTool(tool, { root, env }));
     if (!present) missing.push(`${tool}, needed by sensor ${sensor} (${INSTALL[tool] ?? `install ${tool}`})`);
   }
   return missing;

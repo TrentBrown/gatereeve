@@ -1,7 +1,7 @@
 import './helpers/private-scratch.js';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, symlinkSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { delimiter, dirname, join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -9,7 +9,7 @@ import { runCodeHealth } from '../../plugin-src/shared/resources/code-health/run
 import { renderText } from '../../plugin-src/shared/resources/code-health/render.js';
 import { stringifyToml } from '../../plugin-src/shared/resources/code-health/process.js';
 import { parseToml, TomlError } from '../../plugin-src/shared/resources/code-health/toml.js';
-import { BASE_CONFIG, commit, fakeTools, fixtureRepository, read, write } from './helpers/code-health-fixture.js';
+import { BASE_CONFIG, commit, fakeTools, fixtureRepository, gitIn, read, write } from './helpers/code-health-fixture.js';
 
 const tools = fakeTools();
 const cache = join(tools.directory, 'cache');
@@ -214,6 +214,55 @@ test('round 3: malformed issues, a symlinked run-config path, and tools checked 
   assert.equal(missing.reasons[0].cause, 'missing-tool');
   assert.match(missing.reasons[0].message, /jscpd, needed by sensor jscpd \(npm install --save-dev jscpd\)/);
   assert.ok('jscpd' in (await check(root)).tools, 'jscpd identity is part of the tool versions');
+});
+
+test('round 4: plugin inventory, issue file validation and overlay directories', async () => {
+  const root = fixtureRepository({ files: { 'src/a.js': 'SMELL:oversized-function:eslint:x\n' } });
+  write(root, { 'src/a.js': 'SMELL:oversized-function:eslint:x\n// touched\n' });
+  commit(root, 'touch');
+  for (const mode of ['emptykey', 'badfile', 'emptyfile']) {
+    const result = await check(root, { env: { FAKE_SENSORS_MODE: mode } });
+    assert.equal(result.verdict, 'UNAVAILABLE', mode);
+    assert.equal(result.reasons[0].cause, 'sensor-failed', mode);
+  }
+
+  const launcher = mkdtempSync(join(tools.directory, 'launcher-'));
+  const copied = join(launcher, 'habit-sensors');
+  writeFileSync(copied, readFileSync(tools.sensors));
+  chmodSync(copied, 0o755);
+  const unknown = await check(root, { habitSensors: copied });
+  assert.equal(unknown.verdict, 'UNAVAILABLE', 'an unknown plugin inventory is never treated as complete');
+  assert.match(unknown.reasons[0].message, /GATEREEVE_HABIT_PYTHON/);
+  assert.equal((await check(root, { habitSensors: copied, env: { GATEREEVE_HABIT_PYTHON: join(tools.directory, 'python') } })).verdict, 'PASS');
+  assert.equal((await check(root, { env: { FAKE_PYTHON_MODE: 'fail' } })).verdict, 'UNAVAILABLE');
+
+  const docs = fixtureRepository({ files: { 'README.md': 'x\n' } });
+  write(docs, { 'README.md': 'docs\n' });
+  commit(docs, 'docs');
+  const missingPlugin = await check(docs, { env: { FAKE_PLUGINS: JSON.stringify({ 'habit-hooks': '9.9.9' }) } });
+  assert.equal(missingPlugin.verdict, 'UNAVAILABLE', 'nothing in scope still checks the plugins');
+  assert.match(missingPlugin.reasons[0].message, /Habit Hooks plugin generic \(pip install habit-hooks-generic\)/);
+
+  const env = { GATEREEVE_CODE_HEALTH_CACHE: join(tools.directory, `cache-plugins-${Date.now()}`) };
+  await check(root, { useCache: true, env });
+  assert.equal((await check(root, { useCache: true, env })).cache.hit, true);
+  const upgraded = await check(root, { useCache: true, env: { ...env, FAKE_PLUGINS: JSON.stringify({ 'habit-hooks': '9.9.9', 'habit-hooks-generic': '10.0.0' }) } });
+  assert.equal(upgraded.cache.hit, false, 'a changed plugin version never reuses the old baseline');
+
+  const linked = fixtureRepository({ files: { 'src/a.js': 'x\n', '.gitignore': 'node_modules\n' } });
+  write(linked, { 'node_modules/shared/keep.txt': 'x\n' });
+  gitIn(linked, 'checkout', '-q', 'main');
+  symlinkSync('node_modules/shared', join(linked, 'configs'));
+  commit(linked, 'configs is a symlink at the base');
+  gitIn(linked, 'checkout', '-q', 'feature');
+  gitIn(linked, 'reset', '-q', '--hard', 'main');
+  gitIn(linked, 'rm', '-q', 'configs');
+  write(linked, { 'configs/newdir/eslint.config.js': 'export default [];\n', 'src/a.js': 'y\n' });
+  commit(linked, 'configs becomes a real directory');
+  const subject = (await check(linked)).governed.subject;
+  const result = await check(linked, { approved: [subject] });
+  assert.equal(result.verdict, 'UNAVAILABLE');
+  assert.equal(existsSync(join(linked, 'node_modules', 'shared', 'newdir')), false, 'nothing is created through the symlink');
 });
 
 test.after(() => rmSync(tools.directory, { recursive: true, force: true }));
