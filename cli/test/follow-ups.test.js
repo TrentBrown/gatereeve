@@ -300,7 +300,7 @@ test('R5: filing creates a marked, backlinked issue in the follow-up\'s reposito
   const { state } = await f.core.state();
   const local = `${f.root}/app/app.js`;
   await round(f, 1, [medium({ blocking: false, classStatement: `Acme Corp import breaks at ${local} on ${hostname()} in run ${state.runId}`,
-    failureScenario: `Run from ~/work/${basename(f.root)}/x with tools/ and ${f.home} -> /Users/someone/secret is read` })]);
+    failureScenario: `Run from ~/work/${basename(f.root)}/x with tools/ and ${f.home} -> /Users/someone/secret and /srv are read` })]);
   const [record] = await records(f);
   const host = issues(f);
   const filed = await decide(f, { followUps: [record.id], decision: 'new-work', pr: 12 }, 'file');
@@ -310,7 +310,7 @@ test('R5: filing creates a marked, backlinked issue in the follow-up\'s reposito
   assert.ok(issue.body.includes(followUpMarker(record.dedupKey)));
   assert.match(issue.body, /Raised in the review of #12\./u);
   const text = `${issue.title}\n${issue.body}`;
-  for (const secret of [f.root, f.home, basename(f.root), state.runId, hostname(), 'Acme Corp', '/Users/someone', '~/work', 'tools/', other])
+  for (const secret of [f.root, f.home, basename(f.root), state.runId, hostname(), 'Acme Corp', '/Users/someone', '/srv', '~/work', 'tools/', other])
     assert.ok(!text.includes(secret), `issue text must not contain ${secret}`);
   assert.match(text, /`app\.js`/u, 'the path is repository-relative');
   // Reuse: an open issue with the marker is found before creating.
@@ -338,7 +338,7 @@ test('R5: filing creates a marked, backlinked issue in the follow-up\'s reposito
   const section = (await f.request('review.publish', { repository: 'app', number: 12 }, 'publish')).section;
   const followUpSection = section.slice(section.indexOf('**Follow-ups**'));
   for (const [label, surface] of [['follow-ups.md', view], ['PR summary', followUpSection]])
-    for (const secret of [f.root, f.home, basename(f.root), state.runId, hostname(), 'Acme Corp', '/Users/someone', other])
+    for (const secret of [f.root, f.home, basename(f.root), state.runId, hostname(), 'Acme Corp', '/Users/someone', '/srv', other])
       assert.ok(!surface.includes(secret), `${label} must not contain ${secret}`);
   assert.ok(view.includes('<redacted> import breaks') && followUpSection.includes('<redacted> import breaks'));
 });
@@ -477,10 +477,14 @@ test('R10: the follow-ups CLI lists, decides and renders', async t => {
   const rendered = await invoke('render');
   assert.equal(rendered.ok, true);
   assert.match(await readFile(rendered.data.path, 'utf8'), /seed for the next feature/u);
-  // An unreadable review record: the plain list says it is incomplete, never "No follow-ups".
-  const { state } = await f.core.state();
-  await f.core.append(state, 'JOB_FINISHED', { jobId: 'lost-review', results: [{ hash: `sha256:${'f'.repeat(64)}`, bytes: 2, format: 'json' }] }, { id: 'lost-review', hash: `sha256:${'e'.repeat(64)}` });
-  const plain = (await exec(process.execPath, [cliPath, 'follow-ups', '--cwd', f.repo])).stdout;
+  // An unreadable review record in a run with no known follow-up: the plain
+  // list says it is incomplete, never "No follow-ups".
+  const empty = await currentFixture(t);
+  await establishCurrentRun(empty.core);
+  assert.match((await exec(process.execPath, [cliPath, 'follow-ups', '--cwd', empty.repo])).stdout, /^No follow-ups\.$/mu);
+  const { state } = await empty.core.state();
+  await empty.core.append(state, 'JOB_FINISHED', { jobId: 'lost-review', results: [{ hash: `sha256:${'f'.repeat(64)}`, bytes: 2, format: 'json' }] }, { id: 'lost-review', hash: `sha256:${'e'.repeat(64)}` });
+  const plain = (await exec(process.execPath, [cliPath, 'follow-ups', '--cwd', empty.repo])).stdout;
   assert.match(plain, /Unavailable: 1 unreadable review record\(s\); the list is incomplete\./u);
   assert.doesNotMatch(plain, /No follow-ups/u);
 });

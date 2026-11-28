@@ -34,3 +34,7 @@ Append pull-request review boundary entries here.
   drift); codex FAIL (high: feature ID in the follow-ups.md title; medium:
   follow-ups.md and the CLI list read "none" with unavailable records; two
   lows on local receipts that hosted CI covers). Fixed the three and the docs.
+- 2026-11-28 boundary round 3 (head 387f16d): claude-code PASS (low: CLI
+  test had a known record); codex FAIL (high: a one-segment absolute path
+  such as /srv escaped redaction). Every absolute path is now redacted; the
+  CLI test uses a run with no known follow-up.

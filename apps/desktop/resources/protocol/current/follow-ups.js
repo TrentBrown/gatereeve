@@ -244,7 +244,9 @@ export function redactor(core, state, repository, ownName = null) {
   return value => {
     let result = String(value ?? '');
     for (const item of exact) result = result.split(item).join('<path>');
-    result = result.replace(/(?<![\w.-])(?:~|[A-Za-z]:)?[\\/][^\s'"`<>()[\]]+/gu, match => /^[\\/][\w.-]*$/u.test(match) && !/^[\\/](?:Users|home|private|tmp|var|opt|etc|root|mnt|Volumes)\b/u.test(match) ? match : '<path>');
+    // Every absolute or home path, one segment included (/srv): conservative,
+    // since a repository-relative path never starts with a separator.
+    result = result.replace(/(?<![\w.-])(?:~|[A-Za-z]:)?[\\/][^\s'"`<>()[\]]+/gu, '<path>');
     for (const word of words) result = result.replace(new RegExp(`(?<![\\w])${escape(word)}(?![\\w])`, 'giu'), '<redacted>');
     return result;
   };
