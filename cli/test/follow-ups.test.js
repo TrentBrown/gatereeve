@@ -347,7 +347,13 @@ test('R5: filing creates a marked, backlinked issue in the follow-up\'s reposito
   const [clientRecord] = await redactedRecords(f.core, state, [(await records(f)).find(row => row.repository === 'tools')]);
   assert.equal(clientRecord.repository, '<redacted>');
   assert.ok(!JSON.stringify(clientRecord).includes('tools'), JSON.stringify(clientRecord));
-  assert.equal(clientRecord.decision.tracking.url, 'https://github.com/fixture/<redacted>/issues/7', 'the issue URL keeps its form');
+  assert.equal(clientRecord.decision.tracking.reference, 'issue #7 (repository name withheld)', 'a URL naming a listed client is withheld, not mangled');
+  // A reference in the surface's own repository is #N; an unlisted name in a URL is kept as a working link.
+  const { issueReference } = await import('../../plugin-src/shared/resources/protocol/current/follow-ups.js');
+  assert.equal(issueReference(f.core, { kind: 'issue', repository: 'tools', number: 7, url: 'https://github.com/fixture/tools/issues/7' }, 'tools'), '#7');
+  f.core.sourceContext.repositories[1].followUpRedactions = [];
+  const unlisted = { kind: 'issue', repository: 'tools', number: 7, url: `https://github.com/${basename(f.root)}/app-tools/issues/7` };
+  assert.equal(issueReference(f.core, unlisted, 'app'), unlisted.url, 'folder names and other aliases are not removed from a URL');
 });
 
 test('R6: Completion and the release merge wait on follow-ups; status reports them; unmarked runs and unreadable records', async t => {
@@ -451,7 +457,8 @@ test('R7, R8: follow-ups.md and the PR summary list every follow-up with its det
     assert.ok(line, record.id);
     assert.ok(line.includes(record.finding.severity) && line.includes(record.status) && line.includes('(policy-default)'), line);
   }
-  assert.ok(published.section.includes(host.issues[0].url));
+  assert.ok(published.section.includes(`— #${host.issues[0].number}`), 'an issue in the PR\'s own repository is #N');
+  assert.ok(!published.section.includes(host.issues[0].url));
   // Unreadable review records are reported as unavailable, never as "none".
   const { followUpLines, followUpSummary, followUpsMarkdown } = await import('../../plugin-src/shared/resources/protocol/current/follow-ups.js');
   const unknown = followUpSummary({ records: [], unavailable: ['result x: ENOENT /Users/someone/.gatereeve-current/objects/x'] });

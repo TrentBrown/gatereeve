@@ -167,7 +167,7 @@ async function reviewTarget(core, input) {
   requireThat(review, 'No current independent review result for this candidate head; run the review gate on the current candidate before publishing or requesting merge authorization');
   const decisions = state.dials.autonomy.value === 'goal' ? await agentDecisions(core.context.featureHome) : null;
   const found = await followUpRecords(core);
-  const followUps = followUpSummary({ ...found, records: await redactedRecords(core, state, found.records) });
+  const followUps = followUpSummary({ ...found, records: await redactedRecords(core, state, found.records, input.repository) });
   return { state, candidate, pin, repository, ownerRepo, review, number: input.number,
     section: withFollowUps(withDecisions(renderSummary({ candidateRef: state.candidate, candidate, pin, review }), decisions), followUps) };
 }

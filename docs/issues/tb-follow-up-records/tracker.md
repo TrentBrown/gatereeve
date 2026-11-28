@@ -47,3 +47,8 @@ Append pull-request review boundary entries here.
   kept issue URL needs a cross-repository filing; two receipt gaps hosted CI
   covers); codex FAIL (high: a client-named GitHub repository in the issue
   URL). The URL now gets the term redaction (it keeps its form).
+- 2026-11-28 boundary round 6 (head 1ee60be; Trent chose continue): codex
+  FAIL (high: the term-redacted URL no longer links); claude-code FAIL
+  (medium: the URL redaction also removed unlisted folder and alias words).
+  Replaced with issue references: `#N` in the surface's own repository, the
+  URL otherwise, withheld only when it contains a listed name.

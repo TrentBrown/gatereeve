@@ -241,22 +241,32 @@ export function redactor(core, state, repository, ownName = null) {
     ...core.context.repositories.filter(item => item.alias !== repository).map(item => item.alias),
     ...(core.context.repositories.find(item => item.alias === repository)?.followUpRedactions ?? [])]
     .filter(value => typeof value === 'string' && value.trim().length > 1);
-  const terms = value => {
-    let result = String(value ?? '');
-    for (const word of words) result = result.replace(new RegExp(`(?<![\\w])${escape(word)}(?![\\w])`, 'giu'), '<redacted>');
-    return result;
-  };
   const redact = value => {
     let result = String(value ?? '');
     for (const item of exact) result = result.split(item).join('<path>');
     // Every absolute or home path, one segment included (/srv): conservative,
     // since a repository-relative path never starts with a separator.
     result = result.replace(/(?<![\w.-])(?:~|[A-Za-z]:)?[\\/][^\s'"`<>()[\]]+/gu, '<path>');
-    return terms(result);
+    for (const word of words) result = result.replace(new RegExp(`(?<![\\w])${escape(word)}(?![\\w])`, 'giu'), '<redacted>');
+    return result;
   };
-  // A URL keeps its form; only listed names and identities are replaced.
-  redact.terms = terms;
   return redact;
+}
+// How a public surface hosted in `host` (a repository alias, or null) refers
+// to a filed issue: `#N` in its own repository (GitHub links it and it names
+// nothing); otherwise the URL, unless the URL contains a name listed in a
+// followUpRedactions setting, which is withheld (the link would name it).
+export function issueReference(core, tracking, host) {
+  if (tracking?.kind === 'seed') return 'seed for the next feature';
+  if (tracking?.kind !== 'issue') return null;
+  if (host && tracking.repository === host) return `#${tracking.number}`;
+  const listed = core.context.repositories.flatMap(item => item.followUpRedactions ?? []);
+  const named = listed.some(term => new RegExp(`(?<![A-Za-z0-9])${escape(term)}(?![A-Za-z0-9])`, 'iu').test(String(tracking.url ?? '')));
+  return named ? `issue #${tracking.number} (repository name withheld)` : tracking.url;
+}
+// The repository holding the committed follow-ups.md, if a configured one does.
+export function featureHomeRepository(core) {
+  return core.context.repositories.find(item => typeof item.path === 'string' && core.context.featureHome.startsWith(`${item.path}/`))?.alias ?? null;
 }
 // One redactor per follow-up repository, for every public surface: filed
 // issues, the PR summary and the committed follow-ups.md.
@@ -268,7 +278,7 @@ export async function publicRedaction(core, state) {
   };
 }
 // The record's free text, redacted for a public surface.
-export async function redactedRecords(core, state, records) {
+export async function redactedRecords(core, state, records, host = null) {
   const redactFor = await publicRedaction(core, state);
   return Promise.all(records.map(async record => {
     const redact = await redactFor(record), clean = value => typeof value === 'string' ? redact(value) : value;
@@ -279,8 +289,9 @@ export async function redactedRecords(core, state, records) {
       // The issue URL keeps its form; a listed client or project name in it
       // (a repository named after a client) is replaced.
       decision: record.decision ? { ...record.decision, reason: clean(record.decision.reason),
-        tracking: record.decision.tracking ? { ...record.decision.tracking, repository: clean(record.decision.tracking.repository),
-          ...(typeof record.decision.tracking.url === 'string' ? { url: redact.terms(record.decision.tracking.url) } : {}) } : null } : null };
+        // Public surfaces print only `reference` (issueReference), never the raw URL.
+        tracking: record.decision.tracking ? { kind: record.decision.tracking.kind, reused: record.decision.tracking.reused,
+          reference: issueReference(core, record.decision.tracking, host) } : null } : null };
   }));
 }
 function issueText(record, redact, pr) {
@@ -410,8 +421,7 @@ function renderRecord(record) {
     ...(record.finding.path ? [`- **Path:** \`${cell(record.finding.path)}\``] : []),
     `- **Failure scenario:** ${cell(record.finding.failureScenario) || 'none recorded'}`];
   if (record.decision) {
-    const tracking = record.decision.tracking?.kind === 'issue' ? ` (${record.decision.tracking.url}${record.decision.tracking.reused ? ', reused' : ''})`
-      : record.decision.tracking?.kind === 'seed' ? ' (seed for the next feature)' : '';
+    const tracking = record.decision.tracking?.reference ? ` (${record.decision.tracking.reference}${record.decision.tracking.reused ? ', reused' : ''})` : '';
     lines.push(`- **Decision:** ${record.decision.decision} by ${record.decision.authorityKind}${tracking}: ${cell(record.decision.reason)}`);
   }
   if (record.reopened && record.status === 'undecided') lines.push('- **Reopened:** a later review reported it again after it was fixed.');
@@ -436,7 +446,7 @@ export function followUpsMarkdown(summary) {
 export async function renderFollowUps(core) {
   const { state, events } = await core.state();
   const found = await followUpRecords(core, events);
-  const summary = followUpSummary({ ...found, records: await redactedRecords(core, state, found.records) });
+  const summary = followUpSummary({ ...found, records: await redactedRecords(core, state, found.records, featureHomeRepository(core)) });
   const path = join(core.context.featureHome, FOLLOW_UPS_FILE);
   try { requireThat(!(await lstat(path)).isSymbolicLink(), `${FOLLOW_UPS_FILE} must not be a symbolic link`); }
   catch (error) { if (error.code !== 'ENOENT') throw error; }
@@ -451,7 +461,7 @@ export function followUpLines(summary, inline = cell) {
   if (summary.unavailable.length) lines.push(`- **Unavailable:** ${summary.unavailable.length} unreadable review record(s); their follow-ups are unknown and Completion refuses until they are restored.`);
   if (!summary.records.length) { if (!summary.unavailable.length) lines.push('- This run has no follow-ups.'); return lines; }
   for (const record of summary.records) {
-    const tracking = record.decision?.tracking?.kind === 'issue' ? ` — ${record.decision.tracking.url}` : record.decision?.tracking?.kind === 'seed' ? ' — seed for the next feature' : '';
+    const tracking = record.decision?.tracking?.reference ? ` — ${record.decision.tracking.reference}` : '';
     lines.push(`- \`${record.id}\` ${record.finding.severity} ${record.status}${record.decision ? ` (${record.decision.authorityKind})` : ''}: ${inline(record.finding.class ?? record.origin.kind)}${tracking}`);
   }
   return lines;
