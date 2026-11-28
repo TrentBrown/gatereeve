@@ -46,6 +46,8 @@ identity and exact input after an uncertain response. Conflicting reuse fails.
 | `merge.execute` | Same action selector; requires current proof, human acceptance, authorization bound to the prepared action and the current review summary on the PR. A hosting-rule refusal fails with `EXTERNAL_BLOCKER`, not a gate failure |
 | `integration.observe` | `repository`, optional configured `branch`; fetch and verify actual reviewed-content integration, independent of acceptance |
 | `run.pause`, `run.continue` | Actual `authority` instruction; continuation never follows merely from elapsed time. A human `run.continue` also clears a goal park |
+| `followup.decide` | Exactly `followUps` (1 to 512 IDs) or `select` (`{status?, severity?, origin?}`, at least one key), exactly one of `decision` (`accept-risk`, `new-work`, `reject`) or `defaults: true`, `reason`, `authority` (`human-confirmed`, or `policy-default` with `defaults: true`), optional `pr` (issue backlink). Records one `FOLLOW_UP_DECIDED` event and regenerates `follow-ups.md`; `new-work` files a GitHub issue first (see Follow-up records) |
+| `followup.list`, `followup.render` | Read the run's follow-up records (counts, undecided IDs, open highs, policy defaults and the next step), or regenerate `follow-ups.md` in the feature folder |
 | `goal.park` | Goal autonomy only: `pr: {repository, number}`, non-empty `blockers` and `evidence`. The PR must be open (draft or ready for review) and its description must list every blocker. Records `PARKED`; `status` `goal.terminal` becomes `parked` (see Goal autonomy) |
 
 Unsupported old operations are rejected. Start a current run; do not replay,
@@ -170,7 +172,8 @@ not authentication. Kinds: `approve-design`, `authorize-implementation`, `accept
 `waive`, `amend`, `policy-amend`, `authorize-merge`, `authorize-standing`,
 `revoke-standing`, `stay-light` (see Tripwires).
 
-Authority kinds: `human-confirmed` (an observed human instruction),
+Authority kinds: `human-confirmed` (an observed human instruction), `policy-default`
+(follow-up default decisions only; see Follow-up records),
 `delegated-evaluator` under delegated autonomy, and `autonomous-evaluator` under
 explicit autonomous authority (see the current/8 sections below). Status,
 snapshot and decision records always carry the kind; a delegated decision is never
@@ -977,6 +980,98 @@ it observed in its immutable input. Current qualified references still require
 complete integrity. Provider failures expose structured causes and remedies,
 not raw provider stdout/stderr.
 
+### Follow-up records
+
+A follow-up tracks a finding that did not block, or a pre-existing condition a
+gate reported, to a recorded decision before Completion (issue #148). Format
+`follow-up/1`; the record extends the fix-claim vocabulary (`findingId`,
+`classId`, `class`):
+
+```json
+{"format":"follow-up/1","id":"fu-<12 hex of sha256(dedupKey)>","dedupKey":"review:<result hash>:<finding id>","repository":"app",
+ "origin":{"kind":"review","result":"<hash>","findingId":"codex/F3","provider":"codex","model":"…","reviewScope":"slice","round":4},
+ "finding":{"findingId":"codex/F3","classId":"…","class":"<classStatement>","criterion":"R2","path":"app/src/x.js","severity":"medium","failureScenario":"…"},
+ "reason":"low|reviewer-non-blocking|demoted|pre-existing","status":"undecided|accepted-risk|new-work|rejected|fixed","decision":null}
+```
+
+- **Review follow-ups** are derived on read from the run's retained `review`
+  results; nothing is written on the reviewer path. A finding ID with a
+  severity is a follow-up when its latest report did not block under the
+  raise-time rule (the round schedule with that report's round, regression
+  paths and sweep records; the metrics projection uses the same rule). The
+  first raising result is the origin; `reason` is `low` for a low finding,
+  else `reviewer-non-blocking` when the reviewer's flag is false, else
+  `demoted`. Its repository is the configured alias its path starts with,
+  else the raising candidate's first repository. Rounds are judged as in
+  qualification: a `resolved` disposition with no perspective of that round
+  still marking it present or re-reporting it makes the follow-up `fixed`;
+  `unsupported` changes nothing; a later `present` or re-report reopens it
+  as `undecided`, and decisions recorded before the reopening no longer
+  count. Findings without a severity (earlier contracts) are never
+  follow-ups.
+- **Not waivers.** A finding whose latest report blocked is never a
+  follow-up, whatever closed it: a waiver records how a gate was closed, an
+  adjudication records accepted residual risk on blocking findings, and a
+  follow-up records a decision on a finding that never (or no longer)
+  blocked.
+- **Non-review origins** call `recordFollowUps(core, {origin: {kind}, findings})`
+  (`follow-ups.js`), which appends one `FOLLOW_UP_RECORDED` event per new
+  dedup key and returns each input finding's ID in order. Origin
+  `dependency-scan` takes findings of exactly `repository` (configured
+  alias), `manifest`, `vulnId`, `package`, `version`, `severity`
+  (`low|medium|high|critical`) and `title`; the dedup key is
+  `dependency-scan:<repository>:<manifest>:<vulnId>:<package>@<version>`, and
+  the record's origin carries those fields with `preExisting: true`. The same
+  key twice in one run is one record; across runs the filed issue's marker
+  deduplicates.
+- **Decisions** (`followup.decide`): a later `human-confirmed` decision
+  supersedes earlier ones; a `policy-default` decision applies only to
+  `undecided` records without a current human decision and lists the rest as
+  skipped. The defaults: low `accept-risk`; medium `new-work`; a
+  `preExisting` record `new-work` at every severity; a review high has no
+  default. The agent may record `policy-default` alone under `mandated` or
+  `goal` autonomy; otherwise it must cite the human's "accept the defaults"
+  answer in `authority.instruction` and `authority.context`. It is never
+  reported as human-confirmed; `status.followUps.defaults` lists every
+  current one.
+- **New work.** Before writing, every `new-work` decision of the call files
+  through `gh` in the follow-up's repository: it reuses an open issue whose
+  body carries `gatereeve-follow-up:<sha256 of dedupKey>`, else creates one
+  with that marker. One failed call records nothing for the whole decision;
+  a retry reuses the issues already created. Issue text uses
+  repository-relative fields only, and its free text has absolute and home
+  paths, the workspace root, feature home and repository paths replaced by
+  `<path>` and the host name, run ID, workspace folder name (unless it is
+  the repository's own name), other repository aliases and the repository's
+  `followUpRedactions` workspace setting replaced by `<redacted>`. A
+  repository without a GitHub remote records `{kind: "seed"}`.
+- **Enforcement.** `milestone.check completion` reports undecided and
+  unavailable follow-ups; `merge` reports an undecided non-`preExisting`
+  high (`open high follow-up`) when the candidate targets the release branch
+  (a FEATURE candidate, or integration equal to release). Under goal
+  autonomy `goal.terminal` is not `ready-pr` while a follow-up is undecided,
+  and an undecided high asks for `goal.park`; the agent applies the policy
+  defaults before publishing the ready summary. Follow-up events make a
+  published ready record stale. Light runs follow the same rules.
+- **Surfaces.** `status.followUps` (records, counts, undecided, open highs,
+  defaults, next step); the `review.publish` summary lists every follow-up
+  with its status, authority kind and issue link; `follow-ups.md` is
+  committed with the feature documents. Both public surfaces apply the
+  issue-text redaction to every record's free text, carry no feature ID, and
+  report unreadable review records as a count with the list marked
+  incomplete, never as "none". A filed issue appears as `#N` in the PR
+  summary of its own repository and as its URL elsewhere (always in
+  `follow-ups.md`, where `#N` does not link), unless the URL contains a
+  `followUpRedactions` name, when it reads `issue #N (repository name
+  withheld)`; `follow-ups.md` is
+  regenerated by every decision and by `followup.render` (a failed
+  regeneration is reported in the result, never undoes the decision). A
+  decision changes the published summary, so publish again before asking for
+  merge authorization. The Completion
+  `MILESTONE` record retains the final list. A run started by this version
+  records `STARTED.followUps: 1`, which the metrics projection reads
+  (PERFORMANCE.md).
+
 ## Source and retained-record classification
 
 The canonical feature home and `docs/issues/<feature>/` reserve lifecycle Markdown,
@@ -1417,9 +1512,12 @@ that authority, `goal` adds attendance rules for a human who is not watching.
   - `reason`;
   - `decisions`: the agent decision entries.
 
-  `parked` takes precedence over `ready-pr`. `ready-pr` requires both of the
+  `parked` takes precedence over `ready-pr`. `ready-pr` requires all of the
   following:
   - the acceptance milestone qualifies for the current FEATURE candidate;
+  - every follow-up is decided (the agent applies the policy defaults; an
+    open high follow-up has no default, so the run parks; see Follow-up
+    records);
   - `review.publish` recorded the current summary on an open, unmerged PR
     whose head is the candidate head (`GOAL_READY`), draft or ready for
     review.

@@ -6,8 +6,8 @@ import { MetricsStore } from './store.js';
 import { reportingDatabase, observation, DIAL_FIELDS, LINK_BASES, reportingDial, replayField } from './fleet.js';
 import { DEFAULT_DIALS, GATES } from '../protocol/current/contracts.js';
 import { captureWarning } from './observe.js';
-import { scheduledBlocking, severityOf, band } from '../protocol/current/round-policy.js';
-import { sweptClassRegression } from '../protocol/current/sweep-records.js';
+import { severityOf, band } from '../protocol/current/round-policy.js';
+import { followUpRecords, raisedBlocking } from '../protocol/current/follow-ups.js';
 import { outcomeStatus, OUTCOME_STATUSES } from '../protocol/current/boundary-review.js';
 import { UNAVAILABLE_REASONS } from '../protocol/current/execution.js';
 
@@ -17,7 +17,10 @@ import { UNAVAILABLE_REASONS } from '../protocol/current/execution.js';
 // and gains only the convergence fields (a new version of the same ID), rows
 // without convergence fields are left untouched, and only new convergence
 // rows (per-reviewer rows) are added.
-export const PROJECTION_VERSION = 2;
+// Version 3 adds follow-up status (issue #148): `followUp` on the finding rows
+// of a follow-up-tracking run (STARTED.followUps) and one `follow-up` row per
+// record, re-emitted whenever a record's status changes.
+export const PROJECTION_VERSION = 3;
 
 const text = value => typeof value === 'string' && value ? value : undefined;
 const defined = value => Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined && item !== null));
@@ -76,11 +79,7 @@ const roundFields = policy => policy && text(policy.scope) ? defined({ reviewSco
 // of a swept class, issue #144); with no recorded round, the reviewer's flag
 // where low never blocks (round-policy.js).
 function findingFields(finding, policy, sweepRecords) {
-  const round = Number.isSafeInteger(policy?.round) ? policy.round : null;
-  const records = Array.isArray(sweepRecords?.records) ? sweepRecords.records : [];
-  const regression = (Array.isArray(policy?.regressionPaths) && typeof finding.path === 'string' && policy.regressionPaths.includes(finding.path))
-    || (round !== null && sweptClassRegression(records, finding, round));
-  const blocking = scheduledBlocking(finding, { round, regression }), reviewerBlocking = Boolean(finding.blocking);
+  const blocking = raisedBlocking(finding, policy, sweepRecords), reviewerBlocking = Boolean(finding.blocking);
   return defined({ severity: severityOf(finding), classId: text(finding.classId), classStatement: statement(finding.classStatement), criterion: text(finding.criterion),
     reviewerBlocking, blocking, demoted: reviewerBlocking && !blocking, hasFailureScenario: Boolean(text(finding.failureScenario)?.trim()) });
 }
@@ -101,6 +100,52 @@ async function readResult(core, ref) {
   try { input = await core.store.json(result.input) ?? {}; } catch { /* lost input: no round fields */ }
   try { receipt = await core.store.json(result.receipt) ?? {}; } catch { /* lost receipt: no evaluator identity */ }
   return { result, input, receipt };
+}
+
+// Follow-up status (issue #148, spec AC9 and amendment 1): the current status
+// of each record on its finding rows (every retained report of that finding
+// ID) and on one follow-up row. Only rows whose stored content differs are
+// emitted (a decision, a fix, a reopening), keeping the stored observation
+// time otherwise. A record that stopped being a follow-up (its latest report
+// blocked) is withdrawn: its row loses `followUp` and records outcome
+// WITHDRAWN, and its finding rows lose `followUp`.
+async function followUpRows(core, events, { base, source, workflow, latestBody, storedIds, pending }) {
+  const { records } = await followUpRecords(core, events);
+  const status = new Map(records.filter(record => record.origin.kind === 'review').map(record => [record.origin.findingId, record.status]));
+  const observedAt = events.at(-1).recordedAt, rows = [];
+  // `next(existing)` returns the row's intended body; emitted only on a change.
+  const update = (id, next) => {
+    const existing = latestBody.get(id);
+    const before = existing ? observation(JSON.parse(existing.body)) : null;
+    const after = next(before);
+    if (!after) return;
+    const kept = observation(before ? { ...after, observedAt: before.observedAt } : after);
+    if (before && JSON.stringify(kept) === JSON.stringify(before)) return;
+    rows.push(observation({ ...after, observedAt }));
+  };
+  const withoutFollowUp = row => { const { followUp, ...rest } = row; return rest; };
+  for (const event of events) if (event.type === 'JOB_FINISHED') for (const ref of event.payload.results ?? []) {
+    let result;
+    try { result = await core.store.json(ref); } catch { continue; }
+    if (result?.gate !== 'review') continue;
+    for (const finding of result.findings ?? []) {
+      const id = `${source}:${ref.hash}:finding:${finding.id}`;
+      // A row projected in this pass gets the field before it is written.
+      if (pending.has(id)) { if (status.has(finding.id)) pending.get(id).followUp = status.get(finding.id); continue; }
+      update(id, before => before && (status.has(finding.id) ? { ...before, followUp: status.get(finding.id) } : before.followUp !== undefined ? withoutFollowUp(before) : null));
+    }
+  }
+  const prefix = `${source}:${workflow}:follow-up:`, current = new Set();
+  for (const record of records) {
+    const id = `${prefix}${record.id}`;
+    current.add(id);
+    update(id, before => ({ ...(before ? withoutFollowUp(before) : {}), ...base, id, observedAt, kind: 'follow-up', check: 'follow-up', followUp: record.status,
+      severity: record.finding.severity === 'critical' ? 'high' : record.finding.severity, reason: record.reason, outcome: undefined,
+      ...defined({ findingId: record.finding.findingId, reference: record.origin.result, reviewScope: text(record.origin.reviewScope),
+        round: Number.isSafeInteger(record.origin.round) ? record.origin.round : undefined, classId: text(record.finding.classId) }) }));
+  }
+  for (const id of storedIds(prefix)) if (!current.has(id)) update(id, before => before && before.outcome !== 'WITHDRAWN' ? { ...withoutFollowUp(before), outcome: 'WITHDRAWN' } : null);
+  return rows;
 }
 
 // Derived, replaceable reporting memory. Failure never changes workflow authority.
@@ -145,7 +190,7 @@ export async function projectWorkflow(core, store = new MetricsStore()) {
         ...Object.fromEntries(Object.keys(DIAL_FIELDS).map(dial => [dial, DIAL_FIELDS[dial].includes(dials[dial]) ? dials[dial] : null])) };
       if (event.type === 'OBSERVATION') observations.push(observation(noted(common, value)));
       else if (event.type === 'STARTED') {
-        observations.push(observation({ ...common, check: event.type }));
+        observations.push(observation({ ...common, check: event.type, ...(value.followUps === 1 ? { followUpTracking: true } : {}) }));
         // Each start dial with its provenance (explicit choice or built-in default).
         for (const dial of Object.keys(DIAL_FIELDS)) if (value.dials?.[dial]) observations.push(observation({ ...common, id: `${common.id}:dial:${dial}`, check: 'DIAL_INITIAL',
           ...defined({ dial, dialValue: text(reportingDial(dial, value.dials[dial].value)), dialSource: text(value.dials[dial].source), actor: text(value.dials[dial].actor), authorityKind: text(value.dials[dial].authority?.kind) }) }));
@@ -214,6 +259,9 @@ export async function projectWorkflow(core, store = new MetricsStore()) {
       return JSON.stringify(merged) === JSON.stringify(observation(JSON.parse(existing.body))) ? [] : [merged];
     });
     observations.splice(0, firstNew ?? observations.length, ...kept);
+    const storedIds = prefix => db.prepare('SELECT id FROM reporting_latest WHERE id LIKE ? ESCAPE ?').all(`${prefix.replace(/[\\%_]/gu, '\\$&')}%`, '\\').map(row => row.id);
+    if (events[0]?.payload?.followUps === 1) observations.push(...await followUpRows(core, events, { base, source, workflow, latestBody, storedIds,
+      pending: new Map(observations.filter(row => row.kind === 'finding').map(row => [row.id, row])) }));
     const body = { ...base, home: core.store.home, sequence: events.length, projection: PROJECTION_VERSION, projectId, featureId: await store.identity(core.context.featureId) };
     store.transaction(db, () => {
       const current = db.prepare('SELECT body FROM reporting_workflows WHERE id=?').get(workflow);

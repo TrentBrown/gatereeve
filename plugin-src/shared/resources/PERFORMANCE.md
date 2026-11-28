@@ -205,7 +205,7 @@ Unknown timing stays unknown in aggregate work and elapsed totals.
 
 ## Convergence measures (current/8)
 
-The projection (version 2) records the review data behind the four
+The projection (version 3) records the review data behind the four
 convergence success measures, and `gatereeve metrics convergence` computes
 them from reporting rows alone. Reporting only: nothing here grants or
 changes workflow authority.
@@ -213,11 +213,13 @@ changes workflow authority.
 | Source | Observation fields |
 |---|---|
 | Review result (`artifact`, check `review`) | `reviewScope`, `round`, `band` when its input recorded a round policy; `reviewerStatus` (`completed`, `refused`, `provider-failed`, `verdict-rejected`, `could-not-assess`); for UNAVAILABLE, `unavailableReason` and the `providerFailure` category |
-| Finding (`finding`) | `severity` (`high`/`medium`/`low`, `unrated` for earlier-contract findings), `classId`, `classStatement` (only one line of at most 200 characters), `criterion`, `reviewerBlocking` (the reviewer's flag), `blocking` (whether it blocked when raised under the round schedule, including a missed site of a class an earlier `fixed` claim swept), `demoted` (`reviewerBlocking` and not `blocking`), `hasFailureScenario`, `reviewScope`, `round`, and `reference` (the raising result's hash). `followUp` is accepted for follow-up records but not set by this version |
+| Finding (`finding`) | `severity` (`high`/`medium`/`low`, `unrated` for earlier-contract findings), `classId`, `classStatement` (only one line of at most 200 characters), `criterion`, `reviewerBlocking` (the reviewer's flag), `blocking` (whether it blocked when raised under the round schedule, including a missed site of a class an earlier `fixed` claim swept), `demoted` (`reviewerBlocking` and not `blocking`), `hasFailureScenario`, `reviewScope`, `round`, and `reference` (the raising result's hash). In a run that tracks follow-ups (`STARTED.followUps`), `followUp`: the current status of the finding ID's follow-up record (`undecided`, `accepted-risk`, `new-work`, `rejected`, `fixed`), absent when the finding is not a follow-up |
 | `ROUND_COUNTED` | `reviewScope`, `round` |
 | `BOUNDARY_REVIEWED` | one pair row (`outcome` PASS when every reviewer completed with PASS, FAIL when a completed reviewer FAILed, else UNAVAILABLE; `count` reviewers) and one `boundary-reviewer` row per reviewer with its final attempt's status, outcome, reason, provider, model and result `reference`. The round is the one the reviewers' inputs recorded, else the counted round of the reviewed revision; a pair with neither launched no reviewer on a counted revision and is reported as uncounted, not as a round |
 | `REVIEW_ADJUDICATED` | `reviewScope`, `round`, outcome `ADJUDICATED` |
 | `waive` decision | `gates` (gate IDs) |
+| `STARTED` | `followUpTracking: true` when the run tracks follow-ups (issue #148) |
+| Follow-up (`follow-up`) | One row per follow-up record of a tracking run: `followUp` status, `severity` (a scanner's `critical` reads `high`), `reason` (`low`, `reviewer-non-blocking`, `demoted`, `pre-existing`), `findingId`, `classId`, `reviewScope`, `round` and the origin result as `reference`. Re-emitted when its content changes (a decision, a fix, a reopening), as are the follow-up's finding rows. A record that stops being a follow-up (its finding's latest report blocked) is withdrawn: its row keeps its ID with `outcome: WITHDRAWN` and no `followUp`, and its finding rows lose `followUp` |
 
 Failure scenarios, evidence, paths, summaries and reasons are never projected.
 A status or reason outside the current vocabulary (retained from an earlier
@@ -241,7 +243,7 @@ report.
 | Measure | Computed as | `met` |
 |---|---|---|
 | 1. Rounds to PASS | Per workflow and boundary scope instance (`slice`, `feature-final`; a new instance starts at each round-1 count: the next slice PR, a split part, the rounds after an amendment): the first round with a recorded pair whose every reviewer completed with PASS (reviewers of separate pair events never combine), or an adjudicated round. Open scopes count their current round as a lower bound in the median; a `review` waiver closes only the scope instance of the workflow's latest reviewed round before it, when that instance never passed | false when the median exceeds 3 or a waive followed a FAIL; null while a scope is open or none passed; else true |
-| 2. Demoted findings | `recorded`: demoted findings by severity, and how many have a rated severity and a failure scenario. `decided`: demoted findings by `followUp` | null while either part is null (follow-up decisions are not recorded yet); else both parts |
+| 2. Demoted findings | `recorded`: demoted findings by severity, and how many have a rated severity and a failure scenario. `decided`: `follow-up` rows by `followUp`, withdrawn rows excluded (a cohort without a tracking run reports "not recorded by this version"; a demoted finding row from a run that did not track follow-ups makes `decided` incomplete) | null while either part is null; `decided` is true when no follow-up is `undecided`; else both parts |
 | 3. Escaped defects traced to demoted findings | Confirmed escaped defects whose links include `finding:<result-hash>:<finding-id>` naming a demoted finding, the distinct linked demoted findings, and how many of them have a follow-up record | always null: counted, with no threshold |
 | 4. Second opinion | Per provider and reviewed round, its final outcome: the latest attempt that launched a reviewer (retries and re-reviews of one revision share the round and count once; a reused retained result is `refused` and never hides an attempt that ran). Rounds, rounds not completed (UNAVAILABLE), rate, and findings from completed final results. `peerUnmatchedClasses` is a class-ID proxy only | true when every provider is below 10% UNAVAILABLE and reported a finding; null without rows |
 

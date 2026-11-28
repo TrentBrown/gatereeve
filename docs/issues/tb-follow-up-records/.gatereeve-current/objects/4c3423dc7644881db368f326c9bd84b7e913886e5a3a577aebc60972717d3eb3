@@ -1,0 +1,2866 @@
+✔ agent workflow receipts bind provider configuration, isolation policy, and stage output (0.759292ms)
+✔ agent workflow receipts reject inherited context and output substitution (0.241083ms)
+✔ the public provider receipt contract rejects the retired workflow version and policy (0.11225ms)
+✔ Cask rehearsal follows released version and retains publication before a later smoke failure (1.157ms)
+✔ Cask baseline rejects untrusted, active, mismatched or unrelated producers (0.180709ms)
+✔ a same-tree ci Verification covering the consumed receipts qualifies the converged reviews without a model call (4702.483292ms)
+✔ a consumed receipt is covered by a same-tree receipt in the final Verification; an uncovered one fails by name (4779.351416ms)
+✔ a ci Verification for a different tree is rejected naming both trees; another commit with the same tree is not the exact head (3467.074708ms)
+✔ acceptance is refused on local evidence the converged reviews did not assess (5405.121542ms)
+✔ a review consuming a Verification with no receipt on the candidate tree is not qualifying (2663.017959ms)
+✔ after a hosted CI failure one paired delta round on the fix and a passing CI run qualify acceptance (9155.535084ms)
+✔ pushing a PR branch before the reviews converge is warned about, never denied (2390.919ms)
+✔ a repository with hosted CI is never accepted on local evidence alone (4000.517584ms)
+✔ a failed CI job outside the declared required checks fails the qualification (3155.192042ms)
+✔ CI for another commit with the same tree never qualifies the candidate (3573.051708ms)
+✔ CI qualification fails when the converged reviews assessed no planned CI scope (3397.019125ms)
+✔ a CI plan bound in a retained Verification input counts when its runner omits it (3270.08825ms)
+✔ a planned CI job must pass in each repository it is planned for (0.33075ms)
+✔ CLI starts from a clean checkout without staged protocol resources (77.961334ms)
+✔ plugin build and clean commands work through the Commander entrypoint (139.35025ms)
+✔ uses the selected source root when resolving the default version (80.462667ms)
+✔ prepares a release through the grouped command path (1413.0405ms)
+✔ legacy local publication entrypoints are removed (172.655125ms)
+✔ hosted mutation commands require a dispatched Release Conductor context (113.628417ms)
+✔ renders hierarchical help through the local command-tree helper (57.781459ms)
+✔ composes both packages with matching shared content and provenance (60.306125ms)
+✔ composes every registered marketplace plugin into independent platform packages (45.782916ms)
+✔ removes stale package output before rebuilding (7.3595ms)
+✔ produces identical content for identical inputs (44.82175ms)
+✔ rejects overlay paths that duplicate shared content (3.051791ms)
+✔ rejects symlinks so generated packages remain self-contained (2.506458ms)
+✔ rejects transient interpreter and operating-system files (1.93025ms)
+✔ rejects invalid versions and unsupported platforms (1.813625ms)
+✔ rejects platform manifests with different plugin identities (10.192209ms)
+✔ JavaScript and Python resolve the same configured multi-repository context (86.017209ms)
+✔ JavaScript and Python preserve the same legacy branch-derived context (70.640583ms)
+✔ JavaScript preserves Python workspace semantics for a symlinked config file (39.199959ms)
+✔ JavaScript rejects the same unsafe configured contexts as Python (577.664833ms)
+✔ validates the repository contract fixtures (2.748667ms)
+✔ rejects duplicate skills and cross-contract identity drift (0.817666ms)
+✔ R1: finding rows carry severity, class, criterion, effective and reviewer blocking, demotion and round, and no scenario text (18.765833ms)
+✔ a finding of a class swept by an earlier fixed claim is recorded as blocking, as qualification judges it (#144) (41.589541ms)
+✔ R2: review result rows carry scope, round, band, reviewer status, UNAVAILABLE reason and failure category (10.108833ms)
+✔ R3: round, pair, per-reviewer, adjudication and waiver rows (25.143083ms)
+✔ R4: the observation schema accepts valid convergence fields and rejects invalid ones (0.86325ms)
+✔ R5: an earlier-version workflow is replayed with the new fields; earlier rows are not otherwise converted or duplicated (20.912083ms)
+✔ R6: rounds to PASS, adjudicated passes, open scopes as lower bounds, waived scopes and waives after a FAIL streak (1.265ms)
+✔ R6: scope instances, one waiver per latest scope, re-reviews and reused results (0.379666ms)
+✔ R7: demoted findings are counted by severity, recorded and decided parts reported separately (0.309625ms)
+✔ R8: escaped defects traced to demoted findings, with follow-up counts and the qualified statement (0.335542ms)
+✔ R9: second opinion per provider over final per-round outcomes; the class proxy never affects met (13.103791ms)
+✔ R10: per provider and model: statuses, UNAVAILABLE reasons, rule counts and severities (10.845125ms)
+✔ R11: rows without the new fields are not recorded, never zero, and make the measure incomplete (0.477334ms)
+✔ R12: metrics convergence over the local store and a dataset, filters, Markdown, reevaluation, HTML and MCP (542.7235ms)
+✔ refuses to force the marketplace over an equal or newer deployment (0.770375ms)
+✔ waits for the exact production manifest without query or credential leakage (8.547125ms)
+✔ bounds streamed website verification responses (0.24175ms)
+✔ prepares one immutable Plugin and Desktop release record without publication authority (2049.865792ms)
+✔ trusted preparation seals exact checksum and update-manifest outputs (1799.589708ms)
+✔ stable promotion is bound to the exact coordinated RC source (4446.837042ms)
+✔ rejects contradictory release state and unsafe artifact identity (1748.25325ms)
+✔ rejects a Desktop candidate whose release version diverges from the Plugin tag (1133.394458ms)
+✔ publication resumes every partial boundary without duplicating a remote mutation (9224.242375ms)
+✔ release phases are reusable-only production units with no manual dispatch (4.871333ms)
+✔ protected preparation binds the conductor source and remains publication-free (1.138833ms)
+✔ bounded recovery reuses retained trust bytes without signing authority (0.521417ms)
+✔ finalization and rehearsals are read-only while publication retains its own gate (1.194417ms)
+✔ Cask finalization and smoke bind conductor runs and exact public artifacts (0.709542ms)
+✔ Release Conductor is the sole start/resume entry point and derives every phase identity (1.0085ms)
+✔ state checkpoint action always emits a dashboard and immutable retained artifact (0.368583ms)
+✔ full product CI ignores only the sealed Desktop metadata transport path (0.449584ms)
+✔ PR automation reduces only chained review-artifact updates and cancels only PR work (0.6075ms)
+✔ all GitHub workflows use Node-24-compatible official action majors and Node 24 jobs (1.229083ms)
+✔ autonomous authority requires an explicit named-run human grant, mandate and release protection (289.02725ms)
+✔ an in-mandate independently reviewed amendment renews authority without a human handback (1107.636666ms)
+✔ a mandate failure cannot be hidden behind overall planning PASS (991.656542ms)
+✔ autonomous adjudication accepts eligible dissent, retains FAIL and records diminishing returns (5764.458417ms)
+✔ residual-risk authority cannot substitute for mandatory evidence or mandate compliance (0.63575ms)
+✔ autonomous delivery stops at a published ready final PR without authorizing its release merge (5611.750584ms)
+✔ autonomous judgment rebuts a completed negative planning opinion without rewriting its FAIL (1190.098667ms)
+✔ unsupported mandate claims need counterevidence and cannot be accepted as known violations (4123.046667ms)
+✔ unsupported scope claims need counterevidence and cannot be accepted as known violations (3825.031583ms)
+✔ unsupported evidence claims need counterevidence and cannot be accepted as known violations (3813.978292ms)
+✔ a rebuttal cannot excuse a failed actual mandatory verification check (4055.407833ms)
+✔ an incomplete code conclusion cannot become autonomous acceptance (2573.973625ms)
+✔ an incomplete requirements conclusion cannot become autonomous acceptance (2468.621916ms)
+✔ an incomplete findings conclusion cannot become autonomous acceptance (2787.61ms)
+✔ an incomplete criterion conclusion cannot become autonomous acceptance (2457.44575ms)
+✔ a later FAIL cannot erase an open app/app.js finding (4386.667458ms)
+✔ a later FAIL cannot erase an open planning/plan.md finding (4712.69125ms)
+✔ a later FAIL cannot erase an open requirements/spec.md finding (4609.033834ms)
+✔ a later FAIL cannot erase an open requirements/brief.md finding (4239.044958ms)
+✔ follow-up peers may both retain one original finding without duplicate-disposition deadlock (4282.823333ms)
+✔ two complete light boundary reviews run concurrently and retain both receipts (2732.101625ms)
+✔ two complete full boundary reviews run concurrently and retain both receipts (3167.821792ms)
+✔ a fast initial reviewer cannot enter the delayed peer preparation history (2754.872167ms)
+✔ a dial change during preparation prevents both reviewers launching under stale authority (1450.628709ms)
+✔ an unavailable peer preserves the completed reviewer and cannot count as approval (2843.404083ms)
+✔ a single historical assessment never satisfies the paired boundary obligation (2363.7345ms)
+✔ serial individual assessments cannot seed initial history (tagged) (5022.571666ms)
+✔ serial individual assessments cannot seed initial history (unmarked) (4867.389625ms)
+✔ an unavailable initial peer can recover without either new context seeing the earlier peer report (3271.112667ms)
+✔ withholding initial peer output cannot erase a known blocking finding (6080.475958ms)
+✔ an interrupted initial round retains its baseline and completed peer on retry (2945.575417ms)
+✔ unchanged successful perspectives are reused independently (2403.025208ms)
+✔ lost initial-round context blocks acceptance and fresh independent proof can replace it (4620.743833ms)
+✔ lost review output retains qualified finding context (follow-up after initial pair) (5373.619042ms)
+✔ lost review output retains qualified finding context (older source before initial pair) (7378.795375ms)
+✔ local finding IDs retain distinct reviewer provenance (3412.806333ms)
+✔ opposed reviews remain visible without making peer approval override the failure (2929.618542ms)
+✔ each provider supplies its own delta after source changes and cannot borrow the peer prior (7862.187625ms)
+✔ Claude gets one same-model correction and retains the original Codex result (3591.201041ms)
+✔ Claude can supply an omitted blocking flag and qualify the same pinned source in its retry (3806.313458ms)
+✔ codex gets exactly one automatic repair turn and a failed repair stays UNAVAILABLE (3556.600792ms)
+✔ claude-code gets exactly one automatic repair turn and a failed repair stays UNAVAILABLE (3779.277291ms)
+✔ a repaired verdict that rewords dependent text qualifies the pair (3950.925583ms)
+✔ review.execute without verification refuses before the round and the same operation succeeds after verification (3206.68ms)
+✔ review.execute refuses when the latest verification is FAIL (1693.740708ms)
+✔ review.execute refuses when the latest verification is UNAVAILABLE (1811.21375ms)
+✔ an individual review without verification refuses with the same code and counts no round (892.356417ms)
+✔ a packet-assembly precondition refuses both reviewers without counting a round (2100.851042ms)
+✔ each status class is reported with its reason, and a round with a reviewer that ran counts (6306.218583ms)
+✔ an execution that launched no reviewer is refused and one that failed after launch is a provider failure (0.16975ms)
+✔ codex: a transient provider failure is retried once in the same round (4055.008542ms)
+✔ claude-code: a transient provider failure is retried once in the same round (3987.975791ms)
+✔ a second transient failure is a provider failure and timeouts or non-transient failures are not retried (7884.824667ms)
+✔ a retried reviewer whose verdict is then rejected gets exactly one repair turn (4535.257709ms)
+✔ a retry refused before launch keeps the row classified from the attempt that launched (2877.419417ms)
+✔ a claim naming a finding GateReeve no longer holds is dropped and recorded; both reviewers run without it (5808.088875ms)
+✔ a repair turn whose provider fails ends provider-failed, and provider failures record their category (4568.658833ms)
+✔ explicit earlier passing proof cannot reach behind a later failing verification (2580.2395ms)
+✔ a failure before the provider launches (adapter checks) is refused and counts no round (3784.228042ms)
+✔ a repair turn refused before launch keeps the rejected verdict and its result (2968.478958ms)
+✔ a reviewer whose adapter reports spawn counts only once its process starts (4212.382958ms)
+✔ reused retained results launch no reviewer and are reported as refused with reused (3718.241666ms)
+✔ verification from an earlier candidate supplied explicitly is refused with VERIFICATION_REQUIRED (1976.241084ms)
+✔ a prose unwrap and envelope extras are recorded on every result of a two-gate execution (2431.000333ms)
+✔ a missing blocking value goes to the repair turn with its path, and a supplied value is accepted (3707.269042ms)
+✔ an individual review with a stale claim runs without it and records the drop (2587.611583ms)
+✔ a stale claim on an otherwise reusable review runs the reviewer and records the drop (3787.057792ms)
+✔ a prose unwrap is still recorded when the unwrapped object fails the envelope check (2333.60025ms)
+✔ codex: a repair turn's tokens and duration are recorded with its attempt (3531.498167ms)
+✔ claude-code: a repair turn's tokens and duration are recorded with its attempt (3711.292125ms)
+✔ a transient retry is recorded as its own attempt (3716.311042ms)
+✔ runner CLI executes focused checks without requiring a dependency-tree declaration (3102.688333ms)
+✔ CLI records and revokes standing authority through the native core and fails closed without proof (5197.755583ms)
+✔ CLI preserves constrained Whiteboard waiver basis and explanation policy amendment (4434.663292ms)
+✔ CLI status shows both run dials, and the defaults when no run exists (263.997417ms)
+✔ CLI passes both workspace instructions through so the contradiction is rejected (284.821042ms)
+✔ live context guard follows original discovery and rejects actual policy edits (32.349208ms)
+✔ live context guard normalizes irrelevant edits and retains immutable initial meaning (4.103959ms)
+✔ cached core blocks mutations and reports milestone drift without switching feature stores (113.281834ms)
+
+Shard 1/4
+TAP version 13
+# Subtest: current run preserves old record and blocks implementation until actual decisions and spec check
+ok 1 - current run preserves old record and blocks implementation until actual decisions and spec check
+  ---
+  duration_ms: 799.267
+  type: 'test'
+  ...
+# Subtest: repeat operations return original passage; conflicting reuse and concurrent writers cannot overwrite
+ok 2 - repeat operations return original passage; conflicting reuse and concurrent writers cannot overwrite
+  ---
+  duration_ms: 552.484541
+  type: 'test'
+  ...
+# Subtest: foreign active feature identity and damaged journal cannot be used
+ok 3 - foreign active feature identity and damaged journal cannot be used
+  ---
+  duration_ms: 139.562125
+  type: 'test'
+  ...
+# Subtest: runner bookkeeping contract retains current proof and diagnostics: timeout
+ok 4 - runner bookkeeping contract retains current proof and diagnostics: timeout
+  ---
+  duration_ms: 2688.798334
+  type: 'test'
+  ...
+# Subtest: independent triage proof becomes stale when its supporting document changes
+ok 5 - independent triage proof becomes stale when its supporting document changes
+  ---
+  duration_ms: 1802.328667
+  type: 'test'
+  ...
+# Subtest: amendment can authorize implementation once while retaining old and new requirements
+ok 6 - amendment can authorize implementation once while retaining old and new requirements
+  ---
+  duration_ms: 875.004083
+  type: 'test'
+  ...
+# Subtest: simultaneous identical requests claim one execution and reconcile its result
+ok 7 - simultaneous identical requests claim one execution and reconcile its result
+  ---
+  duration_ms: 1672.679167
+  type: 'test'
+  ...
+# Subtest: protected merge recloses a drifted PR (target-after-checks) without merging
+ok 8 - protected merge recloses a drifted PR (target-after-checks) without merging
+  ---
+  duration_ms: 20695.78875
+  type: 'test'
+  ...
+# Subtest: protected merge recovers a lost merge response without repeating the merge
+ok 9 - protected merge recovers a lost merge response without repeating the merge
+  ---
+  duration_ms: 24826.72075
+  type: 'test'
+  ...
+# Subtest: protected merge leaves a promoted draft ready after fallback CI fails
+ok 10 - protected merge leaves a promoted draft ready after fallback CI fails
+  ---
+  duration_ms: 20782.211917
+  type: 'test'
+  ...
+# Subtest: development branch direction is rejected and cannot be waived
+ok 11 - development branch direction is rejected and cannot be waived
+  ---
+  duration_ms: 0.447458
+  type: 'test'
+  ...
+# Subtest: changed services/python/.venv bytes are outside local execution-context assurance
+ok 12 - changed services/python/.venv bytes are outside local execution-context assurance
+  ---
+  duration_ms: 2554.513083
+  type: 'test'
+  ...
+# Subtest: parent Git tracked records complete local review without evidence commits
+ok 13 - parent Git tracked records complete local review without evidence commits
+  ---
+  duration_ms: 10396.366208
+  type: 'test'
+  ...
+# Subtest: current resume preserves damaged SQLite events and starts without inherited authority
+ok 14 - current resume preserves damaged SQLite events and starts without inherited authority
+  ---
+  duration_ms: 386.11075
+  type: 'test'
+  ...
+# Subtest: Git symlinks and gitlinks are retained as typed metadata without following external targets
+ok 15 - Git symlinks and gitlinks are retained as typed metadata without following external targets
+  ---
+  duration_ms: 596.340958
+  type: 'test'
+  ...
+# Subtest: fresh proof recovers historical artifact loss without fabricating lost bytes
+ok 16 - fresh proof recovers historical artifact loss without fabricating lost bytes
+  ---
+  duration_ms: 15499.722708
+  type: 'test'
+  ...
+# Subtest: a missing newer failure output cannot resurrect an older PASS, but fresh proof recovers
+ok 17 - a missing newer failure output cannot resurrect an older PASS, but fresh proof recovers
+  ---
+  duration_ms: 3560.381334
+  type: 'test'
+  ...
+# Subtest: implementation rejects lost retained human decision documents
+ok 18 - implementation rejects lost retained human decision documents
+  ---
+  duration_ms: 388.149084
+  type: 'test'
+  ...
+# Subtest: base-only delta changes require path coverage and export both prior source endpoints
+ok 19 - base-only delta changes require path coverage and export both prior source endpoints
+  ---
+  duration_ms: 2732.511625
+  type: 'test'
+  ...
+# Subtest: CI validates a retained current journal and accepts optional untracked evidence without replay
+ok 20 - CI validates a retained current journal and accepts optional untracked evidence without replay
+  ---
+  duration_ms: 160.89675
+  type: 'test'
+  ...
+# Subtest: runner reuse binds declared inherited additions without retaining plaintext values
+ok 21 - runner reuse binds declared inherited additions without retaining plaintext values
+  ---
+  duration_ms: 2460.274417
+  type: 'test'
+  ...
+# Subtest: review views expose regular Git modes at every current and prior endpoint
+ok 22 - review views expose regular Git modes at every current and prior endpoint
+  ---
+  duration_ms: 2793.222041
+  type: 'test'
+  ...
+# Subtest: reopened blocking findings remain required in automatic history with changed source true
+ok 23 - reopened blocking findings remain required in automatic history with changed source true
+  ---
+  duration_ms: 7584.547875
+  type: 'test'
+  ...
+# Subtest: delta prior cannot reorder an older closure after a reopened blocking finding with changed source false
+ok 24 - delta prior cannot reorder an older closure after a reopened blocking finding with changed source false
+  ---
+  duration_ms: 9195.68625
+  type: 'test'
+  ...
+# Subtest: qualified closure reuses equivalent review with claims 1
+ok 25 - qualified closure reuses equivalent review with claims 1
+  ---
+  duration_ms: 5138.566917
+  type: 'test'
+  ...
+# Subtest: unrecorded copied PASS cannot supply verification or delta ancestry
+ok 26 - unrecorded copied PASS cannot supply verification or delta ancestry
+  ---
+  duration_ms: 2719.039167
+  type: 'test'
+  ...
+# Subtest: lost failed-spec evidence stays visible after correction and blocks retention until restored
+ok 27 - lost failed-spec evidence stays visible after correction and blocks retention until restored
+  ---
+  duration_ms: 2899.296791
+  type: 'test'
+  ...
+# Subtest: stale newer finding cannot resurrect older PASS through environment
+ok 28 - stale newer finding cannot resurrect older PASS through environment
+  ---
+  duration_ms: 28800.959375
+  type: 'test'
+  ...
+# Subtest: later finding outside selected criteria does not supersede applicable review
+ok 29 - later finding outside selected criteria does not supersede applicable review
+  ---
+  duration_ms: 4666.296333
+  type: 'test'
+  ...
+# Subtest: transaction rollback preserves pause and original failures across replacement threads
+ok 30 - transaction rollback preserves pause and original failures across replacement threads
+  ---
+  duration_ms: 1918.386666
+  type: 'test'
+  ...
+# Subtest: late READY invalidates checked milestone and restores exact failed outcome
+ok 31 - late READY invalidates checked milestone and restores exact failed outcome
+  ---
+  duration_ms: 15351.822542
+  type: 'test'
+  ...
+# Subtest: READY retries journal contention without rerunning provider or erasing pause
+ok 32 - READY retries journal contention without rerunning provider or erasing pause
+  ---
+  duration_ms: 1744.3365
+  type: 'test'
+  ...
+# Subtest: unrelated later finding does not reopen prior closures
+ok 33 - unrelated later finding does not reopen prior closures
+  ---
+  duration_ms: 12227.325416
+  type: 'test'
+  ...
+# Subtest: late failed spec validation preserves newer authority in replacement through public
+ok 34 - late failed spec validation preserves newer authority in replacement through public
+  ---
+  duration_ms: 1215.64575
+  type: 'test'
+  ...
+# Subtest: late failed spec validation preserves newer authority in pause through public
+ok 35 - late failed spec validation preserves newer authority in pause through public
+  ---
+  duration_ms: 887.303833
+  type: 'test'
+  ...
+# Subtest: public resume preserves unsupported matching activation records with current-field
+ok 36 - public resume preserves unsupported matching activation records with current-field
+  ---
+  duration_ms: 557.607
+  type: 'test'
+  ...
+# Subtest: public resume preserves unsupported matching activation records with renamed-field
+ok 37 - public resume preserves unsupported matching activation records with renamed-field
+  ---
+  duration_ms: 738.035625
+  type: 'test'
+  ...
+# Subtest: public resume preserves unsupported matching activation records with invalid-current-field
+ok 38 - public resume preserves unsupported matching activation records with invalid-current-field
+  ---
+  duration_ms: 727.389458
+  type: 'test'
+  ...
+# Subtest: default reviewer context and proof admission preserve cross-gate failures
+ok 39 - default reviewer context and proof admission preserve cross-gate failures
+  ---
+  duration_ms: 5182.667958
+  type: 'test'
+  ...
+# Subtest: root session history is absent from current, base, target and prior grouped reviewer views
+ok 40 - root session history is absent from current, base, target and prior grouped reviewer views
+  ---
+  duration_ms: 5459.107166
+  type: 'test'
+  ...
+# Subtest: retained session-contaminated proof becomes context only and never exports prior source
+ok 41 - retained session-contaminated proof becomes context only and never exports prior source
+  ---
+  duration_ms: 4057.72525
+  type: 'test'
+  ...
+# Subtest: session record case alias stays isolated: .CHECKPOINTS/checkpoint-2026-10-23.md
+ok 42 - session record case alias stays isolated: .CHECKPOINTS/checkpoint-2026-10-23.md
+  ---
+  duration_ms: 2165.691792
+  type: 'test'
+  ...
+# Subtest: external shebang observations disclose limits and agent-requested reruns retain actual failure
+ok 43 - external shebang observations disclose limits and agent-requested reruns retain actual failure
+  ---
+  duration_ms: 2945.238625
+  type: 'test'
+  ...
+# Subtest: standing status reports current candidate mismatch: branch
+ok 44 - standing status reports current candidate mismatch: branch
+  ---
+  duration_ms: 1556.378291
+  type: 'test'
+  ...
+# Subtest: standing status reports current candidate mismatch: missing-source
+ok 45 - standing status reports current candidate mismatch: missing-source
+  ---
+  duration_ms: 1836.229333
+  type: 'test'
+  ...
+# Subtest: standing authority protected merge: acceptance-only
+ok 46 - standing authority protected merge: acceptance-only
+  ---
+  duration_ms: 20417.691375
+  type: 'test'
+  ...
+# Subtest: standing authority protected merge: expire-during-final-qualification
+ok 47 - standing authority protected merge: expire-during-final-qualification
+  ---
+  duration_ms: 33181.572958
+  type: 'test'
+  ...
+# Subtest: integration observation uses discovered Python and Git with an empty GUI PATH
+ok 48 - integration observation uses discovered Python and Git with an empty GUI PATH
+  ---
+  duration_ms: 866.803458
+  type: 'test'
+  ...
+# Subtest: Whiteboard waiver requires retained non-behavioral basis or explicit policy amendment
+ok 49 - Whiteboard waiver requires retained non-behavioral basis or explicit policy amendment
+  ---
+  duration_ms: 1393.152208
+  type: 'test'
+  ...
+# Subtest: oversized operation IDs fail before execution and legacy completed outcomes reconcile once
+ok 50 - oversized operation IDs fail before execution and legacy completed outcomes reconcile once
+  ---
+  duration_ms: 1452.257083
+  type: 'test'
+  ...
+1..50
+# tests 50
+# suites 0
+# pass 50
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 293330.5955
+
+Shard 2/4
+TAP version 13
+# Subtest: readiness is a declaration with no reviewer execution and no repeated-round limit
+ok 1 - readiness is a declaration with no reviewer execution and no repeated-round limit
+  ---
+  duration_ms: 2952.461292
+  type: 'test'
+  ...
+# Subtest: interrupted startup reconciles durable run before activating it
+ok 2 - interrupted startup reconciles durable run before activating it
+  ---
+  duration_ms: 169.093291
+  type: 'test'
+  ...
+# Subtest: actual runner receipts preserve success/failure, reuse equivalent work, and reject consumed failure
+ok 3 - actual runner receipts preserve success/failure, reuse equivalent work, and reject consumed failure
+  ---
+  duration_ms: 2859.152792
+  type: 'test'
+  ...
+# Subtest: runner bookkeeping contract retains current proof and diagnostics: postflight-read-error
+ok 4 - runner bookkeeping contract retains current proof and diagnostics: postflight-read-error
+  ---
+  duration_ms: 1917.14725
+  type: 'test'
+  ...
+# Subtest: current adapter resolves canonical parent records and gives actionable old-record guidance
+ok 5 - current adapter resolves canonical parent records and gives actionable old-record guidance
+  ---
+  duration_ms: 184.868042
+  type: 'test'
+  ...
+# Subtest: resume uses observed approvals, preserves old files and reconciles repeated entry
+ok 6 - resume uses observed approvals, preserves old files and reconciles repeated entry
+  ---
+  duration_ms: 569.067084
+  type: 'test'
+  ...
+# Subtest: pattern rules are retained and policy changes invalidate earlier assessment
+ok 7 - pattern rules are retained and policy changes invalidate earlier assessment
+  ---
+  duration_ms: 2177.643708
+  type: 'test'
+  ...
+# Subtest: protected merge merges a reviewed cumulative feature onto its separately assessed advanced target
+ok 8 - protected merge merges a reviewed cumulative feature onto its separately assessed advanced target
+  ---
+  duration_ms: 25034.007541
+  type: 'test'
+  ...
+# Subtest: protected merge keeps concurrent resumptions from repeating external writes
+ok 9 - protected merge keeps concurrent resumptions from repeating external writes
+  ---
+  duration_ms: 23161.191917
+  type: 'test'
+  ...
+# Subtest: protected merge rejects target identity drift after fallback CI passes
+ok 10 - protected merge rejects target identity drift after fallback CI passes
+  ---
+  duration_ms: 20260.96125
+  type: 'test'
+  ...
+# Subtest: status remains read-only and task-breakdown edits preserve implementation authority
+ok 11 - status remains read-only and task-breakdown edits preserve implementation authority
+  ---
+  duration_ms: 1085.082666
+  type: 'test'
+  ...
+# Subtest: one instruction can waive failed quality proof and accept without rewriting its verdict
+ok 12 - one instruction can waive failed quality proof and accept without rewriting its verdict
+  ---
+  duration_ms: 18067.743
+  type: 'test'
+  ...
+# Subtest: parent Git ignored records complete local review without evidence commits
+ok 13 - parent Git ignored records complete local review without evidence commits
+  ---
+  duration_ms: 10114.47275
+  type: 'test'
+  ...
+# Subtest: incidental host environment preserves proof while declared additions invalidate runner evidence
+ok 14 - incidental host environment preserves proof while declared additions invalidate runner evidence
+  ---
+  duration_ms: 3638.386958
+  type: 'test'
+  ...
+# Subtest: reconciliation rejects unknown rubric mappings even when documents are readable
+ok 15 - reconciliation rejects unknown rubric mappings even when documents are readable
+  ---
+  duration_ms: 777.840417
+  type: 'test'
+  ...
+# Subtest: provider failure diagnostics do not enter visible gate summaries
+ok 16 - provider failure diagnostics do not enter visible gate summaries
+  ---
+  duration_ms: 1363.878167
+  type: 'test'
+  ...
+# Subtest: resolved history above 64 records does not halt fresh review
+ok 17 - resolved history above 64 records does not halt fresh review
+  ---
+  duration_ms: 149295.292083
+  type: 'test'
+  ...
+# Subtest: completion cannot combine a superseded candidate with newly authorized commitments
+ok 18 - completion cannot combine a superseded candidate with newly authorized commitments
+  ---
+  duration_ms: 981.729459
+  type: 'test'
+  ...
+# Subtest: ordinary CLI status exposes original failed outcomes and accepted consequences
+ok 19 - ordinary CLI status exposes original failed outcomes and accepted consequences
+  ---
+  duration_ms: 18858.71725
+  type: 'test'
+  ...
+# Subtest: retained workflow history stays outside source at every endpoint and supports untracked continuation
+ok 20 - retained workflow history stays outside source at every endpoint and supports untracked continuation
+  ---
+  duration_ms: 2227.123834
+  type: 'test'
+  ...
+# Subtest: failed specification and reconciliation checks retain exact diagnostics without passage
+ok 21 - failed specification and reconciliation checks retain exact diagnostics without passage
+  ---
+  duration_ms: 1437.88975
+  type: 'test'
+  ...
+# Subtest: later runner preflight failure retains completed check output with exit 0
+ok 22 - later runner preflight failure retains completed check output with exit 0
+  ---
+  duration_ms: 1603.051
+  type: 'test'
+  ...
+# Subtest: corrected runner configuration recovers after invalid arguments undefined
+ok 23 - corrected runner configuration recovers after invalid arguments undefined
+  ---
+  duration_ms: 2034.815875
+  type: 'test'
+  ...
+# Subtest: delta prior cannot reorder an older closure after a reopened blocking finding with changed source true
+ok 24 - delta prior cannot reorder an older closure after a reopened blocking finding with changed source true
+  ---
+  duration_ms: 10195.819042
+  type: 'test'
+  ...
+# Subtest: repository order and grouped gate order preserve equivalent review identity
+ok 25 - repository order and grouped gate order preserve equivalent review identity
+  ---
+  duration_ms: 3292.298916
+  type: 'test'
+  ...
+# Subtest: reserved history with Git mode 100755 fails capture without leaking or hiding source
+ok 26 - reserved history with Git mode 100755 fails capture without leaking or hiding source
+  ---
+  duration_ms: 463.843125
+  type: 'test'
+  ...
+# Subtest: independent-gate exception binds consumed runner risk transitively
+ok 27 - independent-gate exception binds consumed runner risk transitively
+  ---
+  duration_ms: 4007.966083
+  type: 'test'
+  ...
+# Subtest: stale newer finding cannot resurrect older PASS through expiry
+ok 28 - stale newer finding cannot resurrect older PASS through expiry
+  ---
+  duration_ms: 18990.784709
+  type: 'test'
+  ...
+# Subtest: historical delta ancestry cannot grant current authority to superseded consumed proof
+ok 29 - historical delta ancestry cannot grant current authority to superseded consumed proof
+  ---
+  duration_ms: 3259.078875
+  type: 'test'
+  ...
+# Subtest: saved completed failure reconciles before changed-source preflight and remains in fresh reviewer history
+ok 30 - saved completed failure reconciles before changed-source preflight and remains in fresh reviewer history
+  ---
+  duration_ms: 5112.275208
+  type: 'test'
+  ...
+# Subtest: review started before newer failure cannot confer current authority
+ok 31 - review started before newer failure cannot confer current authority
+  ---
+  duration_ms: 3434.693708
+  type: 'test'
+  ...
+# Subtest: fresh PASS after failed-receipt loss must recover current authority
+ok 32 - fresh PASS after failed-receipt loss must recover current authority
+  ---
+  duration_ms: 2551.203792
+  type: 'test'
+  ...
+# Subtest: evaluator qualification blocks low efforts and mismatched receipt profiles across review roles
+ok 33 - evaluator qualification blocks low efforts and mismatched receipt profiles across review roles
+  ---
+  duration_ms: 3503.211792
+  type: 'test'
+  ...
+# Subtest: late failed spec validation preserves newer authority in same-run through core
+ok 34 - late failed spec validation preserves newer authority in same-run through core
+  ---
+  duration_ms: 372.051917
+  type: 'test'
+  ...
+# Subtest: source admission rejects configured subdirectories and accepts linked worktree roots
+ok 35 - source admission rejects configured subdirectories and accepts linked worktree roots
+  ---
+  duration_ms: 842.217083
+  type: 'test'
+  ...
+# Subtest: public resume preserves unsupported conflicting activation records with current-field
+ok 36 - public resume preserves unsupported conflicting activation records with current-field
+  ---
+  duration_ms: 294.978917
+  type: 'test'
+  ...
+# Subtest: public resume preserves unsupported conflicting activation records with renamed-field
+ok 37 - public resume preserves unsupported conflicting activation records with renamed-field
+  ---
+  duration_ms: 292.036917
+  type: 'test'
+  ...
+# Subtest: public resume preserves unsupported conflicting activation records with invalid-current-field
+ok 38 - public resume preserves unsupported conflicting activation records with invalid-current-field
+  ---
+  duration_ms: 333.336583
+  type: 'test'
+  ...
+# Subtest: cross-gate same finding IDs retain separate closure authority
+ok 39 - cross-gate same finding IDs retain separate closure authority
+  ---
+  duration_ms: 4214.661542
+  type: 'test'
+  ...
+# Subtest: root session history with Git mode 100755 cannot hide application source
+ok 40 - root session history with Git mode 100755 cannot hide application source
+  ---
+  duration_ms: 503.205166
+  type: 'test'
+  ...
+# Subtest: activation successor schema validation applies only to current contract false
+ok 41 - activation successor schema validation applies only to current contract false
+  ---
+  duration_ms: 411.184916
+  type: 'test'
+  ...
+# Subtest: session record case alias stays isolated: .HANDOFFS/handoff-reviewer-2026-10-23.MD
+ok 42 - session record case alias stays isolated: .HANDOFFS/handoff-reviewer-2026-10-23.MD
+  ---
+  duration_ms: 1531.96325
+  type: 'test'
+  ...
+# Subtest: acceptance assessment requires explicit backstop scope and every independent responsibility
+ok 43 - acceptance assessment requires explicit backstop scope and every independent responsibility
+  ---
+  duration_ms: 3963.486375
+  type: 'test'
+  ...
+# Subtest: standing status reports current candidate mismatch: target
+ok 44 - standing status reports current candidate mismatch: target
+  ---
+  duration_ms: 2183.896709
+  type: 'test'
+  ...
+# Subtest: standing scope rejects implicit deployment, unknown fields, missing expiry and changed commitments/remotes/branches
+ok 45 - standing scope rejects implicit deployment, unknown fields, missing expiry and changed commitments/remotes/branches
+  ---
+  duration_ms: 1227.27575
+  type: 'test'
+  ...
+# Subtest: standing authority protected merge: revoke-during-checks
+ok 46 - standing authority protected merge: revoke-during-checks
+  ---
+  duration_ms: 17604.731333
+  type: 'test'
+  ...
+# Subtest: standing authority protected merge: revoke-during-input-guard
+ok 47 - standing authority protected merge: revoke-during-input-guard
+  ---
+  duration_ms: 17836.463041
+  type: 'test'
+  ...
+# Subtest: amendment rollback cannot revive direct planning or candidate authority
+ok 48 - amendment rollback cannot revive direct planning or candidate authority
+  ---
+  duration_ms: 8821.147917
+  type: 'test'
+  ...
+# Subtest: behavioral Whiteboard exception requires a named policy amendment
+ok 49 - behavioral Whiteboard exception requires a named policy amendment
+  ---
+  duration_ms: 1112.868542
+  type: 'test'
+  ...
+# Subtest: spec.validate refuses a new spec without a failure model or with unbounded criteria, naming the lines
+ok 50 - spec.validate refuses a new spec without a failure model or with unbounded criteria, naming the lines
+  ---
+  duration_ms: 321.678208
+  type: 'test'
+  ...
+1..50
+# tests 50
+# suites 0
+# pass 50
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 407528.428792
+
+Shard 3/4
+TAP version 13
+# Subtest: local requirement snapshots work with parent untracked records
+ok 1 - local requirement snapshots work with parent untracked records
+  ---
+  duration_ms: 1451.15175
+  type: 'test'
+  ...
+# Subtest: traversal, symlinks, corrupted retained bytes and source injection fail
+ok 2 - traversal, symlinks, corrupted retained bytes and source injection fail
+  ---
+  duration_ms: 167.491833
+  type: 'test'
+  ...
+# Subtest: runner bookkeeping contract retains current proof and diagnostics: bookkeeping
+ok 3 - runner bookkeeping contract retains current proof and diagnostics: bookkeeping
+  ---
+  duration_ms: 1864.211917
+  type: 'test'
+  ...
+# Subtest: one fresh evaluator supplies two separate verdicts; missing verdicts and inherited contexts remain unavailable
+ok 4 - one fresh evaluator supplies two separate verdicts; missing verdicts and inherited contexts remain unavailable
+  ---
+  duration_ms: 5309.68475
+  type: 'test'
+  ...
+# Subtest: real local fresh evaluator produces a bound code-review receipt
+ok 5 - real local fresh evaluator produces a bound code-review receipt # SKIP
+  ---
+  duration_ms: 0.10425
+  type: 'test'
+  ...
+# Subtest: policy amendment is explicit and cannot waive integrity or authority
+ok 6 - policy amendment is explicit and cannot waive integrity or authority
+  ---
+  duration_ms: 2093.174125
+  type: 'test'
+  ...
+# Subtest: protected merge revalidates the exact action and observes integration
+ok 7 - protected merge revalidates the exact action and observes integration
+  ---
+  duration_ms: 22974.111
+  type: 'test'
+  ...
+# Subtest: protected merge recloses a drifted PR (candidate-before-write) without merging
+ok 8 - protected merge recloses a drifted PR (candidate-before-write) without merging
+  ---
+  duration_ms: 22082.463917
+  type: 'test'
+  ...
+# Subtest: protected merge integrates after watching all reported CI when no required checks exist
+ok 9 - protected merge integrates after watching all reported CI when no required checks exist
+  ---
+  duration_ms: 22652.274833
+  type: 'test'
+  ...
+# Subtest: protected merge integrates only after unfiltered confirmation of no CI
+ok 10 - protected merge integrates only after unfiltered confirmation of no CI
+  ---
+  duration_ms: 22154.653709
+  type: 'test'
+  ...
+# Subtest: changed node_modules bytes are outside local execution-context assurance
+ok 11 - changed node_modules bytes are outside local execution-context assurance
+  ---
+  duration_ms: 2956.798334
+  type: 'test'
+  ...
+# Subtest: two repositories share exact parent requirements and either source invalidates the combined review
+ok 12 - two repositories share exact parent requirements and either source invalidates the combined review
+  ---
+  duration_ms: 5072.876833
+  type: 'test'
+  ...
+# Subtest: an explicit pause stops passage and its recorded continuation restores permitted repair
+ok 13 - an explicit pause stops passage and its recorded continuation restores permitted repair
+  ---
+  duration_ms: 618.02075
+  type: 'test'
+  ...
+# Subtest: a narrower passing check cannot hide earlier failed verification and packets refresh their inventory
+ok 14 - a narrower passing check cannot hide earlier failed verification and packets refresh their inventory
+  ---
+  duration_ms: 3957.096
+  type: 'test'
+  ...
+# Subtest: narrowed repository scope rejects broader prior history before launching an evaluator
+ok 15 - narrowed repository scope rejects broader prior history before launching an evaluator
+  ---
+  duration_ms: 2573.253333
+  type: 'test'
+  ...
+# Subtest: fresh assessment uses available historical findings as context when original output was lost
+ok 16 - fresh assessment uses available historical findings as context when original output was lost
+  ---
+  duration_ms: 2171.165291
+  type: 'test'
+  ...
+# Subtest: long runs with large retained reports stay reviewable without dropping open findings
+ok 17 - long runs with large retained reports stay reviewable without dropping open findings
+  ---
+  duration_ms: 46213.429791
+  type: 'test'
+  ...
+# Subtest: existing canonical home cannot escape through an ancestor symlink on status or read
+ok 18 - existing canonical home cannot escape through an ancestor symlink on status or read
+  ---
+  duration_ms: 125.605166
+  type: 'test'
+  ...
+# Subtest: executable files under bookkeeping-looking directories stay in source and cleanliness checks
+ok 19 - executable files under bookkeeping-looking directories stay in source and cleanliness checks
+  ---
+  duration_ms: 1028.039875
+  type: 'test'
+  ...
+# Subtest: configuration and executable files remain source inside report directories
+ok 20 - configuration and executable files remain source inside report directories
+  ---
+  duration_ms: 1186.42275
+  type: 'test'
+  ...
+# Subtest: combined amendment records a pending instruction before interruption and reconciles retry once
+ok 21 - combined amendment records a pending instruction before interruption and reconciles retry once
+  ---
+  duration_ms: 679.965625
+  type: 'test'
+  ...
+# Subtest: later runner preflight failure retains completed check output with exit 7
+ok 22 - later runner preflight failure retains completed check output with exit 7
+  ---
+  duration_ms: 1501.762
+  type: 'test'
+  ...
+# Subtest: corrected runner configuration recovers after invalid arguments "--version"
+ok 23 - corrected runner configuration recovers after invalid arguments "--version"
+  ---
+  duration_ms: 2708.504083
+  type: 'test'
+  ...
+# Subtest: milestone passage rejects candidate replacement during an otherwise passing check
+ok 24 - milestone passage rejects candidate replacement during an otherwise passing check
+  ---
+  duration_ms: 13202.197833
+  type: 'test'
+  ...
+# Subtest: decision passage cannot adopt state changes after-pending
+ok 25 - decision passage cannot adopt state changes after-pending
+  ---
+  duration_ms: 792.150375
+  type: 'test'
+  ...
+# Subtest: reserved history with Git mode 120000 fails capture without leaking or hiding source
+ok 26 - reserved history with Git mode 120000 fails capture without leaking or hiding source
+  ---
+  duration_ms: 527.918916
+  type: 'test'
+  ...
+# Subtest: exception risk detects expired consumed proof and changed pattern or triage inputs
+ok 27 - exception risk detects expired consumed proof and changed pattern or triage inputs
+  ---
+  duration_ms: 20984.189583
+  type: 'test'
+  ...
+# Subtest: retained provider output round-trips through public receipt validation
+ok 28 - retained provider output round-trips through public receipt validation
+  ---
+  duration_ms: 2255.06275
+  type: 'test'
+  ...
+# Subtest: current admission preserves substantive unavailable-finding after expiry
+ok 29 - current admission preserves substantive unavailable-finding after expiry
+  ---
+  duration_ms: 3865.082625
+  type: 'test'
+  ...
+# Subtest: unknown interrupted execution blocks older proof but a fresh complete review recovers
+ok 30 - unknown interrupted execution blocks older proof but a fresh complete review recovers
+  ---
+  duration_ms: 4718.783708
+  type: 'test'
+  ...
+# Subtest: READY crash restores exact cache once without rerunning evaluator
+ok 31 - READY crash restores exact cache once without rerunning evaluator
+  ---
+  duration_ms: 2305.611458
+  type: 'test'
+  ...
+# Subtest: late old-run outcome must not contaminate replacement run
+ok 32 - late old-run outcome must not contaminate replacement run
+  ---
+  duration_ms: 2040.391875
+  type: 'test'
+  ...
+# Subtest: current planning proof rejects changed parser bindings without changing implementation authority
+ok 33 - current planning proof rejects changed parser bindings without changing implementation authority
+  ---
+  duration_ms: 992.027625
+  type: 'test'
+  ...
+# Subtest: late failed spec validation preserves newer authority in same-run through public
+ok 34 - late failed spec validation preserves newer authority in same-run through public
+  ---
+  duration_ms: 1115.586625
+  type: 'test'
+  ...
+# Subtest: public resume preserves unsupported primary activation records with current-field
+ok 35 - public resume preserves unsupported primary activation records with current-field
+  ---
+  duration_ms: 1113.296209
+  type: 'test'
+  ...
+# Subtest: public resume preserves unsupported primary activation records with renamed-field
+ok 36 - public resume preserves unsupported primary activation records with renamed-field
+  ---
+  duration_ms: 1014.881375
+  type: 'test'
+  ...
+# Subtest: public resume preserves unsupported primary activation records with invalid-current-field
+ok 37 - public resume preserves unsupported primary activation records with invalid-current-field
+  ---
+  duration_ms: 849.23175
+  type: 'test'
+  ...
+# Subtest: default reviewer context and proof admission preserve criterion-only failures
+ok 38 - default reviewer context and proof admission preserve criterion-only failures
+  ---
+  duration_ms: 6938.017833
+  type: 'test'
+  ...
+# Subtest: transport unavailability alone preserves applicable independent proof
+ok 39 - transport unavailability alone preserves applicable independent proof
+  ---
+  duration_ms: 3641.313875
+  type: 'test'
+  ...
+# Subtest: root session history with Git mode 120000 cannot hide application source
+ok 40 - root session history with Git mode 120000 cannot hide application source
+  ---
+  duration_ms: 676.025417
+  type: 'test'
+  ...
+# Subtest: activation successor schema validation applies only to current contract true
+ok 41 - activation successor schema validation applies only to current contract true
+  ---
+  duration_ms: 606.552667
+  type: 'test'
+  ...
+# Subtest: external argument observations disclose limits and agent-requested reruns retain actual failure
+ok 42 - external argument observations disclose limits and agent-requested reruns retain actual failure
+  ---
+  duration_ms: 3144.229375
+  type: 'test'
+  ...
+# Subtest: standing authority is explicit, run-scoped, visible, revocable and never substitutes for proof
+ok 43 - standing authority is explicit, run-scoped, visible, revocable and never substitutes for proof
+  ---
+  duration_ms: 5364.971
+  type: 'test'
+  ...
+# Subtest: standing status reports current candidate mismatch: repository
+ok 44 - standing status reports current candidate mismatch: repository
+  ---
+  duration_ms: 1801.527
+  type: 'test'
+  ...
+# Subtest: standing authority protected merge: slice
+ok 45 - standing authority protected merge: slice
+  ---
+  duration_ms: 39278.087208
+  type: 'test'
+  ...
+# Subtest: standing authority protected merge: expire-during-checks
+ok 46 - standing authority protected merge: expire-during-checks
+  ---
+  duration_ms: 20415.632542
+  type: 'test'
+  ...
+# Subtest: standing acceptance rejects a different assessed target and subsequent target drift
+ok 47 - standing acceptance rejects a different assessed target and subsequent target drift
+  ---
+  duration_ms: 10415.566916
+  type: 'test'
+  ...
+# Subtest: superseded direct merge decisions and exceptions do not revive with equivalent content
+ok 48 - superseded direct merge decisions and exceptions do not revive with equivalent content
+  ---
+  duration_ms: 0.503458
+  type: 'test'
+  ...
+# Subtest: milestone admission rejects unjournaled drift during qualification and before passage
+ok 49 - milestone admission rejects unjournaled drift during qualification and before passage
+  ---
+  duration_ms: 16126.167083
+  type: 'test'
+  ...
+# Subtest: a spec already validated under the earlier policy warns; a changed spec is held to the rules
+ok 50 - a spec already validated under the earlier policy warns; a changed spec is held to the rules
+  ---
+  duration_ms: 369.862375
+  type: 'test'
+  ...
+1..50
+# tests 50
+# suites 0
+# pass 49
+# fail 0
+# cancelled 0
+# skipped 1
+# todo 0
+# duration_ms 336179.054458
+
+Shard 4/4
+TAP version 13
+# Subtest: local requirement snapshots work with repository-local untracked records
+ok 1 - local requirement snapshots work with repository-local untracked records
+  ---
+  duration_ms: 1464.688125
+  type: 'test'
+  ...
+# Subtest: quality exceptions retain facts and never authorize merge or waive integrity
+ok 2 - quality exceptions retain facts and never authorize merge or waive integrity
+  ---
+  duration_ms: 2107.541833
+  type: 'test'
+  ...
+# Subtest: runner bookkeeping contract retains current proof and diagnostics: dependency
+ok 3 - runner bookkeeping contract retains current proof and diagnostics: dependency
+  ---
+  duration_ms: 1710.151958
+  type: 'test'
+  ...
+# Subtest: delta assessment keeps prior provenance, covers changed paths and allows new supported defects
+ok 4 - delta assessment keeps prior provenance, covers changed paths and allows new supported defects
+  ---
+  duration_ms: 4737.021042
+  type: 'test'
+  ...
+# Subtest: all gates, actual external integration and completion work without evidence commits
+ok 5 - all gates, actual external integration and completion work without evidence commits
+  ---
+  duration_ms: 37745.786709
+  type: 'test'
+  ...
+# Subtest: runner source mutation remains unavailable and never produces reusable passing proof
+ok 6 - runner source mutation remains unavailable and never produces reusable passing proof
+  ---
+  duration_ms: 1498.850375
+  type: 'test'
+  ...
+# Subtest: protected merge recloses a drifted PR (true) without merging
+ok 7 - protected merge recloses a drifted PR (true) without merging
+  ---
+  duration_ms: 19604.90925
+  type: 'test'
+  ...
+# Subtest: protected merge does not attribute an observed merge to a replacement candidate
+ok 8 - protected merge does not attribute an observed merge to a replacement candidate
+  ---
+  duration_ms: 22177.889084
+  type: 'test'
+  ...
+# Subtest: protected merge recloses a PR after fallback CI fails
+ok 9 - protected merge recloses a PR after fallback CI fails
+  ---
+  duration_ms: 20110.502542
+  type: 'test'
+  ...
+# Subtest: protected merge rejects target identity drift after confirmation of no CI
+ok 10 - protected merge rejects target identity drift after confirmation of no CI
+  ---
+  duration_ms: 17645.037584
+  type: 'test'
+  ...
+# Subtest: changed cli/node_modules bytes are outside local execution-context assurance
+ok 11 - changed cli/node_modules bytes are outside local execution-context assurance
+  ---
+  duration_ms: 2607.5615
+  type: 'test'
+  ...
+# Subtest: same source bytes at a new commit reuse the original qualified review
+ok 12 - same source bytes at a new commit reuse the original qualified review
+  ---
+  duration_ms: 2009.997875
+  type: 'test'
+  ...
+# Subtest: spec execution automatically binds current Verification without hand-authored transport
+ok 13 - spec execution automatically binds current Verification without hand-authored transport
+  ---
+  duration_ms: 3936.874375
+  type: 'test'
+  ...
+# Subtest: review PASS needs dispositions for supplied open findings and claimed fixes
+ok 14 - review PASS needs dispositions for supplied open findings and claimed fixes
+  ---
+  duration_ms: 3965.018583
+  type: 'test'
+  ...
+# Subtest: changed closed findings need an independent relevance decision and affected dispositions
+ok 15 - changed closed findings need an independent relevance decision and affected dispositions
+  ---
+  duration_ms: 7369.383667
+  type: 'test'
+  ...
+# Subtest: a missing newer failure root cannot resurrect an older PASS, but fresh proof recovers
+ok 16 - a missing newer failure root cannot resurrect an older PASS, but fresh proof recovers
+  ---
+  duration_ms: 4197.050709
+  type: 'test'
+  ...
+# Subtest: malformed successful provider text never reaches gate summaries or artifacts
+ok 17 - malformed successful provider text never reaches gate summaries or artifacts
+  ---
+  duration_ms: 1543.885
+  type: 'test'
+  ...
+# Subtest: FEATURE scope enforces its configured original base and invalidates changed range policy
+ok 18 - FEATURE scope enforces its configured original base and invalidates changed range policy
+  ---
+  duration_ms: 1198.421625
+  type: 'test'
+  ...
+# Subtest: quality exception survives bookkeeping-equivalent commits but not changed source
+ok 19 - quality exception survives bookkeeping-equivalent commits but not changed source
+  ---
+  duration_ms: 2863.524834
+  type: 'test'
+  ...
+# Subtest: target-only changes invalidate proof and appear in delta review with prior target bytes
+ok 20 - target-only changes invalidate proof and appear in delta review with prior target bytes
+  ---
+  duration_ms: 3858.923333
+  type: 'test'
+  ...
+# Subtest: waiver with acceptance retains pending human instruction before failed continuation
+ok 21 - waiver with acceptance retains pending human instruction before failed continuation
+  ---
+  duration_ms: 14097.094667
+  type: 'test'
+  ...
+# Subtest: reopened blocking findings remain required in automatic history with changed source false
+ok 22 - reopened blocking findings remain required in automatic history with changed source false
+  ---
+  duration_ms: 8434.756542
+  type: 'test'
+  ...
+# Subtest: corrected runner configuration recovers after invalid arguments [4]
+ok 23 - corrected runner configuration recovers after invalid arguments [4]
+  ---
+  duration_ms: 2707.653042
+  type: 'test'
+  ...
+# Subtest: qualified closure reuses equivalent review with claims 0
+ok 24 - qualified closure reuses equivalent review with claims 0
+  ---
+  duration_ms: 4201.772083
+  type: 'test'
+  ...
+# Subtest: decision passage cannot adopt state changes after-validation
+ok 25 - decision passage cannot adopt state changes after-validation
+  ---
+  duration_ms: 718.891625
+  type: 'test'
+  ...
+# Subtest: finding-scoped exceptions cannot absorb other findings and runner exceptions expire on changed risk
+ok 26 - finding-scoped exceptions cannot absorb other findings and runner exceptions expire on changed risk
+  ---
+  duration_ms: 13439.73325
+  type: 'test'
+  ...
+# Subtest: explicit missing-pattern exception expires when policy appears and cannot waive unsafe policy
+ok 27 - explicit missing-pattern exception expires when policy appears and cannot waive unsafe policy
+  ---
+  duration_ms: 3362.156083
+  type: 'test'
+  ...
+# Subtest: generic provider unavailability does not erase otherwise qualifying review proof
+ok 28 - generic provider unavailability does not erase otherwise qualifying review proof
+  ---
+  duration_ms: 5043.488667
+  type: 'test'
+  ...
+# Subtest: current admission preserves substantive failed-criterion after expiry
+ok 29 - current admission preserves substantive failed-criterion after expiry
+  ---
+  duration_ms: 4650.700917
+  type: 'test'
+  ...
+# Subtest: public resume preserves durable pause without selecting a new run
+ok 30 - public resume preserves durable pause without selecting a new run
+  ---
+  duration_ms: 241.998208
+  type: 'test'
+  ...
+# Subtest: READY/cache conflict remains intact and blocks reconciliation
+ok 31 - READY/cache conflict remains intact and blocks reconciliation
+  ---
+  duration_ms: 1606.805917
+  type: 'test'
+  ...
+# Subtest: run replacement after READY cannot receive old JOB_FINISHED
+ok 32 - run replacement after READY cannot receive old JOB_FINISHED
+  ---
+  duration_ms: 2087.009625
+  type: 'test'
+  ...
+# Subtest: late failed spec validation preserves newer authority in replacement through core
+ok 33 - late failed spec validation preserves newer authority in replacement through core
+  ---
+  duration_ms: 1552.662292
+  type: 'test'
+  ...
+# Subtest: late failed spec validation preserves newer authority in pause through core
+ok 34 - late failed spec validation preserves newer authority in pause through core
+  ---
+  duration_ms: 1141.115167
+  type: 'test'
+  ...
+# Subtest: public resume preserves unsupported witness activation records with current-field
+ok 35 - public resume preserves unsupported witness activation records with current-field
+  ---
+  duration_ms: 989.637875
+  type: 'test'
+  ...
+# Subtest: public resume preserves unsupported witness activation records with renamed-field
+ok 36 - public resume preserves unsupported witness activation records with renamed-field
+  ---
+  duration_ms: 891.420584
+  type: 'test'
+  ...
+# Subtest: public resume preserves unsupported witness activation records with invalid-current-field
+ok 37 - public resume preserves unsupported witness activation records with invalid-current-field
+  ---
+  duration_ms: 944.522417
+  type: 'test'
+  ...
+# Subtest: default reviewer context and proof admission preserve coverage-only failures
+ok 38 - default reviewer context and proof admission preserve coverage-only failures
+  ---
+  duration_ms: 5509.579708
+  type: 'test'
+  ...
+# Subtest: review context keeps an R1 failure after an unrelated R2 assessment
+ok 39 - review context keeps an R1 failure after an unrelated R2 assessment
+  ---
+  duration_ms: 8051.187417
+  type: 'test'
+  ...
+# Subtest: root session history with Git mode 160000 cannot hide application source
+ok 40 - root session history with Git mode 160000 cannot hide application source
+  ---
+  duration_ms: 789.376291
+  type: 'test'
+  ...
+# Subtest: session record case alias stays isolated: checkpoint.md
+ok 41 - session record case alias stays isolated: checkpoint.md
+  ---
+  duration_ms: 2021.72275
+  type: 'test'
+  ...
+# Subtest: external library observations disclose limits and agent-requested reruns retain actual failure
+ok 42 - external library observations disclose limits and agent-requested reruns retain actual failure
+  ---
+  duration_ms: 3715.359917
+  type: 'test'
+  ...
+# Subtest: standing status reports current candidate mismatch: scope
+ok 43 - standing status reports current candidate mismatch: scope
+  ---
+  duration_ms: 1802.427041
+  type: 'test'
+  ...
+# Subtest: standing status reports current candidate mismatch: missing-root
+ok 44 - standing status reports current candidate mismatch: missing-root
+  ---
+  duration_ms: 1352.0445
+  type: 'test'
+  ...
+# Subtest: standing authority protected merge: final
+ok 45 - standing authority protected merge: final
+  ---
+  duration_ms: 12625.577625
+  type: 'test'
+  ...
+# Subtest: standing authority protected merge: revoke-during-final-qualification
+ok 46 - standing authority protected merge: revoke-during-final-qualification
+  ---
+  duration_ms: 29434.511541
+  type: 'test'
+  ...
+# Subtest: standing status uses the host-discovered Git when GUI PATH cannot resolve git
+ok 47 - standing status uses the host-discovered Git when GUI PATH cannot resolve git
+  ---
+  duration_ms: 563.893834
+  type: 'test'
+  ...
+# Subtest: explanation requires an explicit policy amendment instead of an ordinary waiver
+ok 48 - explanation requires an explicit policy amendment instead of an ordinary waiver
+  ---
+  duration_ms: 1104.285791
+  type: 'test'
+  ...
+# Subtest: standing grants bind effective fetch and push URLs even with unchanged raw URL and target commit
+ok 49 - standing grants bind effective fetch and push URLs even with unchanged raw URL and target commit
+  ---
+  duration_ms: 12380.164541
+  type: 'test'
+  ...
+# Subtest: a resumption with observed approvals grandfathers its unchanged spec
+ok 50 - a resumption with observed approvals grandfathers its unchanged spec
+  ---
+  duration_ms: 797.656458
+  type: 'test'
+  ...
+1..50
+# tests 50
+# suites 0
+# pass 50
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 308693.164708
+Registered 200 cases across 4 disjoint groups.
+✔ core fixtures in isolated process groups (407620.857292ms)
+
+Shard 1/4
+TAP version 13
+# Subtest: delegation needs a human instruction naming the run and an observed protected release branch
+ok 1 - delegation needs a human instruction naming the run and an observed protected release branch
+  ---
+  duration_ms: 737.944166
+  type: 'test'
+  ...
+# Subtest: brief scope excludes only the top-level findings section; nested, other-level and fenced headings count
+ok 2 - brief scope excludes only the top-level findings section; nested, other-level and fenced headings count
+  ---
+  duration_ms: 0.935959
+  type: 'test'
+  ...
+# Subtest: delegated delivery: a fully passing SLICE PR into the integration branch is accepted and protected-merged
+ok 3 - delegated delivery: a fully passing SLICE PR into the integration branch is accepted and protected-merged
+  ---
+  duration_ms: 23247.420583
+  type: 'test'
+  ...
+# Subtest: hand-back: an external merge blocker returns the run to supervised
+ok 4 - hand-back: an external merge blocker returns the run to supervised
+  ---
+  duration_ms: 21262.709875
+  type: 'test'
+  ...
+# Subtest: after a tripwire escalation, design and spec reviews must check the delegated brief
+ok 5 - after a tripwire escalation, design and spec reviews must check the delegated brief
+  ---
+  duration_ms: 3543.350834
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 48857.843375
+
+Shard 2/4
+TAP version 13
+# Subtest: delegation at run start records protection; without it no run is created
+ok 1 - delegation at run start records protection; without it no run is created
+  ---
+  duration_ms: 902.092792
+  type: 'test'
+  ...
+# Subtest: light delegation: a brief review substitutes for the human; a goal or scope change hands back
+ok 2 - light delegation: a brief review substitutes for the human; a goal or scope change hands back
+  ---
+  duration_ms: 3658.281709
+  type: 'test'
+  ...
+# Subtest: delegation never authorizes a release merge or an incompletely passing slice
+ok 3 - delegation never authorizes a release merge or an incompletely passing slice
+  ---
+  duration_ms: 21902.160417
+  type: 'test'
+  ...
+# Subtest: a hand-back that cannot be recorded after an external blocker fails closed
+ok 4 - a hand-back that cannot be recorded after an external blocker fails closed
+  ---
+  duration_ms: 27641.791083
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 54168.251125
+
+Shard 3/4
+TAP version 13
+# Subtest: delegated planning decisions need a qualifying independent PASS and are reported as delegated-evaluator
+ok 1 - delegated planning decisions need a qualifying independent PASS and are reported as delegated-evaluator
+  ---
+  duration_ms: 5557.957458
+  type: 'test'
+  ...
+# Subtest: light delegation: a human-authorized scope change hands back; a findings-only one does not
+ok 2 - light delegation: a human-authorized scope change hands back; a findings-only one does not
+  ---
+  duration_ms: 721.706833
+  type: 'test'
+  ...
+# Subtest: hand-back: an explicit agent hand-back stops delegated actions and voids delegated acceptance
+ok 3 - hand-back: an explicit agent hand-back stops delegated actions and voids delegated acceptance
+  ---
+  duration_ms: 17817.729458
+  type: 'test'
+  ...
+# Subtest: hand-back: release-branch protection lost before a delegated action
+ok 4 - hand-back: release-branch protection lost before a delegated action
+  ---
+  duration_ms: 34849.402292
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 59016.241
+
+Shard 4/4
+TAP version 13
+# Subtest: brief scope covers everything except the findings section
+ok 1 - brief scope covers everything except the findings section
+  ---
+  duration_ms: 1.529459
+  type: 'test'
+  ...
+# Subtest: hand-back voids delegated implementation authority until a human authorizes
+ok 2 - hand-back voids delegated implementation authority until a human authorizes
+  ---
+  duration_ms: 2872.661708
+  type: 'test'
+  ...
+# Subtest: hand-back: an amendment under delegation returns the run to supervised
+ok 3 - hand-back: an amendment under delegation returns the run to supervised
+  ---
+  duration_ms: 1783.141375
+  type: 'test'
+  ...
+# Subtest: tripwires under delegation escalate to full automatically and reject stay-light
+ok 4 - tripwires under delegation escalate to full automatically and reject stay-light
+  ---
+  duration_ms: 9110.870042
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 13829.466166
+Registered 17 cases across 4 disjoint groups.
+✔ core fixtures in isolated process groups (59080.329083ms)
+
+Shard 1/4
+TAP version 13
+# Subtest: delivery pairing: SLICE targets integration; only FEATURE integration -> release targets release
+ok 1 - delivery pairing: SLICE targets integration; only FEATURE integration -> release targets release
+  ---
+  duration_ms: 3956.603125
+  type: 'test'
+  ...
+# Subtest: per-PR human authorize-merge lets the agent merge the FEATURE PR into release (light)
+ok 2 - per-PR human authorize-merge lets the agent merge the FEATURE PR into release (light)
+  ---
+  duration_ms: 29706.473125
+  type: 'test'
+  ...
+# Subtest: merge.prepare refuses a PR that is not open in default open delivery
+ok 3 - merge.prepare refuses a PR that is not open in default open delivery
+  ---
+  duration_ms: 11406.5125
+  type: 'test'
+  ...
+# Subtest: model-authored review text cannot close or forge the published section
+ok 4 - model-authored review text cannot close or forge the published section
+  ---
+  duration_ms: 0.413042
+  type: 'test'
+  ...
+# Subtest: final handoff leads with pinned HTML and reuses advisory mutation evidence
+ok 5 - final handoff leads with pinned HTML and reuses advisory mutation evidence
+  ---
+  duration_ms: 42993.462625
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 88131.581166
+
+Shard 2/4
+TAP version 13
+# Subtest: integration == release: any scope targets release and no standing authority exists
+ok 1 - integration == release: any scope targets release and no standing authority exists
+  ---
+  duration_ms: 1723.751834
+  type: 'test'
+  ...
+# Subtest: an authorized closed PR publishes its retained review after GitHub refreshes the head
+ok 2 - an authorized closed PR publishes its retained review after GitHub refreshes the head
+  ---
+  duration_ms: 35876.983042
+  type: 'test'
+  ...
+# Subtest: only an unmerged, hosting-rule refusal is classified as an external blocker
+ok 3 - only an unmerged, hosting-rule refusal is classified as an external blocker
+  ---
+  duration_ms: 0.664
+  type: 'test'
+  ...
+# Subtest: the GitHub round-trip double reproduces the rewrites observed on a real PR
+ok 4 - the GitHub round-trip double reproduces the rewrites observed on a real PR
+  ---
+  duration_ms: 0.164834
+  type: 'test'
+  ...
+# Subtest: final handoff leads with mutation evidence scoped to each repository
+ok 5 - final handoff leads with mutation evidence scoped to each repository
+  ---
+  duration_ms: 29439.764375
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 67111.524541
+
+Shard 3/4
+TAP version 13
+# Subtest: standing grants: new release grants are refused; existing ones are reported and never authorize
+ok 1 - standing grants: new release grants are refused; existing ones are reported and never authorize
+  ---
+  duration_ms: 19945.124792
+  type: 'test'
+  ...
+# Subtest: a hosting-rule merge refusal is an external blocker, not a gate failure
+ok 2 - a hosting-rule merge refusal is an external blocker, not a gate failure
+  ---
+  duration_ms: 44533.213334
+  type: 'test'
+  ...
+# Subtest: review publication writes and replaces one section idempotently and refuses without a current review
+ok 3 - review publication writes and replaces one section idempotently and refuses without a current review
+  ---
+  duration_ms: 36045.02575
+  type: 'test'
+  ...
+# Subtest: text GitHub or gh rewrites is neutralized, so the published section reads back exactly
+ok 4 - text GitHub or gh rewrites is neutralized, so the published section reads back exactly
+  ---
+  duration_ms: 0.38975
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 100596.486708
+
+Shard 4/4
+TAP version 13
+# Subtest: per-PR human authorize-merge lets the agent merge the FEATURE PR into release (full)
+ok 1 - per-PR human authorize-merge lets the agent merge the FEATURE PR into release (full)
+  ---
+  duration_ms: 32608.387
+  type: 'test'
+  ...
+# Subtest: merge.prepare accepts a PR ready for review; a draft flip after authorization still merges
+ok 2 - merge.prepare accepts a PR ready for review; a draft flip after authorization still merges
+  ---
+  duration_ms: 32291.983208
+  type: 'test'
+  ...
+# Subtest: publication presents the latest qualifying review, even when it is UNAVAILABLE, and authorization matches
+ok 3 - publication presents the latest qualifying review, even when it is UNAVAILABLE, and authorization matches
+  ---
+  duration_ms: 16707.409417
+  type: 'test'
+  ...
+# Subtest: review publication survives GitHub rewrites and still refuses any other read-back difference
+ok 4 - review publication survives GitHub rewrites and still refuses any other read-back difference
+  ---
+  duration_ms: 15292.016417
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 96972.347708
+Registered 18 cases across 4 disjoint groups.
+✔ core fixtures in isolated process groups (100634.764292ms)
+✔ schema constrains criterion IDs and contract repair cannot erase findings (1.416625ms)
+✔ invalid reviewer criterion remains visible and independent targeted repair preserves the defect (2223.884084ms)
+✔ replacement coverage is qualified in the existing review and cannot be self-declared (3272.244375ms)
+✔ two fresh complete assessments consolidate planning/code/spec and administrative gates need no launches (4352.804167ms)
+✔ failed command diagnostics bound retained excerpts and redact private inherited values (0.838791ms)
+✔ generated outputs require preparation provenance and preserve build/check identity (2280.168709ms)
+✔ derived coverage cannot assert proof, and resume returns pending work without launching it (980.214167ms)
+﹣ native evaluator repairs a retained synthetic malformed response without erasing its finding (0.068375ms) # SKIP
+✔ criterion repair preserves assessments while fixing only invalid identifiers (0.385958ms)
+✔ independent spec correction can repair an invalid row ID without redoing its assessment (2941.062708ms)
+✔ generated output identity includes directory permissions (556.68275ms)
+
+Shard 1/4
+TAP version 13
+# Subtest: new runs default to full/supervised with built-in provenance and time
+ok 1 - new runs default to full/supervised with built-in provenance and time
+  ---
+  duration_ms: 130.318917
+  type: 'test'
+  ...
+# Subtest: raising rigor is open to either actor and a raised run can never be lowered
+ok 2 - raising rigor is open to either actor and a raised run can never be lowered
+  ---
+  duration_ms: 470.913875
+  type: 'test'
+  ...
+# Subtest: an earlier-contract run is retained, reported as needing resumption, and resumes at the defaults
+ok 3 - an earlier-contract run is retained, reported as needing resumption, and resumes at the defaults
+  ---
+  duration_ms: 166.891459
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 826.573416
+
+Shard 2/4
+TAP version 13
+# Subtest: explicit light at start records the observed human instruction
+ok 1 - explicit light at start records the observed human instruction
+  ---
+  duration_ms: 138.137959
+  type: 'test'
+  ...
+# Subtest: delegation is human-only, names the run, and needs a configured protected release branch
+ok 2 - delegation is human-only, names the run, and needs a configured protected release branch
+  ---
+  duration_ms: 269.246417
+  type: 'test'
+  ...
+# Subtest: resuming an active run reports a differing dial choice instead of dropping it
+ok 3 - resuming an active run reports a differing dial choice instead of dropping it
+  ---
+  duration_ms: 246.255958
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 712.755875
+
+Shard 3/4
+TAP version 13
+# Subtest: invalid, unauthorized or unavailable start choices never yield light or delegated
+ok 1 - invalid, unauthorized or unavailable start choices never yield light or delegated
+  ---
+  duration_ms: 575.86825
+  type: 'test'
+  ...
+# Subtest: rules: rigor never falls within a run for any actor or autonomy; hand-back is open to either actor
+ok 2 - rules: rigor never falls within a run for any actor or autonomy; hand-back is open to either actor
+  ---
+  duration_ms: 0.383958
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 633.133166
+
+Shard 4/4
+TAP version 13
+# Subtest: configuration cannot change dial defaults
+ok 1 - configuration cannot change dial defaults
+  ---
+  duration_ms: 191.399167
+  type: 'test'
+  ...
+# Subtest: dial changes retain recorded evidence
+ok 2 - dial changes retain recorded evidence
+  ---
+  duration_ms: 0.243833
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 250.208791
+Registered 10 cases across 4 disjoint groups.
+✔ core fixtures in isolated process groups (864.050959ms)
+✔ execution context never traverses dependency or declared runtime trees (16.753459ms)
+✔ controlled profile executes additions and strips incidental host inputs (550.093541ms)
+✔ ambiguous private literal values are rejected before a profile can be retained (0.180792ms)
+✔ agent decision entries are parsed by file and heading from the three record files (296.131833ms)
+✔ the decisions section is written only when decisions are supplied (0.306458ms)
+✔ a goal run blocks its milestones while interview.md differs from the approved record and never re-pins on grant (563.049292ms)
+✔ goal planning review input carries the agent decisions with an assessment rule (964.310833ms)
+✔ a goal boundary review receives the agent decisions and the published PR lists them (3576.525375ms)
+✔ a goal planning decision cites only a review that assessed the current agent decision entries (2786.925959ms)
+✔ nested headings inside an agent entry stay part of that entry, so a changed choice changes the entries (0.262291ms)
+✔ entries beneath a grouping heading keep their own identity and provenance (0.130709ms)
+✔ agent entries are found at any heading depth, before any heading, and in plain or bold provenance form (0.158375ms)
+✔ indented headings, CommonMark fence lengths and ordered-list or quoted provenance are handled (0.130583ms)
+✔ both native manifests route the question tools and the Stop event to the shared handlers (9.775042ms)
+✔ the question guard denies only a goal run without an active park and fails open (367.048667ms)
+✔ the Stop hook blocks a goal run until it reaches a terminal state, with a stall valve (423.594542ms)
+✔ a goal run may adjudicate eligible residual risk without human clearance (4060.042375ms)
+✔ a goal run accepts and protected-merges a fully passing SLICE PR into the integration branch (12686.335625ms)
+✔ a tripwire hit in a goal light run escalates it to full rigor automatically (621.050667ms)
+✔ the CLI current view reports goal terminal state and the decisions made for the human (0.502709ms)
+✔ goal autonomy requires the same named-run human grant, mandate and release protection as mandated (348.424625ms)
+✔ goal autonomy can be chosen at run start with a mandate and is refused without one (381.092375ms)
+✔ the retired autonomous name is accepted as an alias and retained autonomous events replay as mandated (311.036917ms)
+✔ a goal run renews authority through an in-mandate amendment without a human handback (1340.681ms)
+✔ goal delivery reports ready-pr at a published final PR and never authorizes its release merge (12467.715625ms)
+✔ a goal run parks behind an open PR with blockers and only a human continue resumes it (762.383292ms)
+✔ leaving goal autonomy clears a park and removes the goal object (464.712292ms)
+✔ ready-pr requires every condition: open PR at the candidate head, FEATURE scope, the current candidate, acceptance and unchanged decisions (0.241417ms)
+✔ a recorded ready state is withdrawn by any later review, evidence, decision or dial event (533.360042ms)
+✔ guard corpus: every merge form is recognized and unrelated commands are not (3.431541ms)
+✔ merge denials carry milestone reasons and name the bundled adapter when no CLI is on PATH (498.536375ms)
+✔ pushes to the configured integration or release branch are denied; topic pushes are not (186.439875ms)
+✔ a push is checked in every repository it could act on, per the documented coverage list (NEW6-NEW23) (1309.781083ms)
+✔ an unconfigured Git workspace names no protected branches (49.693833ms)
+✔ entry points: the CLI is named only when it is on PATH; an unusable adapter is never named (89.774666ms)
+✔ status recovery actions and messages name only installed entry points (130.823875ms)
+✔ a PASS whose affected list includes an open prior finding and a claimed fix is accepted (0.828709ms)
+✔ undisclosed affected IDs are still rejected; repeats are normalized (AC5) (0.545042ms)
+✔ carried closures still need a reason, and every required ID a supported disposition (0.251625ms)
+✔ review requires an explicit alias when a relative finding path has multiple owners (0.345709ms)
+✔ native manifests select the shared handler; subprocess payloads produce deny without claiming host interception (252.465458ms)
+✔ configured missing feature records deny direct merging (49.091834ms)
+
+Shard 1/4
+TAP version 13
+# Subtest: a light run reaches implementation with only brief.md and a human authorization
+ok 1 - a light run reaches implementation with only brief.md and a human authorization
+  ---
+  duration_ms: 621.769541
+  type: 'test'
+  ...
+# Subtest: light acceptance requires exactly the full required gate set
+ok 2 - light acceptance requires exactly the full required gate set
+  ---
+  duration_ms: 11186.659125
+  type: 'test'
+  ...
+# Subtest: raising rigor requires full commitments before implementation and acceptance
+ok 3 - raising rigor requires full commitments before implementation and acceptance
+  ---
+  duration_ms: 8287.202458
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 20158.739709
+
+Shard 2/4
+TAP version 13
+# Subtest: a brief without goal, scope and findings log cannot be authorized
+ok 1 - a brief without goal, scope and findings log cannot be authorized
+  ---
+  duration_ms: 512.233375
+  type: 'test'
+  ...
+# Subtest: light review assesses the brief through an independent fresh evaluator
+ok 2 - light review assesses the brief through an independent fresh evaluator
+  ---
+  duration_ms: 3787.70825
+  type: 'test'
+  ...
+# Subtest: verification records agent-run provenance with receipts and no CI checks
+ok 3 - verification records agent-run provenance with receipts and no CI checks
+  ---
+  duration_ms: 2159.381
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6520.491666
+
+Shard 3/4
+TAP version 13
+# Subtest: a changed brief invalidates implementation authority until it is re-authorized
+ok 1 - a changed brief invalidates implementation authority until it is re-authorized
+  ---
+  duration_ms: 1289.375958
+  type: 'test'
+  ...
+# Subtest: light review rejects rubric criteria and accepts brief findings
+ok 2 - light review rejects rubric criteria and accepts brief findings
+  ---
+  duration_ms: 6603.757209
+  type: 'test'
+  ...
+# Subtest: verification records hosted CI on the exact head and never presents an empty CI run as passing
+ok 3 - verification records hosted CI on the exact head and never presents an empty CI run as passing
+  ---
+  duration_ms: 1808.686459
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 9764.025042
+
+Shard 4/4
+TAP version 13
+# Subtest: a light candidate uses the single brief criterion and captures only the brief
+ok 1 - a light candidate uses the single brief criterion and captures only the brief
+  ---
+  duration_ms: 2844.680042
+  type: 'test'
+  ...
+# Subtest: spec, judge, reconcile and triage are refused in a light run; code remains available
+ok 2 - spec, judge, reconcile and triage are refused in a light run; code remains available
+  ---
+  duration_ms: 2882.702583
+  type: 'test'
+  ...
+# Subtest: hosted merge checks report an absent check set as no CI checks
+ok 3 - hosted merge checks report an absent check set as no CI checks
+  ---
+  duration_ms: 565.699667
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6355.165167
+Registered 12 cases across 4 disjoint groups.
+✔ core fixtures in isolated process groups (20195.273958ms)
+✔ every projected observation carries the run dials; decisions carry their authority kind (incremental) (24.958625ms)
+✔ autonomous projection preserves its mode and judgment basis without exporting mandate text (11.011583ms)
+✔ decisions applied under a standing grant are measured apart from per-decision human acts (16.262167ms)
+✔ a contract-7 run without dial events reads full/supervised; earlier reporting rows are not converted (18.282375ms)
+✔ report wording never presents absent escaped-defect records as safety evidence (23.04ms)
+✔ escaped-defect origin links: human-stated or confirmed only; unconfirmed proposals are refused and never stored (223.17325ms)
+GateReeve metrics: capture incomplete; underlying work continues.
+✔ projection failure never changes workflow authority (113.34775ms)
+✔ a contract-6 run is neither projected nor converted; its resumption projects at the defaults (117.27275ms)
+✔ new operations are measured under their own labels (5.338709ms)
+✔ CLI, desktop, MCP and plugin copies match and use contract gatereeve/current/8 (57.607209ms)
+ℹ cli/resources not generated in this checkout
+✔ retained reporting rows and snapshots recorded as autonomous read and import as mandated (4.734667ms)
+✔ verdict normalization and rejection rules are counted per rule in the metrics store (issue #141) (8.003041ms)
+✔ each review result observation carries its attempt, duration and tokens; unknown usage stays null (issue #142) (10.186167ms)
+✔ planning facts preserve identities and evidence across Markdown layouts (1.784ms)
+✔ ambiguous and missing definitions are never silently omitted (0.36ms)
+✔ supporting tasks need no artificial criterion mapping but real references are validated (0.157458ms)
+✔ planning proof binds parser policy and failed extraction remains a failure (3.635917ms)
+✔ the policy moved with the specification rules (0.067458ms)
+✔ a spec needs a nonempty, resolved Failure model section (AC3) (1.0685ms)
+✔ criteria with unbounded wording need a same-line bound (AC4) (1.255458ms)
+✔ a grandfathered spec reports the rules as warnings; other specs fail (AC5) (1.210792ms)
+✔ grandfathering follows exact spec bytes validated under an earlier policy (AC5) (0.222792ms)
+✔ the portable lint applies the rules as failures, or reports them on request (AC5) (285.350791ms)
+✔ selection records inferred classes honestly and does not claim execution (1.224167ms)
+✔ model versions are data and explicit instructions remain visible (0.125958ms)
+✔ same-provider models cannot supply two independent provider perspectives (0.219041ms)
+✔ undiscovered models and unavailable reasoning cannot be silently substituted (0.128ms)
+✔ low effort does not qualify despite discovery and a standard-class label (0.078584ms)
+✔ selection needs two reviewers, discovery provenance and an honest class basis (0.078917ms)
+✔ configured preferences enforce order and preserve eligible same-provider fallback (0.271208ms)
+✔ correction removes only ineligible affected IDs and preserves present dispositions (12.82575ms)
+✔ review history shaping stays bounded for any number of rounds and keeps open findings inline (47.438084ms)
+✔ PR explanations stay evidence while nearby HTML and configuration remain application inputs (306.339083ms)
+✔ large trees stream source, skip excluded bodies, and retain manifests without file copies (2344.638334ms)
+✔ full views share verified bytes only inside the session, ignore archive attributes, and clean up (790.557334ms)
+✔ reference ownership protects shared source, detects conflicts and releases idempotently (535.397833ms)
+✔ equivalent commits reuse content identity while changed bytes and modes do not (535.793583ms)
+✔ ambiguous JSON classification is bounded, provenance checked, and nonregular records rejected (580.433833ms)
+✔ ordinary object availability is lightweight but materialization verifies corrupted contents (795.666375ms)
+✔ cleanup leaves live view sessions intact (539.011292ms)
+✔ sealed review cleanup preserves a live cwd and reconciles an exact retry (1372.003375ms)
+✔ completion cleanup is durable, protects active jobs, and does not undo completion (314.20575ms)
+✔ pin preparation retry preserves independent owners across linked worktrees (323.262334ms)
+✔ SHA-256 objects and views use their native object identities (728.074708ms)
+✔ copy fallback preserves full bytes and removes backing files (690.179125ms)
+✔ interrupted controller cannot clean an unresolved evaluator job or an unknown view owner (528.723917ms)
+✔ multi-repository partial pin failure retries without disturbing another operation (505.414584ms)
+✔ candidate publication cannot cross a concurrent human pause after preparation intent (634.76275ms)
+✔ view initialization failure removes the created root even before its owner marker exists (534.0225ms)
+✔ completion exposes pending cleanup immediately and failed preparation is visible until retry (942.668917ms)
+✔ classification and metadata limits reject precisely at their documented boundaries (505.973834ms)
+✔ malformed Git object streams reject with a source diagnostic (288.857417ms)
+✔ promisor repositories do not invoke a remote helper for missing source (137.637417ms)
+
+Shard 1/4
+TAP version 13
+# Subtest: each built-in category triggers on a representative diff
+ok 1 - each built-in category triggers on a representative diff
+  ---
+  duration_ms: 1499.697792
+  type: 'test'
+  ...
+# Subtest: supervised light: escalating to full is the other way past a hit; full runs are not classified
+ok 2 - supervised light: escalating to full is the other way past a hit; full runs are not classified
+  ---
+  duration_ms: 2189.128459
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3747.798042
+
+Shard 2/4
+TAP version 13
+# Subtest: ordinary changes, unchanged lines and prose do not trigger
+ok 1 - ordinary changes, unchanged lines and prose do not trigger
+  ---
+  duration_ms: 480.314125
+  type: 'test'
+  ...
+# Subtest: a light run without hits is unaffected
+ok 2 - a light run without hits is unaffected
+  ---
+  duration_ms: 5599.799209
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6140.037792
+
+Shard 3/4
+TAP version 13
+# Subtest: repository configuration extends and narrows categories from the pinned base
+ok 1 - repository configuration extends and narrows categories from the pinned base
+  ---
+  duration_ms: 972.214917
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1030.557041
+
+Shard 4/4
+TAP version 13
+# Subtest: supervised light: a hit blocks acceptance until a hit-bound human stay-light decision
+ok 1 - supervised light: a hit blocks acceptance until a hit-bound human stay-light decision
+  ---
+  duration_ms: 15668.574666
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 15727.338
+Registered 6 cases across 4 disjoint groups.
+✔ core fixtures in isolated process groups (15763.735459ms)
+
+Shard 1/2
+TAP version 13
+# Subtest: light: an explicit human waiver of review and verification gets past reused CI coverage with an UNAVAILABLE reviewer
+ok 1 - light: an explicit human waiver of review and verification gets past reused CI coverage with an UNAVAILABLE reviewer
+  ---
+  duration_ms: 21003.410166
+  type: 'test'
+  ...
+# Subtest: a waived verification residual is not a passing gate for standing, delegated or autonomous authority
+ok 2 - a waived verification residual is not a passing gate for standing, delegated or autonomous authority
+  ---
+  duration_ms: 0.137333
+  type: 'test'
+  ...
+# Subtest: brief comparison follows Markdown whitespace: indentation and code count, prose whitespace does not
+ok 3 - brief comparison follows Markdown whitespace: indentation and code count, prose whitespace does not
+  ---
+  duration_ms: 1.117
+  type: 'test'
+  ...
+# Subtest: without a verification waiver the uncovered coverage still blocks, and the refusal names it
+ok 4 - without a verification waiver the uncovered coverage still blocks, and the refusal names it
+  ---
+  duration_ms: 8610.484667
+  type: 'test'
+  ...
+# Subtest: light: re-indenting a scope list outside the findings log needs a new authorization
+ok 5 - light: re-indenting a scope list outside the findings log needs a new authorization
+  ---
+  duration_ms: 367.098
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 30041.558416
+
+Shard 2/2
+TAP version 13
+# Subtest: full: an explicit human waiver of review and verification gets past reused CI coverage with an UNAVAILABLE reviewer
+ok 1 - full: an explicit human waiver of review and verification gets past reused CI coverage with an UNAVAILABLE reviewer
+  ---
+  duration_ms: 18337.861084
+  type: 'test'
+  ...
+# Subtest: standing application refuses a verification PASS whose coverage a human waived without accepting
+ok 2 - standing application refuses a verification PASS whose coverage a human waived without accepting
+  ---
+  duration_ms: 9800.61325
+  type: 'test'
+  ...
+# Subtest: brief comparison keeps raw HTML <pre> content and hard line breaks (\#157)
+ok 3 - brief comparison keeps raw HTML <pre> content and hard line breaks (\#157)
+  ---
+  duration_ms: 1.879333
+  type: 'test'
+  ...
+# Subtest: light: a findings-log append keeps implementation authority; a scope edit does not
+ok 4 - light: a findings-log append keeps implementation authority; a scope edit does not
+  ---
+  duration_ms: 742.156375
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 28943.212542
+Registered 9 cases across 2 disjoint groups.
+✔ core fixtures in isolated process groups (30074.355625ms)
+
+Shard 1/4
+TAP version 13
+# Subtest: absent: run start writes the minimal configuration, excludes it locally, records and reports it
+ok 1 - absent: run start writes the minimal configuration, excludes it locally, records and reports it
+  ---
+  duration_ms: 373.278209
+  type: 'test'
+  ...
+# Subtest: different feature: run start stops, writes nothing, and replaces only on a human instruction
+ok 2 - different feature: run start stops, writes nothing, and replaces only on a human instruction
+  ---
+  duration_ms: 397.079417
+  type: 'test'
+  ...
+# Subtest: run.resume-current: an unconfigured fresh resume writes the configuration as run.start does; genuine resumption writes nothing
+ok 3 - run.resume-current: an unconfigured fresh resume writes the configuration as run.start does; genuine resumption writes nothing
+  ---
+  duration_ms: 869.279083
+  type: 'test'
+  ...
+# Subtest: workspace.configure writes the configuration for an existing unconfigured run, once
+ok 4 - workspace.configure writes the configuration for an existing unconfigured run, once
+  ---
+  duration_ms: 649.598292
+  type: 'test'
+  ...
+# Subtest: freshly configured repository completes a per-PR human merge into the default branch (full)
+ok 5 - freshly configured repository completes a per-PR human merge into the default branch (full)
+  ---
+  duration_ms: 16534.04625
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 18887.863417
+
+Shard 2/4
+TAP version 13
+# Subtest: nothing is left behind when run start cannot proceed, and delegation at start writes nothing
+ok 1 - nothing is left behind when run start cannot proceed, and delegation at start writes nothing
+  ---
+  duration_ms: 297.661209
+  type: 'test'
+  ...
+# Subtest: different feature: a human confirmation starts the run in the configured feature unchanged
+ok 2 - different feature: a human confirmation starts the run in the configured feature unchanged
+  ---
+  duration_ms: 251.208667
+  type: 'test'
+  ...
+# Subtest: no GitHub remote: nothing is written, the run starts, status and merge preparation say what delivery needs
+ok 3 - no GitHub remote: nothing is written, the run starts, status and merge preparation say what delivery needs
+  ---
+  duration_ms: 1169.002292
+  type: 'test'
+  ...
+# Subtest: run start writes featureBaseSha and FEATURE scope prepares straight after it (full)
+ok 4 - run start writes featureBaseSha and FEATURE scope prepares straight after it (full)
+  ---
+  duration_ms: 1887.255583
+  type: 'test'
+  ...
+# Subtest: freshly configured repository completes a per-PR human merge into the default branch (light)
+ok 5 - freshly configured repository completes a per-PR human merge into the default branch (light)
+  ---
+  duration_ms: 14736.315625
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 18407.084958
+
+Shard 3/4
+TAP version 13
+# Subtest: the guard protects the written default branch, including the matching refspec
+ok 1 - the guard protects the written default branch, including the matching refspec
+  ---
+  duration_ms: 351.954041
+  type: 'test'
+  ...
+# Subtest: different feature: a stale configuration whose feature has a run stops start instead of pointing at that run
+ok 2 - different feature: a stale configuration whose feature has a run stops start instead of pointing at that run
+  ---
+  duration_ms: 714.947459
+  type: 'test'
+  ...
+# Subtest: merge preparation in an unconfigured workspace names workspace.configure through an available entry point
+ok 3 - merge preparation in an unconfigured workspace names workspace.configure through an available entry point
+  ---
+  duration_ms: 624.413667
+  type: 'test'
+  ...
+# Subtest: run start writes featureBaseSha and FEATURE scope prepares straight after it (light)
+ok 4 - run start writes featureBaseSha and FEATURE scope prepares straight after it (light)
+  ---
+  duration_ms: 1441.115417
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3192.645541
+
+Shard 4/4
+TAP version 13
+# Subtest: same feature: an existing configuration naming the feature is used unchanged
+ok 1 - same feature: an existing configuration naming the feature is used unchanged
+  ---
+  duration_ms: 927.539667
+  type: 'test'
+  ...
+# Subtest: run.resume-current starting a fresh run applies the different-feature check before creating anything
+ok 2 - run.resume-current starting a fresh run applies the different-feature check before creating anything
+  ---
+  duration_ms: 1116.977375
+  type: 'test'
+  ...
+# Subtest: default branch unobservable: nothing is written, the run starts and the reason is recorded
+ok 3 - default branch unobservable: nothing is written, the run starts and the reason is recorded
+  ---
+  duration_ms: 1795.574166
+  type: 'test'
+  ...
+# Subtest: run start writes no featureBaseSha when no merge base resolves, and says why
+ok 4 - run start writes no featureBaseSha when no merge base resolves, and says why
+  ---
+  duration_ms: 311.636125
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4213.981833
+Registered 18 cases across 4 disjoint groups.
+✔ core fixtures in isolated process groups (18924.240792ms)
+✔ current/7 activation remains provenance and supplies no current/8 review or authority (24.864875ms)
+✔ known transients back off, preserve attempts, and leave substantive errors to investigation (0.988125ms)
+✔ source acceptance requires exact full main CI and retained source/tree/policy identity (0.877625ms)
+✔ two features share one immutable release artifact while inclusion and provider facts remain fresh (26.10225ms)
+✔ native upgrade recovery observes installed bytes, preserves unrelated state and never invents activation (16.351584ms)
+✔ actual matrix wrapper reuses only qualified entries and preserves substantive failure lineage (3957.4965ms)
+✔ Codex marketplace availability cannot masquerade as an installed package (11.942ms)
+✔ renders one exact trusted RC manifest and checksum output (1.643ms)
+✔ preserves the other channel and rejects incomplete trust (0.250375ms)
+✔ routes users, developers, and release maintainers from the root README (6.323ms)
+✔ developer guide covers the complete canonical-to-PR lifecycle (3.379875ms)
+✔ release runbook documents only the conductor production interface (3.789916ms)
+✔ Apple release setup is actionable, protected, and team-key only (3.835459ms)
+✔ keeps developer and release bash examples syntactically valid (108.322709ms)
+✔ keeps one successful main build, active consumers and holds; ignores other artifact/workflow categories (2.690916ms)
+✔ paginates more than 100 artifacts, orders ties by ID, and is idempotent (8.517417ms)
+✔ empty inventory, single installer, no main success and all-expired inventories (0.801542ms)
+✔ expired holds stop protecting at the exact deadline; malformed or duplicate holds fail closed (0.468167ms)
+✔ a queued rerun between planning and deletion is protected (0.175833ms)
+✔ a changed live hold revision stops the sweep even after a previous deletion (0.306375ms)
+✔ keeper deletion or rerun aborts rather than deleting its fallback (0.192042ms)
+✔ incomplete or changed keeper metadata cannot authorize deleting a fallback (0.646833ms)
+✔ malformed inventory expiry stops cleanup before any deletion (0.402416ms)
+✔ a mismatched ID in the deletion target response stops cleanup (0.174167ms)
+✔ missing or blank run fields stop inventory and final rechecks without deletion (5.18325ms)
+✔ new uploads and newly successful main runs do not get deleted (0.168708ms)
+✔ already-deleted targets are harmless on both GET and DELETE (0.242625ms)
+✔ API, policy, identity, unknown conclusions and partial failures are not deletion permission (0.452875ms)
+✔ unstable pagination aborts before any mutation (0.494209ms)
+✔ local proposed holds are usable only in preview (0.250708ms)
+✔ HTTP retries are bounded for safe reads; deletion failures are not blindly retried (9.301ms)
+✔ workflow uses trusted main code, serialized narrowly authorized cleanup, preview default and explicit expiry (6.628958ms)
+✔ CLI cannot apply locally or from another branch/workflow (70.421541ms)
+✔ fixed datasets are idempotent, overlapping imports do not change old reports, conflicts roll back (14.660834ms)
+✔ capture includes truthful missing-source coverage and strips no raw data by accident (9.445875ms)
+✔ snapshot datasets preserve independent clocks and nested timing accounting (7.713292ms)
+✔ CI scope observes exact head and required executed jobs; alternative stays a proposal (0.478667ms)
+✔ inspection does not create stores and explicit cleanup expires reporting only (7.051917ms)
+✔ optional analysis validates cited evidence and keeps factual results on provider failure (550.874041ms)
+✔ public model/check labels survive capture without command arguments or environment values (8.262167ms)
+✔ successful analysis retains its receipt and rejects fabricated citations (1006.059875ms)
+✔ workflow projection is incremental, inspectable and cannot import authority (15.519292ms)
+✔ same display names retain distinct project identities and bounded imports roll back (5.736541ms)
+✔ unknown worker timing stays unknown beside observed work and spans inherit public context (7.745541ms)
+✔ legacy imports retain known runs under a shared feature and disclose unknown runs (7.251125ms)
+✔ combining snapshots retains earlier source gaps and the full known window (5.454541ms)
+✔ filtered model totals retain nested context and reconcile with overview contributions (7.027208ms)
+✔ unknown nested timing remains unknown in a parent-only drill-down (6.791042ms)
+✔ R9: a marked run projects followUp on finding rows and one follow-up row per record, re-emitted as the status changes (34.758792ms)
+✔ R9: a reopened follow-up reads undecided again in the store (28.570334ms)
+✔ R9: a follow-up whose finding blocks again is withdrawn from the store (33.573625ms)
+✔ R9: an unmarked run projects no followUp, and measure 2 decided is met, unmet or incomplete from follow-up rows (12.609041ms)
+✔ R9: the Completion milestone retains the final follow-up list (2716.635125ms)
+✔ R1: non-blocking findings become follow-ups with their origin, finding and reason; blocking ones never do (2574.403542ms)
+✔ R1: round 4 demotes a medium and keeps a low; a regression-path finding, a missed swept site and a latest blocking report are not follow-ups (11117.835ms)
+✔ R1: a waived or adjudicated blocking finding is not a follow-up; a path outside every alias belongs to the first repository (5030.363291ms)
+✔ R1: resolved makes a follow-up fixed, unsupported leaves it, a peer still present keeps it open, and a re-report reopens it as undecided (0.38425ms)
+✔ R1: a decided follow-up keeps its decision across rounds and status reports the derived status end to end (6333.566ms)
+✔ R2: a non-review origin records one follow-up per dedup key and returns each input's ID in order; bad input is refused with nothing recorded (1371.949375ms)
+✔ R3: decisions by IDs and by select, supersession, policy defaults skipping human decisions, and eight refusals (2832.137ms)
+✔ R3, R5: a bulk new-work call whose second filing fails records nothing; the retry reuses the first issue, even before search sees it (2595.752666ms)
+✔ R4: defaults and who may apply them (14711.949292ms)
+✔ R5: filing creates a marked, backlinked issue in the follow-up's repository, reuses an open one, seeds without GitHub, and keeps local names out (3879.993375ms)
+✔ R6: Completion and the release merge wait on follow-ups; status reports them; unmarked runs and unreadable records (9558.98575ms)
+✔ R6: goal readiness and park advice; a decision or a new record makes a ready record stale; a light run is blocked the same way (8466.247959ms)
+✔ R7, R8: follow-ups.md and the PR summary list every follow-up with its details and decision (7448.543875ms)
+✔ R10: the follow-ups CLI lists, decides and renders (4923.179083ms)
+✔ CLI and native adapter share current parent-workspace status and preserve old files (363.980917ms)
+✔ current queries are read-only and blocked milestone passage fails without appending (337.852625ms)
+✔ retired mutation commands are unavailable and help explains explicit execution (174.042ms)
+✔ uses a deterministic branch and self-verifying pull request marker (0.861333ms)
+✔ preflight is read-only and exact publication is recoverably merge-committed (1.100958ms)
+✔ leaves a blocked exact pull request for safe retry (0.705958ms)
+✔ rejects a pre-existing publication branch with unapproved history (0.132417ms)
+✔ rejects an otherwise exact publication pull request with any extra path (0.273709ms)
+✔ renders one checksum-pinned Cask for the exact approved universal DMG (0.968291ms)
+✔ binds tap creation, exact Cask bytes, and direct-install proof to one plan (0.7ms)
+✔ verifies packet identity and performs an absent-tap dry run without mutation (10.008959ms)
+✔ accepts an exact canonical predecessor Cask during an upgrade dry run (2.0055ms)
+✔ orders large semantic-version base identifiers without precision loss (1.768833ms)
+✔ rejects noncanonical, equal-version, and newer public Cask bytes (1.975ms)
+✔ rejects a canonical predecessor without an exact public release (1.646ms)
+✔ models an upgrade from a predecessor while preserving exact download bytes (0.310041ms)
+✔ creates the dedicated public tap only after exact approval and persists a receipt (4.153792ms)
+✔ detects changed Cask bytes inside a prepared packet (1.184833ms)
+✔ public smoke refusal preserves a pre-existing installation and tap (1000.92475ms)
+✔ successful required checks preserve configured-required behavior (0.681292ms)
+✔ empty required-check set watches all reported checks to completion (0.132542ms)
+✔ failed required CI never triggers the empty-required fallback (0.201375ms)
+✔ pending checks never triggers the empty-required fallback (0.053708ms)
+✔ authentication failure never triggers the empty-required fallback (0.051334ms)
+✔ API failure never triggers the empty-required fallback (0.043291ms)
+✔ transport failure never triggers the empty-required fallback (0.04925ms)
+✔ signal termination never triggers the empty-required fallback (0.049292ms)
+✔ missing stdout never triggers the empty-required fallback (0.060834ms)
+✔ missing stderr never triggers the empty-required fallback (0.109916ms)
+✔ unexpected output never triggers the empty-required fallback (0.083084ms)
+✔ wrong branch never triggers the empty-required fallback (0.056833ms)
+✔ additional diagnostic never triggers the empty-required fallback (0.045875ms)
+✔ unrecognized message never triggers the empty-required fallback (0.030083ms)
+✔ failed fallback CI remains blocking with the original diagnostic (0.091208ms)
+✔ pending fallback CI remains blocking with the original diagnostic (0.043125ms)
+✔ fallback API failure remains blocking with the original diagnostic (0.033375ms)
+✔ wrong-branch no-CI response remains blocking with the original diagnostic (0.029459ms)
+✔ no-CI response with unexpected output remains blocking with the original diagnostic (0.030292ms)
+✔ no-CI response with pending exit code remains blocking with the original diagnostic (0.037708ms)
+✔ no-CI response with extra diagnostic remains blocking with the original diagnostic (0.038542ms)
+✔ required-only emptiness from unfiltered query remains blocking with the original diagnostic (0.035ms)
+✔ no required checks requires unfiltered confirmation before allowing no CI (0.067958ms)
+✔ no checks requires unfiltered confirmation before allowing no CI (0.031584ms)
+✔ checks appearing after initial no-CI response are watched normally (0.058458ms)
+✔ checks appearing after initial no-CI response are blocking when failed (0.03825ms)
+✔ finalizes trusted schema-v2 bytes into one sealed hosted publication packet (1032.373792ms)
+✔ rejects finalization inputs that differ from the trusted lifecycle (499.244667ms)
+✔ dry run performs only preflights and real retry records each surface once (1169.535917ms)
+✔ keeps Cask pending until primary publication and then links one idempotent receipt (1058.772375ms)
+✔ documents the verified native plugin lifecycle for both managers (3.016459ms)
+✔ keeps every documented bash block syntactically valid (56.3505ms)
+✔ connects installation, operational guidance, and visual orientation (1.299084ms)
+✔ success rotates only DMGs while checksum, verification and arbitrary neighboring records survive (170.937583ms)
+✔ failed and interrupted producers cannot replace the last successful installer (93.37225ms)
+✔ live producer is protected; process identity failure is uncertain, not inactive (112.81375ms)
+✔ consumer lease protects an older installer until its operation finishes, including throw (161.909833ms)
+✔ file-based verifier lease protects managed files and leaves explicit external paths alone (113.216375ms)
+✔ canonical and aliased consumer paths both lease a cache configured through a symlinked parent (223.884458ms)
+✔ holds protect exact IDs; expiry permits cleanup; keeper survives expired holds (120.006375ms)
+✔ mounted/open or unknown activity preserves obsolete DMGs (91.311375ms)
+✔ root absence and Doctor preview do not create storage; unowned directories are not adopted (538.223167ms)
+✔ symlink and hardlink installer substitutions block cleanup and preserve external bytes (202.785791ms)
+✔ corrupt keeper/hold metadata or changed content fails closed across the sweep (265.905292ms)
+✔ deletion receipt must be durable before unlink, and failed sweeps can be retried (110.033417ms)
+✔ receipt file and directory sync failures both prevent DMG unlink and permit a later retry (272.538ms)
+✔ target mutation during deletion-time assessment prevents unlink (105.802667ms)
+✔ concurrent producers serialize registration and retain the actual final successful completion (222.309875ms)
+✔ explicit import copies one DMG, preserves source and records, and does not adopt its directory (121.852ms)
+✔ managed local packaging retains installer but removes generated app staging; exports/CI/signing opt out (878.47ms)
+✔ local verification publishes external receipt before qualifying cached DMG; failure preserves last success (2126.937083ms)
+✔ CLI cleanup and Doctor expose managed installers; --run never widens to installer cleanup (2051.917875ms)
+✔ CLI import, hold and consumer lease preserve source and release lease after failed child (1208.609333ms)
+✔ a device renumbered in an earlier boot keeps the installer root and its records; same-boot and replaced roots are refused (130.391917ms)
+✔ validates the bounded schema vocabulary used by agent workflows (1.405166ms)
+✔ enforces maxProperties on stage dependency packets (0.07675ms)
+✔ only Linux Codex adds the fixed distro helper path to the scrubbed shell (0.629875ms)
+✔ Codex adapter launches a fresh ephemeral read-only structured run (548.451208ms)
+✔ Claude Code adapter launches a non-persistent restricted custom agent (491.533667ms)
+✔ Claude Code adapter passes the prompt on standard input, never in argv, including above 128 KiB (971.785625ms)
+✔ a real child process receives a prompt above 128 KiB on standard input (23.153166ms)
+✔ an early-exiting child with a prompt above 128 KiB is a controlled failure, never an unhandled error (74.178542ms)
+✔ both adapters turn an early provider exit with a large prompt into a classified provider failure (1183.878ms)
+✔ adapter parsers require structured output and opaque context IDs (0.26125ms)
+✔ provider adapters reject oversized prompts before launching a process (483.789958ms)
+✔ failed provider processes expose structured categories without raw output (22.584333ms)
+✔ bundled provider output schemas type every constant (3.530875ms)
+✔ Claude structured output accepts one JSON fence in fallback text but rejects ambiguity and broken JSON (0.295458ms)
+✔ successful providers with malformed JSON expose no raw response fragments (486.389125ms)
+✔ both public adapters reject old receipt requests before launching a provider (0.165959ms)
+✔ both providers reject insufficient or unknown reasoning before starting a process (0.139875ms)
+✔ Codex usage totals remain unknown for incomplete fields across completed turns (2044.262375ms)
+✔ runAgentProcess reports the spawn of a started process and never of one that cannot start (22.470167ms)
+✔ both local adapters advertise spawn reporting and forward onSpawn to their runner (1968.7235ms)
+✔ Claude Code offers only the validate_verdict tool and keeps its restrictions (981.742917ms)
+✔ Codex offers only the gatereeve MCP server and keeps its read-only sandbox (952.700916ms)
+✔ both adapters refuse a malformed self-validation launch before starting a process (0.248666ms)
+✔ provider request and response bind exact provider, module, request, and input identities (0.923875ms)
+✔ command completion is fail-closed and provider observation cannot override process failure (0.323208ms)
+✔ command structured output is optional enrichment without an outcome field (0.139083ms)
+✔ GateReeve native evidence reproduces the shared exact-byte and request anchors (1.239125ms)
+✔ the repository-local conformance fixture preserves shared semantics and GateReeve topology (4.99675ms)
+✔ aggregation rejects missing, duplicate, stale, altered, synthetic, and Rosetta evidence (0.524125ms)
+✔ validates matching native manifests, catalogs, and hooks (4.803791ms)
+✔ rejects native identity and hook drift (1.245708ms)
+✔ enforces contract-declared manifest and catalog fields (1.372625ms)
+✔ read-only fresh store has no writes and defaults are enabled (4.228791ms)
+✔ private metadata and idempotent imports do not copy secrets (9.052792ms)
+✔ parallel/nested accounting separates elapsed from worker time (4.832042ms)
+✔ unknown identities do not establish equivalence and clocks do not fabricate elapsed time (6.203167ms)
+✔ observer preserves success, throw identity and unfinished attempts (7.015709ms)
+GateReeve metrics: capture incomplete; underlying work continues.
+✔ off switch bypasses storage and collection failure does not replace result (6.958709ms)
+✔ retention summarizes expired details and protects live producers (6.303167ms)
+✔ small budget remains bounded and cleanup never traverses links (17.201709ms)
+✔ a writer waits for another writer and reports busy only after its timeout (81.532333ms)
+✔ concurrent writers in separate processes lose no observations (301.623541ms)
+✔ framework imports accept initial adapters and preserve incomplete data (18.097416ms)
+✔ CI reimports count one attempt and distinct attempts stay distinct (5.730833ms)
+✔ MCP requires handshake and management is disabled by default (2.106459ms)
+✔ actual MCP stdio process supports initialization and tools (43.139959ms)
+✔ CLI wrapper preserves argv, output and nonzero exit (108.047292ms)
+✔ collector reports bounded diagnostics only when explicitly enabled (6.305792ms)
+✔ nested worker accounting retains exclusive parent setup (11.057417ms)
+✔ wrapper forwards termination and preserves terminal signal (86.124ms)
+✔ poll observations accumulate without unbounded per-poll records (4.490208ms)
+✔ shared execution keeps multiple feature inclusions without duplicate cost (5.048875ms)
+✔ summary retention preserves nested accounting (23.282125ms)
+✔ unavailable importer timing remains visible after the import response is gone (5.014292ms)
+✔ Playwright retries remain separate idempotent attempts with recovered success (4.976542ms)
+✔ collector loss has persistent bounded health even when a whole span was dropped (3.960584ms)
+✔ real command receipt correlates with its wrapper without duplicate worker time (112.561208ms)
+{"reconciliation":"native-runner","receiptHash":"sha256:f1679a101685c3b6f38c242c069601eab64cc439477fbf3295f8acb3d53aec42","expectedChecks":3,"observedChecks":3,"expectedWorkerMs":42290,"observedWorkerMs":42290}
+✔ retained native runner receipt reconciles exactly and reimport does not duplicate work (6.653709ms)
+✔ writes never rescan the store and per-record legacy files migrate once (17.30175ms)
+✔ records from a newer collector with unknown vocabulary stay readable (3.806084ms)
+✔ a feature query on a large store reads only that feature (2363.591541ms)
+ℹ 50k load=2322ms featureReport=9ms put=0.19ms status=9ms bytes=73621504
+✔ estimated timestamps retain measured work without inventing elapsed placement or overlap (4.994708ms)
+✔ live Node reporter preserves normal output and treats delivery timestamps as estimates (97.41625ms)
+✔ native current adapter starts without a PATH CLI and status process agrees (212.278958ms)
+✔ unsupported old mutations and arbitrary feature homes cannot append passage (123.902583ms)
+✔ producer integrity manifest verifies the complete Plugin candidate tree (15.875959ms)
+✔ verification rejects a missing hidden file (10.268541ms)
+✔ verification rejects a missing visible file (9.692625ms)
+✔ verification rejects an unexpected extra file (9.511334ms)
+✔ verification rejects a changed file byte (10.934834ms)
+✔ verification rejects a malformed integrity manifest (10.671041ms)
+✔ verification rejects an exact but semantically incomplete Plugin tree (14.873375ms)
+✔ verification rejects symbolic links in the Plugin candidate tree (13.00525ms)
+✔ lints the canonical repository plugin sources (56.848416ms)
+✔ rejects personal paths before inventory validation (1.446041ms)
+✔ rejects root escapes and native platform markers in shared source (0.937916ms)
+✔ rejects symlinks in canonical package sources (0.956541ms)
+✔ rejects a JavaScript import escaping the shared package (0.878583ms)
+hint: Using 'master' as the name for the initial branch. This default branch name
+hint: will change to "main" in Git 3.0. To configure the initial branch name
+hint: to use in all of your new repositories, which will suppress this warning,
+hint: call:
+hint:
+hint: 	git config --global init.defaultBranch <name>
+hint:
+hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+hint: 'development'. The just-created branch can be renamed via this command:
+hint:
+hint: 	git branch -m <name>
+hint:
+hint: Disable this message with "git config set advice.defaultBranchName false"
+To /private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve/runs/validation-check-f1a82fee-7720-4b91-bf68-6ffa2065c998/tmp/gatereeve-test-K0F4b1/gatereeve/runs/node-a3c4eea8-96f6-416c-9d88-ed01ba60a745/tmp/workflow publication ctDDP6/remote.git
+ * [new branch]      marketplace -> marketplace
+Cloning into '/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve/runs/validation-check-f1a82fee-7720-4b91-bf68-6ffa2065c998/tmp/gatereeve-test-K0F4b1/gatereeve/runs/node-a3c4eea8-96f6-416c-9d88-ed01ba60a745/tmp/workflow publication ctDDP6/after-failure'...
+done.
+To /private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve/runs/validation-check-f1a82fee-7720-4b91-bf68-6ffa2065c998/tmp/gatereeve-test-K0F4b1/gatereeve/runs/node-a3c4eea8-96f6-416c-9d88-ed01ba60a745/tmp/workflow publication ctDDP6/remote.git
+ + 67c2bb2...f981481 HEAD -> marketplace (forced update)
+Cloning into '/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve/runs/validation-check-f1a82fee-7720-4b91-bf68-6ffa2065c998/tmp/gatereeve-test-K0F4b1/gatereeve/runs/node-a3c4eea8-96f6-416c-9d88-ed01ba60a745/tmp/workflow publication ctDDP6/after-success'...
+done.
+✔ publication failure preserves the previous marketplace ref (1451.985708ms)
+✔ planning gates cannot be routed through retired Python validators (0.514875ms)
+✔ model data cannot select an arbitrary Python executable (0.061791ms)
+✔ writes and verifies a self-consistent state, status, checksum, and summary bundle (5.075334ms)
+✔ refuses nonempty output and detects changed state projections (2.89725ms)
+✔ detects changed chain bytes even when the latest state file is untouched (1.747ms)
+✔ CLI appends and inspects immutable conductor bundles (184.768459ms)
+✔ CLI rejects identity arguments after initialization (118.094125ms)
+✔ CLI discovers a downloaded conductor bundle without operator-supplied run identity (177.744625ms)
+✔ discovers an unordered unique chain by tag and projects retry state (2.144416ms)
+✔ rejects absent, expired, renamed, wrong-run, non-main, and nonconductor artifacts (1.291958ms)
+✔ rejects divergent sequences and source commits outside the workflow history (0.83775ms)
+✔ accepts completed checkpoints from a conductor run that later failed (0.236667ms)
+✔ reads the exact public DMG identity from a published schema-v2 lifecycle (1.252083ms)
+✔ rejects the schema-v1 projection shape that caused the RC.11 state failure (0.18575ms)
+✔ rejects an unpublished or ambiguous lifecycle receipt (0.11975ms)
+✔ rejects a published lifecycle without an exact DMG digest (0.080292ms)
+✔ creates a canonical initialized record and deterministic artifact identity (1.644334ms)
+✔ validates the complete lifecycle and renders matching JSON and summary status (1.469042ms)
+✔ records retryable failure without advancing and then resumes forward (0.539334ms)
+✔ returns unexplained conflicts to model investigation (0.597542ms)
+✔ rejects skipped, reversed, repeated-success, and terminal passages (0.663125ms)
+✔ rejects tampered predecessors, identity changes, duplicate sequences, and time reversal (0.654542ms)
+✔ rejects malformed evidence, wrong version, and misbound attestation (0.439083ms)
+✔ rejects unknown keys so state cannot carry unreviewed authority (0.457166ms)
+✔ schema v2 advances through the exact GateReeve lifecycle prefix (3.933416ms)
+✔ schema v2 rejects skipped, duplicate, unknown, and tampered stages (0.37525ms)
+✔ Apple-bound bytes are immutable and idempotent for the same identity (0.642167ms)
+✔ schema dispatch reads legacy v1 through an explicit validator but forbids mutation (0.100375ms)
+✔ the published RC.2 schema-v1 fixture dispatches read-only without changing bytes (2.967917ms)
+✔ publish dry-run is nonmutating and confirmed publish pushes only the tag (351.394209ms)
+✔ publish cancellation leaves the release tag absent (201.767209ms)
+✔ publish composes tag, watch, and verification by default (223.077667ms)
+✔ publish refuses a dirty or different release checkout (309.09875ms)
+✔ promotion validates and tags the deployed historical commit in an isolated worktree (826.146625ms)
+✔ release list joins tags, workflow runs, and deployed provenance (0.509333ms)
+✔ watch selects a tagged run and preserves a failed watch status (0.198541ms)
+✔ marketplace verification accepts a complete tree and rejects version drift (3730.765792ms)
+✔ bundle creates a complete offline marketplace ZIP and checksum (5424.945709ms)
+✔ bundle preserves output when marketplace verification fails (113.10625ms)
+✔ release workflow exposes only conductor start and resume (0.643959ms)
+✔ orders candidate tags without numeric precision loss (0.595708ms)
+✔ plans next RC, promotion, and release-line bumps from an RC (0.237958ms)
+✔ starts the next patch RC from stable and rejects invalid promotion baselines (0.491833ms)
+✔ supports large semantic-version identifiers without number precision loss (0.067167ms)
+✔ validates deployed release identity and exposes proposed interactive choices (0.110291ms)
+✔ requires one explicit selector for noninteractive publication (0.152542ms)
+✔ resolves explicit, computed, and injected interactive plans (0.093708ms)
+✔ verification defaults to validated deployed metadata while retaining an exact override (0.088666ms)
+✔ prepares a traceable release-candidate marketplace (1283.14475ms)
+✔ preparation emits and verifies a companion full-tree integrity manifest (1332.072916ms)
+✔ preparation rejects an integrity manifest inside the publishable tree (1143.65825ms)
+✔ requires complete Ubuntu evidence for stable publication (1013.112ms)
+✔ rejects stable evidence for a different candidate commit (0.590417ms)
+✔ rejects malformed release-candidate evidence (0.450958ms)
+✔ matches RC lineage for stable tags with build metadata (938.684417ms)
+✔ creates missing release output parents (970.190375ms)
+✔ rejects invalid tags and preserves existing output (0.67875ms)
+✔ refuses to merge a new release into previous output (0.59525ms)
+✔ R7: the Definition of Done is incorporated by its phrase in any case and wrapping (0.491917ms)
+✔ R7: links are read from prose, never from code, and classified (0.925125ms)
+✔ R7: linked feature-home documents are captured; others become notes; external links are never fetched (455.714917ms)
+✔ R7: a review packet carries incorporated documents, notes and instructions; a spec without them carries none (4147.552833ms)
+✔ R7: a changed incorporated document prevents reuse of an earlier review (2993.161375ms)
+✔ R7: the Definition of Done has its two parts and the template and policy point to it (0.554167ms)
+✔ R8: rows marked After merge are found from the criterion text only (0.204583ms)
+✔ R8: candidates leave after-merge rows out of boundary review and the packet lists them (3125.762042ms)
+✔ the ledger names exactly the dispositions required and every disclosed ID (0.793959ms)
+✔ the output schema is built per request with finding-ID enums (0.6265ms)
+✔ a disclosed but not required affected ID is normalized, never rejected (0.833791ms)
+✔ a PASS marking a blocking finding present is a FAIL; a missing disposition stays a contract error (0.128291ms)
+✔ a present historical finding now rated low takes a disposition that no longer blocks (0.109ms)
+✔ findings need severity, failure scenario and class; low never blocks (0.228458ms)
+✔ format repair is judged by substance identity (0.891083ms)
+✔ paired reviewers rating one class differently resolve to the higher rating (0.119875ms)
+✔ every UNAVAILABLE cause maps to one reason code (0.094459ms)
+✔ code (full) rejects a finding missing any severity, failure scenario or class field (0.191042ms)
+✔ spec (full) rejects a finding missing any severity, failure scenario or class field (0.113875ms)
+✔ judge (full) rejects a finding missing any severity, failure scenario or class field (0.172459ms)
+✔ review (full) rejects a finding missing any severity, failure scenario or class field (0.140958ms)
+✔ review (light brief) rejects a finding missing any severity, failure scenario or class field (0.077791ms)
+✔ code (light brief) rejects a finding missing any severity, failure scenario or class field (0.069708ms)
+✔ a FAIL resting only on low findings is PASS only when nothing else fails (0.377167ms)
+✔ an unrelated low finding never makes an independent failure adjudicable (0.19325ms)
+✔ a disposition cannot carry or change a severity (0.45525ms)
+✔ planning reviews require the same finding fields; low never blocks (0.283709ms)
+✔ verdict rejections name the field path or finding ID (0.210709ms)
+✔ a claimed finding without a supported disposition says what the claim needs (0.113792ms)
+✔ format repair rejections name the changed field or ID (6.334959ms)
+✔ a claimed blocking finding marked present on PASS is recorded as FAIL (0.094458ms)
+✔ the schedule: rounds 1-3 block non-low, rounds 4-5 only high and medium regressions, low never (0.555584ms)
+✔ one counter per scope: revisions count once, legacy rounds do not, a human amendment resets and integration closes the slice (1.6315ms)
+✔ a round in which every outcome was refused is not counted; earlier events replay unchanged (issue #140) (0.190125ms)
+✔ a light run resets rounds only when the human re-authorizes a changed brief (0.109459ms)
+✔ round 6 hands back: goal runs park and adjudication is refused (0.419625ms)
+✔ status shows the scope round on unpushed local commits, counts an UNAVAILABLE round once and advises raising light rigor at round 4 (9711.147292ms)
+✔ schedule band: round 2 blocks a medium finding (4004.437583ms)
+✔ schedule band: round 4 demotes a medium non-regression and a low regression (3806.731083ms)
+✔ schedule band: round 4 blocks a medium regression of the previous fix (3867.346709ms)
+✔ schedule band: round 5 blocks a high finding anywhere (3593.405125ms)
+✔ round 6 is not qualifying until the human records continue; a seventh revision is refused before then (5559.266875ms)
+✔ past round 6 a new revision is not reviewed until the human decides (2023.675042ms)
+✔ planning reviews count rounds per document and a delegated decision cannot cite a round 6 review (3612.256791ms)
+✔ an unrated finding from an earlier contract keeps blocking as recorded in every band (0.137958ms)
+✔ rounds 4-5 never demote a FAIL that rests on an independent failure (17636.202083ms)
+✔ a medium regression stays blocking in later rounds until it is resolved (6538.807959ms)
+✔ returning to an earlier revision is a new round; the counter never moves backwards (0.226417ms)
+✔ a split ends the scope, so each part starts at round 1 (0.079917ms)
+✔ a regression re-reported under the same ID keeps its original round (6083.056917ms)
+✔ an individual selection-tagged review cannot bypass the round 6 hand-back (2359.478959ms)
+✔ successive individual selection-tagged review pairs advance the counter until round 6 hands back (11222.229875ms)
+✔ a planning review that fails at the provider still uses its round (736.838833ms)
+✔ a result retained from an earlier review contract keeps its qualification (AC11) (0.095959ms)
+✔ a planning round that failed at the provider keeps the regression baseline (0.382ms)
+✔ a planning finding fixed and later reintroduced is judged afresh (0.1385ms)
+✔ a completed UNAVAILABLE planning review never clears a regression (0.064584ms)
+✔ a resolved boundary finding reintroduced by the fix is judged afresh as a regression (10001.951792ms)
+✔ a reintroduced boundary finding stays a regression in the round after its reintroduction (15977.697083ms)
+✔ a reintroduced boundary finding keeps its reintroducing round through later present dispositions (15220.240959ms)
+✔ a planning review of a new revision past round 6 is refused before any provider launch (4066.714792ms)
+✔ a same-revision planning retry that is UNAVAILABLE keeps the regression found earlier in that round (0.417292ms)
+✔ a restored earlier revision is qualified as the next round, never its old one (2501.496042ms)
+✔ when peers disagree whether a regression was resolved, it keeps blocking (9173.934ms)
+✔ a peer's re-report keeps a regression's origin (#134): codex re-reports, claude resolves (paired) (8109.297125ms)
+✔ a peer's re-report keeps a regression's origin (#134): claude re-reports, codex resolves (paired) (8180.814459ms)
+✔ a peer's re-report keeps a regression's origin (#134): codex re-reports, claude calls it unsupported (paired) (8036.974666ms)
+✔ a peer's re-report keeps a regression's origin (#134): individual reviews: the resolving peer first (10137.615ms)
+✔ a peer's re-report keeps a regression's origin (#134): individual reviews: the re-reporting peer first (10657.649667ms)
+✔ a same-revision re-review can close a finding its round raised (5693.861583ms)
+✔ a same-revision dispute re-review closes a finding an earlier execution of the round kept present (8425.848541ms)
+✔ a re-report in a same-revision re-review keeps a regression open (claude-code then codex) (6958.560167ms)
+✔ a re-report in a same-revision re-review keeps a regression open (codex then claude-code) (7275.430083ms)
+✔ automatic discovery explicitly skips smoke requiring external tools (68.988042ms)
+✔ explicit smoke invocation still rejects missing tool arguments (31.853ms)
+✔ effective timeout is visible, per-check overrides runner limit, and zero disables it (1764.406625ms)
+✔ actual timeout is distinguished from a nonzero exit and a failed launch (1603.33275ms)
+✔ invalid timeout rejects: -1 (0.340958ms)
+✔ invalid timeout rejects: 1.5 (0.048792ms)
+✔ invalid timeout rejects: 100 (0.045416ms)
+✔ invalid timeout rejects: 2147483648 (0.036834ms)
+✔ supervised tools inherit managed temporary storage, preserve cwd and share one nested root (1049.518417ms)
+✔ failed child exports bounded diagnostics before reclaiming tool leftovers (551.3835ms)
+✔ split UTF-8 output is preserved in captured streams and failure diagnostics (1864.780667ms)
+✔ inherited unmanaged root is rejected without adopting it (29.325ms)
+✔ cross-volume publication preserves outputs and symlinks without exposing ownership records (3.988625ms)
+✔ sealed reviewer trees are reclaimable without following links into caller data (470.688ms)
+✔ governed check supervisor captures failure, bounds timeout and reaps the command (1618.158542ms)
+✔ governed checks retain command evidence when scratch report publication also fails (1696.055542ms)
+✔ concurrent producers wait for a verified live maintainer beyond the interrupted-lock grace period (3489.423833ms)
+✔ captured validation output stays out of scratch failure diagnostics (546.721ms)
+✔ R1: the tool and the execution accept the same verdicts and report the same first error (3.161208ms)
+✔ R2: the server answers MCP requests read-only and keeps answering after bad input (52.164084ms)
+✔ R2: the launch runs under the permission model with read access only (25.7065ms)
+✔ R2: the server makes no network call while it answers (54.3425ms)
+✔ R3: only an adapter that declares the capability gets the context file, packet field and launch (2480.018125ms)
+✔ R4: a reviewer that self-validates and corrects is recorded in one attempt without a repair turn (2633.9325ms)
+✔ R5: a PASS without a disposition for a peer finding records not-assessed and the finding stays open (0.781333ms)
+✔ R5: in a paired round the not-assessed member stays unreconciled for the peer finding (3549.153458ms)
+✔ R9: PROTOCOL.md and the review guidance document the change (0.754458ms)
+✔ code reviewers judge likelihood before consequence in full and light runs (AC1) (0.411375ms)
+✔ planning reviewers apply the same severity rule and judge failure-model gaps (AC1, AC2) (0.081416ms)
+✔ code reviewers read the failure model from the requirement basis (AC2) (0.060042ms)
+✔ only light-run reviewers receive the documentation bar (AC6) (0.087916ms)
+✔ the review contract version moved and keeps retained qualification rules (AC8) (0.060916ms)
+✔ paginated gh reads use --paginate --jq (no --slurp) and join every page (0.614167ms)
+✔ escalation walks only roots that are still the recorded process (0.09425ms)
+✔ assembles native marketplace layout from generated packages (11.598292ms)
+✔ verifies native manager installation, discovery, setup, and doctor (8.504292ms)
+✔ selects a compatible python later on PATH (0.768084ms)
+✔ refuses to reuse a nonempty smoke workspace (2.260166ms)
+✔ CLI staging records an exact canonical protocol inventory and hash (208.154708ms)
+✔ consumer staging copies only validated support paths and names its manifest (22.624458ms)
+✔ R1: a claim needs a fixed or disputed disposition; fixed needs a sweep and disputed must not carry one (0.745792ms)
+✔ R2: every sweep field is required and bounded, refused by its path; one site with its search is accepted (1.135167ms)
+✔ R1: gate.execute and review.execute refuse an invalid claim before any reviewer starts and record no result (2853.491708ms)
+✔ R1: a valid disputed claim on a retained finding is accepted through both commands (7598.689917ms)
+✔ R3: a round carries its fixed claims as sweep records, and later rounds and individual reviews of the open scope still receive them (12425.116ms)
+✔ R3: without a retained fixed claim the packet has no sweepRecords; a dropped claim contributes no record (2254.1165ms)
+✔ R3: duplicates are records with equal content (0.171417ms)
+✔ R4: round 4: a new medium finding of a swept class is a regression and blocks (5907.881458ms)
+✔ R4: round 4: a medium finding of another class is demoted (5975.528542ms)
+✔ R4: round 4: an earlier finding of the swept class still present blocks (5994.347209ms)
+✔ R4: round 4: the claimed finding still present is not a class regression of its own sweep (5914.607458ms)
+✔ R4: round 5: a new medium finding of a swept class is a regression and blocks (5998.340333ms)
+✔ R4: round 5: a medium finding of another class is demoted (5779.241375ms)
+✔ R4: round 5: an earlier finding of the swept class still present blocks (6059.428416ms)
+✔ R4: round 5: the claimed finding still present is not a class regression of its own sweep (5964.826583ms)
+✔ R4: the predicate: same class, another ID, a counted round no later than the one qualified (0.123167ms)
+✔ R5: the reviewer instructions point to the guide, which states the verification and regression rules (0.42175ms)
+✔ isolated groups cover every case once, preserve focused filters and propagate failures (414.645333ms)
+✔ every CLI test file imports the private scratch helper first (13.311042ms)
+✔ trusted production creates a schema-v2 lifecycle through Desktop trust (18.777416ms)
+✔ trusted production rejects cross-request or changed-byte aggregation (8.568333ms)
+✔ trusted production rejects a same-source Plugin candidate from another RC (8.341125ms)
+✔ tally: a PASS reporting a blocking finding is recorded as FAIL (1.211583ms)
+✔ tally: a PASS marking an earlier blocking finding present is recorded as FAIL, rated or unrated (0.198541ms)
+✔ a PASS whose only blocking findings are low stays PASS, current or earlier (0.175833ms)
+✔ tally: present for a claimed non-blocking earlier finding is accepted and recorded (0.174167ms)
+✔ tally: an undisclosed review disposition is dropped and recorded (0.099458ms)
+✔ tally: unknown properties are stripped at every level and recorded with their paths (0.617917ms)
+✔ a missing required field is not stripped and reaches repair with its path (0.439208ms)
+✔ tally: exactly one JSON object inside prose is found; none or two are not (0.149458ms)
+✔ the Claude parser unwraps one object only when asked to record it (0.433625ms)
+✔ codex: prose-wrapped output is unwrapped through the hook; without it, malformed JSON (992.495791ms)
+✔ claude-code: prose-wrapped output is unwrapped through the hook; without it, malformed JSON (975.408583ms)
+✔ tally: a repair may supply the disposition the original omitted; stated dispositions keep their status (5.899625ms)
+✔ tally: a repair may say FAIL where the original PASS showed the blocking finding (0.360333ms)
+✔ meaning-changing gaps stay contract errors that name the field path (0.579542ms)
+✔ every rejection rule this change names maps to a stable identifier (0.195708ms)
+✔ work deficiencies remain visible without failing a substantive Whiteboard Defense (2.281ms)
+✔ Defender and Publisher instructions require a final exact evidence-span audit (1.91825ms)
+✔ Whiteboard PASS requires the Defender and Publisher substantive attestation (0.427583ms)
+✔ manifest substantive status must match the Defender and Publisher attestation (0.111791ms)
+✔ artifact deficiencies fail validation when questions are softened or evidence is omitted (0.202625ms)
+✔ missing native reveal controls and stale validation receipts prevent passage (0.234792ms)
+✔ nontrivial defenses require a bound visual and self-contained sandbox-safe HTML (0.405625ms)
+✔ findings require inline placement and a linked summary (0.431459ms)
+✔ grading, audio assessment, and Explain Diff dependencies are artifact deficiencies (0.570666ms)
+✔ bundle creation turns artifact defects into an auditable gate FAIL without grading work findings (0.577875ms)
+✔ governed validation resolves every evidence line against the pinned repository (2.5285ms)
+✔ inspection does not create a missing database (2.959916ms)
+✔ SQLite is authoritative across instances and isolates workflows (7.060041ms)
+✔ concurrent append, retries and failed transactions cannot overwrite facts (7.182708ms)
+✔ legacy activation is retained without replay and requires explicit resume (16.37275ms)
+✔ missing database has no reconstructed approvals (4.043375ms)
+✔ process interruption rolls back SQLite authority and independent processes compete by revision (66.733375ms)
+✔ candidate.prepare fails naming a missing decisions log (488.070125ms)
+✔ a declared check replacement is covered once both paired reviewers accept it, and not by a single assessment or a rejection (7198.2735ms)
+✔ job.abandon accepts a gone runner job, refuses a live or delivery job, and older proof qualifies again (1430.175292ms)
+✔ discovery finds main checkouts under the root and their worktrees through git (170.544125ms)
+✔ candidate rules: merged branch, merged or closed PR, complete GateReeve run, and stale shown separately (639.414458ms)
+✔ always skipped with reasons: main checkout, own directory, open PR, unknown PR state, unpushed development branch (213.354375ms)
+✔ the list names what might matter and leaves out exactly the regenerable set (276.305583ms)
+✔ apply removes only confirmed worktrees, prunes, deletes only merged local branches and never touches remotes (532.508667ms)
+✔ non-interactive apply removes only worktrees with nothing listed, and preview never removes (396.685375ms)
+✔ every regenerable directory name is omitted at any depth; an ignored file with such a name and .env are listed (201.690583ms)
+✔ a staged rename is listed by its new path and its original path is not misparsed (174.630959ms)
+✔ an unreadable part of workflow state is never covered by a harvest marker (171.536541ms)
+✔ an open PR outside the all-states listing still protects its worktree; a full open listing is unknown (148.21675ms)
+✔ only repository-local git config extends the regenerable set (167.118208ms)
+ℹ tests 724
+ℹ suites 0
+ℹ pass 723
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 811439.722708

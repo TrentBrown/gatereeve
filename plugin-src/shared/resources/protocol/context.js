@@ -19,6 +19,13 @@ const IDENTIFIER = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/u;
 const resolutions = new WeakMap();
 const OBJECT_ID = /^[0-9a-fA-F]{40,64}$/u;
 
+// Client or project names never written into filed follow-up issues (#148).
+function followUpRedactions(value, label) {
+  if (!Array.isArray(value) || value.length > 256 || !value.every(item => typeof item === 'string' && item.trim().length > 1 && item.length <= 200)) {
+    throw new Error(`${label} must be a list of at most 256 names, each 2 to 200 characters`);
+  }
+  return [...value];
+}
 function reviewerPreferences(value, label) {
   if (value === undefined) return {};
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label} must be an object`);
@@ -248,6 +255,9 @@ async function parseRepositories(value, workspaceRoot, environment) {
       }),
       ...(rawRepository.mutationAdvisory === undefined ? {} : {
         mutationAdvisory: mutationAdvisory(rawRepository.mutationAdvisory, `repositories.${alias}.mutationAdvisory`),
+      }),
+      ...(rawRepository.followUpRedactions === undefined ? {} : {
+        followUpRedactions: followUpRedactions(rawRepository.followUpRedactions, `repositories.${alias}.followUpRedactions`),
       }),
       featureBaseSha,
     });

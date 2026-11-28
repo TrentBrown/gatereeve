@@ -86,6 +86,9 @@ gatereeve publish-review --help
 gatereeve review-planning --help
 gatereeve decide-delegated --help
 gatereeve apply-delegation --help
+gatereeve follow-ups --json
+gatereeve follow-ups decide decide.json
+gatereeve follow-ups render
 ```
 
 Delivery always uses a workspace configuration (`.agentic-workflow.json`).
@@ -139,6 +142,21 @@ additional runtime dependencies/configuration, and explicit external validUntil
 conditions. All inherited environment values are hashed and the runner receives that frozen environment; values are not logged. Environment differences conservatively invalidate runner proof. Installed
 node_modules and .venv bytes and executable identity are included automatically.
 Unknown external state requires fresh evidence or an explicit scoped exception.
+
+`follow-ups` (default subcommand `list`) lists the run's follow-up records:
+review findings that did not block and pre-existing conditions a gate
+reported. `follow-ups decide <file>` runs `followup.decide`; for example,
+to apply the policy defaults to every undecided follow-up after the human
+answered "accept the defaults":
+
+```json
+{ "select": { "status": "undecided" }, "defaults": true, "reason": "Defaults at Completion",
+  "authority": { "kind": "policy-default", "instruction": "Accept the defaults.", "context": "Completion follow-up question" } }
+```
+
+`new-work` decisions file GitHub issues through `gh` (or record a seed without
+a GitHub remote). `follow-ups render` regenerates `follow-ups.md`. Completion
+refuses undecided follow-ups.
 
 A human decision records the actual instruction and scope. It does not authenticate
 the speaker. Merge preparation produces an exact action for authorization; the

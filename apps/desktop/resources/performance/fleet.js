@@ -59,17 +59,18 @@ export function normalizedObservation(value) {
 // `attempt`, `durationMs`, `tokens`: which attempt of a review round a result
 // came from, with its execution time and provider usage (issue #142).
 // Convergence fields (issue #149): per finding, per reviewer result, per round.
-export const CONVERGENCE_FIELDS = Object.freeze(['severity','classId','classStatement','criterion','reviewerBlocking','blocking','demoted','hasFailureScenario','followUp',
+export const CONVERGENCE_FIELDS = Object.freeze(['severity','classId','classStatement','criterion','reviewerBlocking','blocking','demoted','hasFailureScenario','followUp','followUpTracking',
   'reviewScope','round','band','reviewerStatus','unavailableReason','providerFailure','gates']);
 const MEASUREMENT = ['rigor','autonomy','authorityKind','authorityBasis','dial','dialValue','dialPrevious','dialSource','actor','trigger','blocker','linkBasis','stage','count','categories','actions','rule','attempt','durationMs','tokens',...CONVERGENCE_FIELDS];
 export const REVIEW_ATTEMPTS = Object.freeze(['initial', 'transient-retry', 'repair']);
 const TOKEN_FIELDS = ['input', 'output', 'cachedInput', 'cacheCreation'];
 const LISTS = ['links','categories','actions','gates'];
-const FLAGS = ['reviewerBlocking','blocking','demoted','hasFailureScenario'];
+const FLAGS = ['reviewerBlocking','blocking','demoted','hasFailureScenario','followUpTracking'];
 export const SEVERITIES = Object.freeze(['high','medium','low','unrated']);
 export const BANDS = Object.freeze(['legacy','all-non-low','high-and-medium-regressions','hand-back']);
-// Set by follow-up records (issue #148); accepted here so the measures count it.
-export const FOLLOW_UP_STATUSES = Object.freeze(['undecided','accepted-risk','new-work','fixed']);
+// Set by follow-up records (issue #148): finding rows and one `follow-up` row
+// per record carry the record's current status.
+export const FOLLOW_UP_STATUSES = Object.freeze(['undecided','accepted-risk','new-work','rejected','fixed']);
 const GATE_IDS = Object.freeze(GATES.map(gate => gate.id));
 const ENUMS = { severity: () => SEVERITIES, band: () => BANDS, followUp: () => FOLLOW_UP_STATUSES, reviewerStatus: () => OUTCOME_STATUSES, unavailableReason: () => UNAVAILABLE_REASONS };
 export const LINK_BASES = Object.freeze(['human-stated','agent-proposed']);
@@ -87,7 +88,7 @@ export function observation(input) {
   const allowed = ['id','source','observedAt','kind','project','projectKey','workflow','issue','branch','platform','check','model','provider','strategy','reason','outcome','findingId','fixId','links','reference','metrics','limitation','validator','contract',...MEASUREMENT];
   check(value && typeof value === 'object' && Object.keys(value).every(key => allowed.includes(key)), 'Unsupported reporting observation field');
   check(label(value.id) && value.id && label(value.source) && value.source && time(value.observedAt), 'Observation needs stable identity, source and observation time');
-  check(['execution','finding','disposition','decision','milestone','strategy','friction','escaped-defect','artifact','event'].includes(value.kind), 'Unsupported observation kind');
+  check(['execution','finding','disposition','decision','milestone','strategy','friction','escaped-defect','artifact','event','follow-up'].includes(value.kind), 'Unsupported observation kind');
   for (const key of allowed.filter(key => !['metrics','observedAt','count','round','durationMs','tokens',...FLAGS,...LISTS].includes(key))) if (value[key] != null) check(label(value[key]), `Invalid reporting ${key}`);
   for (const key of FLAGS) if (value[key] != null) check(typeof value[key] === 'boolean', `Invalid reporting ${key}`);
   for (const [key, values] of Object.entries(ENUMS)) if (value[key] != null) check(values().includes(value[key]), `Invalid reporting ${key}`);

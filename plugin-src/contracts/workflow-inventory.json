@@ -279,6 +279,7 @@
       "current/evidence.js",
       "current/execution.js",
       "current/final-handoff.js",
+      "current/follow-ups.js",
       "current/git-source.js",
       "current/goal.js",
       "current/observation.js",

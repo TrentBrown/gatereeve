@@ -128,11 +128,18 @@ export function readyRecord(state, candidate, publication, pr, decisions = []) {
     decisions: decisionsIdentity(decisions) };
 }
 
-export function goalStatus(state, milestones = [], decisions = []) {
+export function goalStatus(state, milestones = [], decisions = [], followUps = null) {
   if (!isGoal(state)) return null;
   const condition = goalCondition(state);
   const listed = decisions.map(({ file, heading }) => ({ file, heading }));
   if (state.park) return { condition, terminal: 'parked', decisions: listed, reason: `Parked behind PR #${state.park.pr.number}: ${state.park.blockers.join('; ')}`, park: state.park };
+  // Follow-ups (issue #148, interview D3): a ready PR needs every follow-up
+  // decided; an open high has no default, so the run parks for the human.
+  if (followUps?.openHigh?.length) return { condition, terminal: null, decisions: listed, followUps: followUps.openHigh,
+    reason: `Open high follow-up(s) ${followUps.openHigh.join(', ')} have no default decision: record goal.park with the PR listing them and ask the human` };
+  if (followUps?.unavailable?.length || followUps?.undecided?.length) return { condition, terminal: null, decisions: listed, followUps: followUps.undecided,
+    reason: followUps.unavailable.length ? `Follow-ups unavailable: ${followUps.unavailable.join('; ')}`
+      : `Follow-up(s) ${followUps.undecided.join(', ')} are undecided: apply the policy defaults (followup.decide defaults: true) and publish the review summary again` };
   const ready = state.goalReady;
   const acceptance = milestones.find(item => item.name === 'acceptance');
   const decisionsCurrent = ready && ready.decisions === decisionsIdentity(decisions);

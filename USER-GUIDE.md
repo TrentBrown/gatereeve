@@ -235,6 +235,34 @@ as-1234-customer-export-03-observability
 Each PR remains small and independently reviewable while the feature documents
 retain the reasoning and progress of the whole effort.
 
+### Decide the follow-ups
+
+Reviewers report findings that do not block: low-severity ones, and medium
+ones the round 4-5 schedule demotes. Some gates also report conditions the
+branch did not cause, such as a vulnerability already on the base branch.
+GateReeve keeps each one as a **follow-up** and refuses Completion until every
+follow-up has a decision:
+
+- **accept the risk**: you have seen it and it does not need work;
+- **new work**: GateReeve files a GitHub issue in the follow-up's repository
+  (or reuses the open one for the same finding), or records a seed for the
+  next feature when the repository has no GitHub remote;
+- **reject**: it is not a real problem.
+
+The defaults are: low accepts the risk, medium becomes new work, and a
+pre-existing condition becomes new work at any severity. A high review
+follow-up has no default; until you decide it, it blocks the release merge.
+To take the defaults, answer "accept the defaults" when the agent asks. Goal
+runs apply them on their own before the PR is ready and stop for you on an
+open high.
+
+The PR's review summary lists every follow-up with its decision and issue
+link. `follow-ups.md` in the feature folder is a generated view (never edit
+it), and `gatereeve follow-ups` lists them. A finding a later review marks
+resolved is `fixed` and needs no decision. A follow-up is not a waiver: a
+waiver accepts a gate that did not pass, while a follow-up records what to do
+about a finding that never blocked.
+
 ## What the workflow creates
 
 Specced work uses one cumulative feature folder:
@@ -380,8 +408,9 @@ card). It reports four measures from the local metrics store:
 2. **Demoted findings.** Findings a reviewer marked blocking that the round
    schedule did not let block (low severity, or medium non-regressions in
    rounds 4-5), by severity, and whether each records its severity and failure
-   scenario. Whether each was decided at Completion is shown as not recorded
-   until follow-up records exist.
+   scenario, and how many follow-ups are decided (accepted, new work,
+   rejected or fixed) versus still undecided. Runs recorded before follow-up
+   records make this part not measurable.
 3. **Escaped defects traced to demoted findings.** A count, with no target:
    escaped defects whose confirmed origin is a demoted finding.
 4. **Second opinion.** For each reviewer provider, how often it was
@@ -472,6 +501,8 @@ installations independently.
 - **Exit gate:** a condition that must pass before the workflow advances.
 - **Human on the loop:** a person monitors, steers, and authorizes consequential
   decisions while agents execute the detailed work.
+- **Follow-up:** a finding that did not block (or a pre-existing condition a
+  gate reported), tracked to a recorded decision before Completion.
 - **Feature ID:** the stable identity for one complete feature, independent of
   the branch used for an individual PR.
 - **Delivery slice:** one coherent, independently reviewable PR within a larger
