@@ -71,8 +71,10 @@ test('init adapts to a JavaScript-only repository and to existing lint configs',
 });
 
 test('init output satisfies the wrapper plugin check and is itself a governed change to approve', async () => {
-  const root = repository({ 'src/app.js': 'export const a = 1;\n' });
+  const root = repository({ 'src/app.js': 'export const a = 1;\n', '.gitignore': 'node_modules\n' });
   await initCodeHealth({ cwd: root, preset: 'moderate' });
+  // The typescript plugin's tools, as installed project dependencies.
+  for (const name of ['eslint', 'knip', 'ts-morph']) write(root, { [`node_modules/${name}/package.json`]: '{"version":"0.0.0"}\n' });
   commit(root, 'set up code health');
   gitIn(root, 'checkout', '-q', '-b', 'feature');
   write(root, { 'src/app.js': 'export const a = 2;\n' });
