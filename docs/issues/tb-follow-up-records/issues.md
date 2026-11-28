@@ -9,7 +9,7 @@ Operational task breakdown derived from the plan. GitHub issue #148.
 
 ## I-1 - Follow-up records
 
-- **Status:** todo
+- **Status:** in-review
 - **Estimate:** 3h
 - **Plan steps:** P1, P2
 - **Rubric criteria:** R1, R2
@@ -20,7 +20,7 @@ Review derivation, non-review API, event and state.
 
 ## I-2 - Decisions, defaults and filing
 
-- **Status:** todo
+- **Status:** in-review
 - **Estimate:** 4h
 - **Plan steps:** P3, P4
 - **Rubric criteria:** R3, R4, R5
@@ -31,7 +31,7 @@ Review derivation, non-review API, event and state.
 
 ## I-3 - Enforcement and surfaces
 
-- **Status:** todo
+- **Status:** in-review
 - **Estimate:** 3h
 - **Plan steps:** P5, P6, P7, P9
 - **Rubric criteria:** R6, R7, R8, R10
@@ -42,7 +42,7 @@ Completion, release merge, goal status, status, follow-ups.md, PR summary, CLI.
 
 ## I-4 - Metrics measure 2
 
-- **Status:** todo
+- **Status:** in-review
 - **Estimate:** 2h
 - **Plan steps:** P8
 - **Rubric criteria:** R9
@@ -53,7 +53,7 @@ Projection `followUp`, marker, Completion list.
 
 ## I-5 - Documentation
 
-- **Status:** todo
+- **Status:** in-review
 - **Estimate:** 1h
 - **Plan steps:** P10, P11
 - **Rubric criteria:** R11

@@ -94,7 +94,10 @@ scope needs fresh/wider evidence. Generate mechanical records through operations
   a required review the author cannot give) is reported as an external blocker,
   not a gate failure. Report it to the human; retry after it is resolved.
 - Completion: whole-feature acceptance, actual integration, required finalization
-  proof and verified local evidence retention.
+  proof, verified local evidence retention and a decision on every follow-up
+  (non-blocking review findings and pre-existing conditions; PROTOCOL.md,
+  Follow-up records). The defaults are one human answer; a goal run applies
+  them before its ready PR and parks on an open high.
 
 When presenting a decision question to the human, record it first with
 `decision.ask` so the wait is measured. Record one concrete human decision with its actual quote/context and available

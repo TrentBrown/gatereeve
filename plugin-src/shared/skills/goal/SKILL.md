@@ -97,7 +97,14 @@ last approval, an amendment must pin it before milestones pass.
 
   A human `run.continue` resumes the run. Never bypass a protection or change
   the mandate.
-- **Endpoint.** Stop at a ready, unmerged final PR: acceptance qualifies and
-  `review.publish` has published the current summary. Do not merge into the
+- **Follow-ups.** Before publishing the final summary, apply the policy
+  defaults to every undecided follow-up (`followup.decide` with
+  `select: {status: "undecided"}`, `defaults: true` and
+  `authority: {kind: "policy-default"}`): lows accept the risk, mediums and
+  pre-existing conditions are filed as issues. An open high follow-up has no
+  default: park (PROTOCOL.md, Follow-up records).
+- **Endpoint.** Stop at a ready, unmerged final PR: acceptance qualifies,
+  every follow-up is decided and `review.publish` has published the current
+  summary. Do not merge into the
   release branch. That needs the human's per-PR instruction, and deployment
   is separately authorized.
