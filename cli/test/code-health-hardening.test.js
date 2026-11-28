@@ -66,7 +66,7 @@ test('effective ESLint thresholds come from the resolved tool and tool versions 
   const first = await check(root, { useCache: true, env });
   assert.deepEqual(first.thresholds.eslint, { functionLines: 40, parameters: 5, complexity: 15, depth: 4, fileLines: 500 });
   assert.equal(first.tools.eslint, 'v9.0.0');
-  assert.equal(first.tools.wrapper, 'gatereeve-code-health/6');
+  assert.equal(first.tools.wrapper, 'gatereeve-code-health/7');
   assert.equal(first.tools.habitSensors, 'habit-sensors 9.9.9-fake');
   assert.equal((await check(root, { useCache: true, env })).cache.hit, true);
   const upgraded = await check(root, { useCache: true, env: { ...env, FAKE_ESLINT_VERSION: '10.0.0' } });
@@ -315,7 +315,7 @@ test('a custom plugin\'s missing tools are UNAVAILABLE even with nothing in scop
   const subject = (await check(root)).governed.subject;
   const approved = subject ? [subject] : [];
   assert.equal((await check(root, { approved })).verdict, 'PASS', 'Habit Hooks reports nothing missing');
-  const absent = await check(root, { approved, env: { FAKE_MISSING_TOOLS: JSON.stringify([{ name: 'custom-tool', install: 'pip install custom-tool' }]) } });
+  const absent = await check(root, { approved, env: { FAKE_DETECTORS: JSON.stringify([{ plugin: 'custom', name: 'custom-tool', kind: 'command', install: 'pip install custom-tool', missing: true }]) } });
   assert.equal(absent.verdict, 'UNAVAILABLE');
   assert.match(absent.reasons[0].message, /custom-tool, declared by plugin custom \(pip install custom-tool\)/);
   const unknown = await check(root, { approved, env: { FAKE_DETECTORS_MODE: 'fail' } });
@@ -356,6 +356,38 @@ test('a plugin GateReeve cannot identify never reuses a cached baseline (round 8
   const second = await check(root, { useCache: true, env });
   assert.equal(second.cache.hit, false);
   assert.match(second.cache.reason, /cannot identify/);
+});
+
+test('a custom plugin\'s declared analysers are reported with their versions (round 9 codex/F16)', async () => {
+  const root = fixtureRepository({ config: BASE_CONFIG.replace('plugins = ["generic", "gatereeve"]', 'plugins = ["generic", "gatereeve", "custom"]'),
+    files: { 'src/a.js': 'x\n', '.habit-hooks/custom/config.toml': 'sensors = ["custom-analyser"]\n' } });
+  write(root, { 'src/a.js': 'y\n' });
+  commit(root, 'touch');
+  const detectors = JSON.stringify([{ plugin: 'custom', name: 'eslint', kind: 'command', install: 'npm i eslint', missing: false }, { plugin: 'custom', name: 'some-lib', kind: 'node-module', install: 'npm i some-lib', missing: false }]);
+  const result = await check(root, { env: { PATH: `${tools.eslintDirectory}${delimiter}${process.env.PATH}`, FAKE_DETECTORS: detectors, FAKE_ESLINT_VERSION: '9.1.0' } });
+  assert.equal(result.verdict, 'PASS', JSON.stringify(result.reasons));
+  assert.deepEqual(result.tools.declared, { 'custom/eslint': 'v9.1.0', 'custom/some-lib': 'node-module (see nodeModules)' });
+});
+
+test('a known plugin whose vendored copy adds an unknown sensor is asked of Habit Hooks (CH-R9-01)', async () => {
+  const root = fixtureRepository({ files: { 'src/a.js': 'x\n' } });
+  write(root, { '.habit-hooks/gatereeve/config.toml': 'sensors = ["ruff-s110", "mystery"]\n' });
+  commit(root, 'extra sensor');
+  const subject = (await check(root)).governed.subject;
+  const result = await check(root, { approved: [subject], useCache: true, env: { GATEREEVE_CODE_HEALTH_CACHE: join(tools.directory, `cache-extra-${Date.now()}`), FAKE_DETECTORS: JSON.stringify([{ plugin: 'gatereeve', name: 'mystery-tool', kind: 'command', install: 'pip install mystery-tool', missing: true }]) } });
+  assert.equal(result.verdict, 'UNAVAILABLE');
+  assert.match(result.reasons[0].message, /mystery-tool, declared by plugin gatereeve/);
+});
+
+test('an empty smell or a file outside the worktree is malformed output (round 9 codex/F19, CH-R9-02)', async () => {
+  for (const mode of ['emptysmell', 'rootfile']) {
+    const root = fixtureRepository({ files: { 'src/a.js': 'x\n' } });
+    write(root, { 'src/a.js': 'y\n' });
+    commit(root, 'touch');
+    const result = await check(root, { env: { FAKE_SENSORS_MODE: mode } });
+    assert.equal(result.verdict, 'UNAVAILABLE', mode);
+    assert.equal(result.reasons[0].cause, 'sensor-failed', mode);
+  }
 });
 
 test.after(() => rmSync(tools.directory, { recursive: true, force: true }));

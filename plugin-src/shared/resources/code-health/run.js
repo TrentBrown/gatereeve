@@ -117,7 +117,7 @@ async function evaluate(result, { cwd, base, approved, env, habitSensors, habitM
     if (!sensors) throw new Unavailable('missing-tool', 'habit-sensors is not installed (install `habit-hooks` and its plugins, for example `pip install habit-hooks habit-hooks-python habit-hooks-typescript`).');
     const mapper = await resolveTool('habit-mapper', { root, override: habitMapper ?? env.GATEREEVE_HABIT_MAPPER ?? join(dirname(sensors), 'habit-mapper'), env });
     if (!mapper) throw new Unavailable('missing-tool', 'habit-mapper (part of habit-hooks) is not installed next to habit-sensors; coaching cannot be rendered.');
-    result.tools = await toolVersions({ root, sensors, sensorsVersion: await toolVersion(sensors, env), env });
+    result.tools = await toolVersions({ root, head: result.head, config, sensors, sensorsVersion: await toolVersion(sensors, env), env });
     const missing = await missingTooling({ root, head: result.head, config, env, sensors });
     if (missing.length) throw new Unavailable('missing-tool', `Code-health tooling is missing:\n  ${missing.join('\n  ')}`);
 
@@ -145,7 +145,7 @@ async function evaluate(result, { cwd, base, approved, env, habitSensors, habitM
     if (basePaths.length) {
       const key = identity({ policy: POLICY, mergeBase: result.mergeBase, files: files.filter(file => file.base), governed: governed.hashes, tools: result.tools, config });
       const path = join(await cacheDirectory(root, env), `${key.slice(7)}.json`);
-      const reusable = useCache && identifiable(config);
+      const reusable = useCache && await identifiable({ root, head: result.head, config });
       const hit = reusable ? await cached(path) : null;
       if (hit) {
         baseFindings = hit;

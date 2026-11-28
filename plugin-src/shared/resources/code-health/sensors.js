@@ -62,7 +62,7 @@ const validIssue = issue => issue && typeof issue === 'object' && !Array.isArray
   && (issue.details?.file === undefined ? nonEmpty(issue.key) : nonEmpty(issue.details.file));
 
 function validFindings(value) {
-  return Array.isArray(value) && value.every(finding => finding && typeof finding.smell === 'string'
+  return Array.isArray(value) && value.every(finding => finding && nonEmpty(finding.smell)
     && Array.isArray(finding.issues) && finding.issues.every(validIssue));
 }
 
@@ -91,11 +91,11 @@ export async function sense({ executable, worktree, configPath, env, timeoutMs, 
   for (const finding of findings) for (const issue of finding.issues) {
     if (issue.details?.file) issue.details.file = relativeFile(issue.details.file, worktree);
     else if (typeof issue.key === 'string' && !issue.details?.content) issue.key = relativeFile(issue.key, worktree);
-    // Validated again after normalization: './' or the worktree itself names
-    // no file, and an issue without one would be dropped from scope, not
+    // Validated again after normalization: './', the worktree itself or any
+    // path still absolute (outside the worktree) names no file in scope, and an issue without one would be dropped from scope, not
     // counted (round 8 codex/F17).
     const file = issue.details?.file ?? issue.key;
-    if (!nonEmpty(file) || file === '.') throw new Unavailable('sensor-failed', `habit-sensors emitted JSON on the ${side} with an issue that names no file`);
+    if (!nonEmpty(file) || file === '.' || file === worktree || file.startsWith('/') || /^[A-Za-z]:[\\/]/.test(file)) throw new Unavailable('sensor-failed', `habit-sensors emitted JSON on the ${side} with an issue that names no file`);
   }
   // A probe file only shows that the tools run; its own parse errors are not
   // this change's concern. Tooling failures (incomplete-run) still count.

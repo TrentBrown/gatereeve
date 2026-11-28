@@ -26,6 +26,8 @@ if (mode === 'notarray') { console.log('{"smell":"x"}'); process.exit(0); }
 if (mode === 'badissue') { console.log('[{"smell":"oversized-function","issues":[{}]}]'); process.exit(0); }
 if (mode === 'emptykey') { console.log('[{"smell":"oversized-function","issues":[{"key":""}]}]'); process.exit(0); }
 if (mode === 'badfile') { console.log('[{"smell":"oversized-function","issues":[{"key":"src/a.js","details":{"file":123}}]}]'); process.exit(0); }
+if (mode === 'emptysmell') { console.log('[{"smell":"","issues":[{"key":"src/a.js","details":{"file":"src/a.js"}}]}]'); process.exit(0); }
+if (mode === 'rootfile') { console.log(JSON.stringify([{ smell: 'oversized-function', issues: [{ key: 'src/a.js', details: { file: process.cwd() } }] }])); process.exit(0); }
 if (mode === 'dotfile') { console.log('[{"smell":"oversized-function","issues":[{"key":"src/a.js","details":{"file":"./"}}]}]'); process.exit(0); }
 if (mode === 'hang') { setTimeout(() => {}, 600000); return; }
 if (mode === 'emptyfile') { console.log('[{"smell":"oversized-function","issues":[{"key":"src/a.js","details":{"file":""}}]}]'); process.exit(0); }
@@ -87,9 +89,9 @@ process.exit(2);
 // and missing-detector queries.
 const FAKE_PYTHON = `#!/usr/bin/env node
 if (process.env.FAKE_PYTHON_MODE === 'fail') process.exit(1);
-if (process.argv.some(arg => arg.includes('missing_tools'))) {
+if (process.argv.some(arg => arg.includes('declared_detectors'))) {
   if (process.env.FAKE_DETECTORS_MODE === 'fail') process.exit(1);
-  console.log(process.env.FAKE_MISSING_TOOLS || '[]');
+  console.log(process.env.FAKE_DETECTORS || '[]');
   process.exit(0);
 }
 console.log(process.env.FAKE_PLUGINS || JSON.stringify({ 'habit-hooks': '9.9.9', 'habit-hooks-generic': '9.9.9', 'habit-hooks-python': '9.9.9', 'habit-hooks-typescript': '9.9.9' }));

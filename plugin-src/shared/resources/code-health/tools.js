@@ -11,7 +11,7 @@ import { environmentLinks } from './worktree.js';
 
 // Bump when the comparison, neutralization or scoping rules change, so cached
 // baselines from an earlier wrapper are never reused.
-export const WRAPPER_VERSION = 'gatereeve-code-health/6';
+export const WRAPPER_VERSION = 'gatereeve-code-health/7';
 
 const COMMANDS = ['eslint', 'ruff', 'knip', 'deptry', 'jscpd'];
 const PACKAGES = ['typescript', 'typescript-eslint', '@typescript-eslint/parser', '@typescript-eslint/eslint-plugin', 'ts-morph'];
@@ -73,13 +73,13 @@ export async function pluginVersions(sensors, env) {
 }
 
 // For a plugin GateReeve has no sensor table for (a custom vendored or
-// installed one), Habit Hooks itself says which of the tools the plugin
-// declares cannot be reached: the detectors its own init reports.
-const MISSING_DETECTORS = 'import json, sys\nfrom pathlib import Path\nfrom habit_hooks.config import declared_detectors\nfrom habit_hooks.missing_tools import missing_tools\nroot = Path(sys.argv[2])\nprint(json.dumps([{"name": d.name, "install": d.install} for d in missing_tools(declared_detectors(json.loads(sys.argv[1]), root), root)]))';
+// installed one), Habit Hooks itself says which tools the plugin declares and
+// which of them cannot be reached: the detectors its own init reports.
+const DECLARED_DETECTORS = 'import json, sys\nfrom pathlib import Path\nfrom habit_hooks.config import declared_detectors\nfrom habit_hooks.missing_tools import missing_tools\nroot = Path(sys.argv[2])\nout = []\nfor plugin in json.loads(sys.argv[1]):\n    declared = declared_detectors([plugin], root)\n    absent = {(d.name, d.kind) for d in missing_tools(declared, root)}\n    out += [{"plugin": plugin, "name": d.name, "kind": d.kind, "install": d.install, "missing": (d.name, d.kind) in absent} for d in declared]\nprint(json.dumps(out))';
 
-async function missingDetectors(sensors, env, plugins, root) {
-  const parsed = await habitQuery(sensors, env, MISSING_DETECTORS, JSON.stringify(plugins), root);
-  return Array.isArray(parsed) && parsed.every(item => item && typeof item.name === 'string') ? parsed : null;
+async function declaredDetectors(sensors, env, plugins, root) {
+  const parsed = await habitQuery(sensors, env, DECLARED_DETECTORS, JSON.stringify(plugins), root);
+  return Array.isArray(parsed) && parsed.every(item => item && typeof item.name === 'string' && item.name && typeof item.plugin === 'string') ? parsed : null;
 }
 
 async function packageVersion(directory, name) {
@@ -153,9 +153,31 @@ const label = (root, directory) => {
   return path.startsWith('..') ? directory : path.split(sep).join('/');
 };
 
-export async function toolVersions({ root, sensors, sensorsVersion, env }) {
+async function commandVersion(executable, root, env) {
+  const result = await run(executable, ['--version'], { cwd: root, env, timeoutMs: 30000 });
+  return result.code === 0 ? result.stdout.trim().split('\n')[0] || null : null;
+}
+
+export async function toolVersions({ root, head, config, sensors, sensorsVersion, env }) {
   const versions = { wrapper: WRAPPER_VERSION, habitSensors: sensorsVersion, plugins: await pluginVersions(sensors, env) };
   const executables = [];
+  // Tools declared by plugins GateReeve has no table for: each command's
+  // reported version (null when it reports none), each node module through
+  // the nodeModules trees below (round 9 codex/F16).
+  const { unknown } = await pluginCoverage({ root, head, config });
+  if (unknown.length) {
+    versions.declared = {};
+    for (const detector of await declaredDetectors(sensors, env, unknown, root) ?? []) {
+      const key = `${detector.plugin}/${detector.name}`;
+      if (detector.kind !== 'command') {
+        versions.declared[key] = 'node-module (see nodeModules)';
+        continue;
+      }
+      const executable = await resolveTool(detector.name, { root, env });
+      if (executable) executables.push(executable);
+      versions.declared[key] = executable ? await commandVersion(executable, root, env) : null;
+    }
+  }
   for (const name of COMMANDS) {
     const executable = await resolveTool(name, { root, env });
     if (!executable) {
@@ -163,8 +185,7 @@ export async function toolVersions({ root, sensors, sensorsVersion, env }) {
       continue;
     }
     executables.push(executable);
-    const result = await run(executable, ['--version'], { cwd: root, env, timeoutMs: 30000 });
-    versions[name] = result.code === 0 ? result.stdout.trim().split('\n')[0] : null;
+    versions[name] = await commandVersion(executable, root, env);
   }
   const directories = await moduleDirectories(root, executables);
   for (const name of PACKAGES) {
@@ -192,12 +213,6 @@ export const INSTALL = Object.freeze({
   ruff: 'pip install ruff', deptry: 'pip install deptry', jscpd: 'npm install --save-dev jscpd',
 });
 
-// The cache key can only name analysers GateReeve knows how to identify: a
-// plugin without a sensor table may run any external command, so its base is
-// always recomputed rather than reused under a key that cannot see an
-// upgrade (round 8 codex/F16).
-export const identifiable = config => (config.plugins ?? []).every(plugin => Boolean(SENSOR_TOOLS[plugin]));
-
 async function vendoredSensors(root, head, plugin) {
   const text = await readCommitted(root, head, `.habit-hooks/${plugin}/config.toml`);
   if (text === null) return null;
@@ -209,6 +224,27 @@ async function vendoredSensors(root, head, plugin) {
   }
 }
 
+// Which plugins GateReeve's sensor table fully describes. A plugin without a
+// table, or a vendored copy declaring a sensor the table does not know, may
+// run any external analyser: it is asked of Habit Hooks instead (CH-R9-01).
+export async function pluginCoverage({ root, head, config }) {
+  const tools = [], unknown = [], vendoredPlugins = new Map();
+  for (const plugin of config.plugins ?? []) {
+    const vendored = await vendoredSensors(root, head, plugin);
+    vendoredPlugins.set(plugin, vendored);
+    const table = SENSOR_TOOLS[plugin];
+    const known = table && (vendored === null || vendored.every(sensor => table.some(([name]) => name === sensor)));
+    if (known) tools.push(...table.filter(([sensor]) => vendored === null || vendored.includes(sensor)));
+    else unknown.push(plugin);
+  }
+  return { tools, unknown, vendored: vendoredPlugins };
+}
+
+// The cache key can only name analysers GateReeve knows how to identify: with
+// any plugin it cannot fully describe, the base is always recomputed rather
+// than reused under a key that cannot see an upgrade (round 8 codex/F16).
+export const identifiable = async options => (await pluginCoverage(options)).unknown.length === 0;
+
 // Every configured plugin and every enabled sensor's tool, checked before any
 // run, so a missing piece is UNAVAILABLE even when nothing is in scope.
 export async function missingTooling({ root, head, config, env, sensors }) {
@@ -217,19 +253,16 @@ export async function missingTooling({ root, head, config, env, sensors }) {
   // Unknown plugin inventory is not "everything installed": the run cannot
   // prove its plugins, and cached baselines could not be keyed by them.
   if (!installed) missing.push('the Habit Hooks plugin inventory (could not find the Python that runs habit-sensors; set GATEREEVE_HABIT_PYTHON to it)');
-  const tools = [], unknown = [];
+  const { tools, unknown, vendored } = await pluginCoverage({ root, head, config });
   for (const plugin of config.plugins ?? []) {
-    const vendored = await vendoredSensors(root, head, plugin);
-    if (vendored === null && installed && !installed[`habit-hooks-${plugin}`]) missing.push(`Habit Hooks plugin ${plugin} (pip install habit-hooks-${plugin})`);
-    if (SENSOR_TOOLS[plugin]) tools.push(...SENSOR_TOOLS[plugin].filter(([sensor]) => vendored === null || vendored.includes(sensor)));
-    else unknown.push(plugin);
+    if (vendored.get(plugin) === null && installed && !installed[`habit-hooks-${plugin}`]) missing.push(`Habit Hooks plugin ${plugin} (pip install habit-hooks-${plugin})`);
   }
-  // A plugin without a GateReeve table is asked of Habit Hooks; an answer it
-  // cannot give is UNAVAILABLE, never "nothing missing" (round 7 codex/F15).
+  // A plugin GateReeve cannot fully describe is asked of Habit Hooks; an
+  // answer it cannot give is UNAVAILABLE, never "nothing missing" (F15).
   if (unknown.length && installed) {
-    const absent = await missingDetectors(sensors, env, unknown, root);
-    if (!absent) missing.push(`the tools declared by plugin ${unknown.join(', ')} (Habit Hooks could not report them)`);
-    else for (const detector of absent) missing.push(`${detector.name}, declared by plugin ${unknown.join(', ')} (${detector.install ?? `install ${detector.name}`})`);
+    const declared = await declaredDetectors(sensors, env, unknown, root);
+    if (!declared) missing.push(`the tools declared by plugin ${unknown.join(', ')} (Habit Hooks could not report them)`);
+    else for (const detector of declared.filter(item => item.missing)) missing.push(`${detector.name}, declared by plugin ${detector.plugin} (${detector.install ?? `install ${detector.name}`})`);
   }
   const seen = new Set();
   for (const [sensor, kind, tool] of tools) {
