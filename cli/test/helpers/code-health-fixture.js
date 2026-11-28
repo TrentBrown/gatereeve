@@ -81,9 +81,15 @@ if (process.argv[2] === '--print-config') { console.log(JSON.stringify({ rules: 
 process.exit(2);
 `;
 
-// Stands in for the Python beside habit-sensors: answers the plugin inventory query.
+// Stands in for the Python beside habit-sensors: answers the plugin inventory
+// and missing-detector queries.
 const FAKE_PYTHON = `#!/usr/bin/env node
 if (process.env.FAKE_PYTHON_MODE === 'fail') process.exit(1);
+if (process.argv.some(arg => arg.includes('missing_tools'))) {
+  if (process.env.FAKE_DETECTORS_MODE === 'fail') process.exit(1);
+  console.log(process.env.FAKE_MISSING_TOOLS || '[]');
+  process.exit(0);
+}
 console.log(process.env.FAKE_PLUGINS || JSON.stringify({ 'habit-hooks': '9.9.9', 'habit-hooks-generic': '9.9.9', 'habit-hooks-python': '9.9.9', 'habit-hooks-typescript': '9.9.9' }));
 `;
 

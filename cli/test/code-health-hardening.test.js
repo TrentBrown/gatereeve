@@ -66,7 +66,7 @@ test('effective ESLint thresholds come from the resolved tool and tool versions 
   const first = await check(root, { useCache: true, env });
   assert.deepEqual(first.thresholds.eslint, { functionLines: 40, parameters: 5, complexity: 15, depth: 4, fileLines: 500 });
   assert.equal(first.tools.eslint, 'v9.0.0');
-  assert.equal(first.tools.wrapper, 'gatereeve-code-health/5');
+  assert.equal(first.tools.wrapper, 'gatereeve-code-health/6');
   assert.equal(first.tools.habitSensors, 'habit-sensors 9.9.9-fake');
   assert.equal((await check(root, { useCache: true, env })).cache.hit, true);
   const upgraded = await check(root, { useCache: true, env: { ...env, FAKE_ESLINT_VERSION: '10.0.0' } });
@@ -291,6 +291,36 @@ test('every tsconfig and jsconfig name is governed (round 6 codex/F14)', async (
     assert.ok(result.governed.subject, name);
     assert.equal((await check(root, { approved: [result.governed.subject] })).verdict, 'PASS', name);
   }
+});
+
+test('any package in a node_modules the analysers load from keys the cache (round 7 codex/F2)', async () => {
+  const root = fixtureRepository({ files: { 'src/a.js': 'x\n', 'pkg/package.json': '{}\n', '.gitignore': 'node_modules\n' } });
+  write(root, { 'src/a.js': 'y\n' });
+  commit(root, 'touch');
+  const install = version => write(root, { 'pkg/node_modules/@acme/eslint-plugin-rules/package.json': JSON.stringify({ name: '@acme/eslint-plugin-rules', version }) });
+  install('1.0.0');
+  const env = { GATEREEVE_CODE_HEALTH_CACHE: join(tools.directory, `cache-tree-${Date.now()}`) };
+  const first = await check(root, { useCache: true, env });
+  assert.match(first.tools.nodeModules['pkg/node_modules'], /^sha256:/);
+  assert.equal((await check(root, { useCache: true, env })).cache.hit, true);
+  install('1.1.0');
+  assert.equal((await check(root, { useCache: true, env })).cache.hit, false, 'an upgraded rule plugin never reuses the old baseline');
+});
+
+test('a custom plugin\'s missing tools are UNAVAILABLE even with nothing in scope (round 7 codex/F15)', async () => {
+  const root = fixtureRepository({ config: BASE_CONFIG.replace('plugins = ["generic", "gatereeve"]', 'plugins = ["generic", "gatereeve", "custom"]'),
+    files: { 'src/a.js': 'x\n', '.habit-hooks/custom/config.toml': 'sensors = ["custom-analyser"]\n' } });
+  write(root, { 'README.md': 'docs only\n' });
+  commit(root, 'docs');
+  const subject = (await check(root)).governed.subject;
+  const approved = subject ? [subject] : [];
+  assert.equal((await check(root, { approved })).verdict, 'PASS', 'Habit Hooks reports nothing missing');
+  const absent = await check(root, { approved, env: { FAKE_MISSING_TOOLS: JSON.stringify([{ name: 'custom-tool', install: 'pip install custom-tool' }]) } });
+  assert.equal(absent.verdict, 'UNAVAILABLE');
+  assert.match(absent.reasons[0].message, /custom-tool, declared by plugin custom \(pip install custom-tool\)/);
+  const unknown = await check(root, { approved, env: { FAKE_DETECTORS_MODE: 'fail' } });
+  assert.equal(unknown.verdict, 'UNAVAILABLE');
+  assert.match(unknown.reasons[0].message, /tools declared by plugin custom \(Habit Hooks could not report them\)/);
 });
 
 test.after(() => rmSync(tools.directory, { recursive: true, force: true }));

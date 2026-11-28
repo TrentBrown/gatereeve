@@ -1,7 +1,8 @@
 // Tool identity for the base-result cache and the receipt (design §4): the
 // wrapper itself, Habit Hooks and its plugins, and the analysers they run.
 import { existsSync } from 'node:fs';
-import { mkdtemp, open, readFile, realpath, rm } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { mkdtemp, open, readdir, readFile, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, sep } from 'node:path';
 import { parseToml, resolveTool, run } from './process.js';
@@ -10,7 +11,7 @@ import { environmentLinks } from './worktree.js';
 
 // Bump when the comparison, neutralization or scoping rules change, so cached
 // baselines from an earlier wrapper are never reused.
-export const WRAPPER_VERSION = 'gatereeve-code-health/5';
+export const WRAPPER_VERSION = 'gatereeve-code-health/6';
 
 const COMMANDS = ['eslint', 'ruff', 'knip', 'deptry', 'jscpd'];
 const PACKAGES = ['typescript', 'typescript-eslint', '@typescript-eslint/parser', '@typescript-eslint/eslint-plugin', 'ts-morph'];
@@ -51,21 +52,34 @@ async function habitPython(sensors, env) {
 // its own interpreter reports their versions. Not -I, which hides user-site
 // installs, and not -P, which Python 3.10 lacks: the working directory is a
 // fresh empty temporary directory, so nothing can be imported from it.
-export async function pluginVersions(sensors, env) {
+async function habitQuery(sensors, env, script, ...argv) {
   const interpreter = await habitPython(sensors, env);
   if (!interpreter) return null;
   const [command, ...args] = interpreter;
   const cwd = await mkdtemp(join(tmpdir(), 'gatereeve-habit-python-'));
   try {
-    const result = await run(command, [...args, '-c', PLUGIN_VERSIONS], { cwd, env, timeoutMs: 30000 });
-    if (result.code !== 0) return null;
-    const parsed = JSON.parse(result.stdout);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+    const result = await run(command, [...args, '-c', script, ...argv], { cwd, env, timeoutMs: 60000 });
+    return result.code === 0 ? JSON.parse(result.stdout) : null;
   } catch {
     return null;
   } finally {
     await rm(cwd, { recursive: true, force: true });
   }
+}
+
+export async function pluginVersions(sensors, env) {
+  const parsed = await habitQuery(sensors, env, PLUGIN_VERSIONS);
+  return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+}
+
+// For a plugin GateReeve has no sensor table for (a custom vendored or
+// installed one), Habit Hooks itself says which of the tools the plugin
+// declares cannot be reached: the detectors its own init reports.
+const MISSING_DETECTORS = 'import json, sys\nfrom pathlib import Path\nfrom habit_hooks.config import declared_detectors\nfrom habit_hooks.missing_tools import missing_tools\nroot = Path(sys.argv[2])\nprint(json.dumps([{"name": d.name, "install": d.install} for d in missing_tools(declared_detectors(json.loads(sys.argv[1]), root), root)]))';
+
+async function missingDetectors(sensors, env, plugins, root) {
+  const parsed = await habitQuery(sensors, env, MISSING_DETECTORS, JSON.stringify(plugins), root);
+  return Array.isArray(parsed) && parsed.every(item => item && typeof item.name === 'string') ? parsed : null;
 }
 
 async function packageVersion(directory, name) {
@@ -105,6 +119,35 @@ async function moduleDirectories(root, executables) {
   return [...directories].sort();
 }
 
+// What is installed in a node_modules: its package manager's record of the
+// whole tree where there is one, and every top-level package's version, so
+// any upgraded rule plugin changes the identity (round 7 codex/F2).
+const TREE_RECORDS = ['.package-lock.json', '.modules.yaml', '.yarn-state.yml', '.yarn-integrity'];
+
+async function installedTree(directory) {
+  const hash = createHash('sha256');
+  for (const record of TREE_RECORDS) {
+    try {
+      hash.update(`${record}\0`).update(await readFile(join(directory, record))).update('\0');
+    } catch {}
+  }
+  let names = [];
+  try {
+    for (const entry of (await readdir(directory)).sort()) {
+      if (entry.startsWith('.')) continue;
+      if (entry.startsWith('@')) {
+        try {
+          names.push(...(await readdir(join(directory, entry))).sort().map(name => `${entry}/${name}`));
+        } catch {}
+      } else names.push(entry);
+    }
+  } catch {
+    return null;
+  }
+  for (const name of names) hash.update(`${name}@${await packageVersion(directory, name)}\0`);
+  return `sha256:${hash.digest('hex')}`;
+}
+
 const label = (root, directory) => {
   const path = relative(root, directory);
   return path.startsWith('..') ? directory : path.split(sep).join('/');
@@ -132,6 +175,8 @@ export async function toolVersions({ root, sensors, sensorsVersion, env }) {
     }
     versions[name] = Object.keys(found).length ? found : null;
   }
+  versions.nodeModules = {};
+  for (const directory of directories) versions.nodeModules[label(root, directory)] = await installedTree(directory);
   return versions;
 }
 
@@ -166,11 +211,19 @@ export async function missingTooling({ root, head, config, env, sensors }) {
   // Unknown plugin inventory is not "everything installed": the run cannot
   // prove its plugins, and cached baselines could not be keyed by them.
   if (!installed) missing.push('the Habit Hooks plugin inventory (could not find the Python that runs habit-sensors; set GATEREEVE_HABIT_PYTHON to it)');
-  const tools = [];
+  const tools = [], unknown = [];
   for (const plugin of config.plugins ?? []) {
     const vendored = await vendoredSensors(root, head, plugin);
     if (vendored === null && installed && !installed[`habit-hooks-${plugin}`]) missing.push(`Habit Hooks plugin ${plugin} (pip install habit-hooks-${plugin})`);
-    tools.push(...(SENSOR_TOOLS[plugin] ?? []).filter(([sensor]) => vendored === null || vendored.includes(sensor)));
+    if (SENSOR_TOOLS[plugin]) tools.push(...SENSOR_TOOLS[plugin].filter(([sensor]) => vendored === null || vendored.includes(sensor)));
+    else unknown.push(plugin);
+  }
+  // A plugin without a GateReeve table is asked of Habit Hooks; an answer it
+  // cannot give is UNAVAILABLE, never "nothing missing" (round 7 codex/F15).
+  if (unknown.length && installed) {
+    const absent = await missingDetectors(sensors, env, unknown, root);
+    if (!absent) missing.push(`the tools declared by plugin ${unknown.join(', ')} (Habit Hooks could not report them)`);
+    else for (const detector of absent) missing.push(`${detector.name}, declared by plugin ${unknown.join(', ')} (${detector.install ?? `install ${detector.name}`})`);
   }
   const seen = new Set();
   for (const [sensor, kind, tool] of tools) {
