@@ -42,6 +42,9 @@ projection is regenerated at the end.
   `gatereeve review watch [--job] [--follow] [--json]`. **Advances:** R4, R6.
 - **P6.** Independence tests: a later round's view, evidence index and packet
   contain no progress or activity bytes. **Advances:** R5.
+- **P8.** Amendment A1: the per-run `.gitignore` writer (`/*`, `!/.gitignore`,
+  upgrade on start or resume), the root `.gitignore`, and removal of the
+  committed run-folder files on the base. **Advances:** R9.
 - **P7.** Docs (`PROTOCOL.md`, user guide/CLI help), the desktop projection,
   and the plugin build and lint. **Advances:** R8.
 

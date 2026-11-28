@@ -134,6 +134,15 @@ silent best effort:
 - **AC8.** Records written before this change (no `activity`) still read,
   qualify and count exactly as before. The review contract version, evaluator
   rules and verdict validation are unchanged.
+- **AC9.** Run folders are never committed (amendment A1). The per-run
+  `.gatereeve-current/.gitignore` that `run.start` and `run.resume-current`
+  write ignores everything in the folder except that file (`/*` and
+  `!/.gitignore`). An existing one that lacks those 2 lines gets them appended
+  on start or resume, keeping its other lines. This repository's root
+  `.gitignore` ignores every `.gatereeve-current/` entry except its
+  `.gitignore`. Every committed file under `docs/issues/*/.gatereeve-current/`
+  on the base, including the committed `runner-comparison.key`, is removed from
+  the tree in this PR, without rewriting history.
 
 ## Rubric
 
@@ -150,8 +159,17 @@ such rows out.
 | R5 | AC5 independence | Tests show a later round's view, evidence index and packet contain no progress file and no activity object of earlier or peer reviews (failure model: up to 2 reviewers); `artifacts` never holds activity | Progress or activity bytes reach a reviewer view or packet | Execution tests inspecting the sealed view and packet |
 | R6 | AC6 watch | `review.progress` output has the listed fields and states for both providers (including `starting` and `progress unavailable` for a journal job with no file or no trailer); by default it lists the attempts not in a final state, or else the newest launch (attempts within 60 seconds of the newest start, both reviewers of a pair); `--job` lists the named attempt; a journal job whose header write failed is still listed; ignores an incomplete final line and counts non-JSON or unknown lines without changing state, bounds the activity text to 120 characters, reports a missing job clearly and writes nothing; the CLI `--follow` redraws every 2 seconds (within 0.5 seconds) and exits when all reviewers are done | Missing fields or states, a wrong or missing attempt selected (including a newer journal job hidden behind an older progress file), a write, an unbounded line, a different redraw interval, a partial line that changes state or errors, or `--follow` that does not exit once every reviewer is in a final state | Operation and CLI tests |
 | R7 | AC7 output limit | The limit is 64 MiB; an over-limit attempt is UNAVAILABLE and its captured output is retained | A limit other than 64 MiB, or an over-limit attempt loses its output | Process-runner test |
+| R9 | AC9 run folders not committed | A fresh start writes a `.gitignore` with `/*` and `!/.gitignore`; start or resume of a run whose `.gitignore` holds only `/workflow.sqlite*` appends both lines and keeps the old one; `git status` in a fixture shows nothing under `.gatereeve-current/` except `.gitignore`; the PR's tree has 0 files under `docs/issues/*/.gatereeve-current/` and history is not rewritten | The writer leaves objects, handoff, keys, progress or pending files untracked-but-visible, an existing `.gitignore` loses lines or is not upgraded, a committed run-folder file remains, or the base history changed | Adapter tests; `git ls-tree` of the PR head; the PR's commit list |
 | R8 | AC8 compatibility | Existing review, history, qualification and metrics tests pass unchanged; a record without `activity` reads and qualifies as before; contract version and evaluator rules unchanged | Old records fail, qualify differently, or the contract version or rules changed | Full CLI and plugin suites in hosted CI |
 
 ## Changes
 
 Append spec amendments here. Do not remove or weaken original criteria.
+
+- **A1 (2026-11-28, human: Trent).** Adds AC9 and R9: run folders are never
+  committed, the committed `runner-comparison.key` and the other committed
+  run-folder copies are removed without a history rewrite. Decided in reply to
+  the run-data handoff: "Fold (a) into #147"; key: "Normal PR, no rewrite";
+  commit policy: "Never commit; remove copies". Relocating the run store
+  outside the worktree, harvester changes and a harvest-gated worktree sweep
+  stay out of scope, as separate issues.

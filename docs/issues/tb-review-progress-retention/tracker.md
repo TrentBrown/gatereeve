@@ -17,6 +17,7 @@
 | R6 | Watch | NOT YET | - | Planned for P5 / I-3 |
 | R7 | Output limit | NOT YET | - | Planned for P1 / I-1 |
 | R8 | Compatibility | NOT YET | - | Planned for P4, P7 / I-4 |
+| R9 | Run folders not committed | NOT YET | - | Planned for P8 / I-5 (amendment A1) |
 
 ## Review Log
 

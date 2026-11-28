@@ -110,3 +110,13 @@ finished review cannot be rebuilt or audited, and the eval telemetry harvester
   and they never affect proof.
 
 ## Changes
+
+- **A1 (2026-11-28, human: Trent).** Run folders are never committed. The
+  per-run `.gitignore` ignores everything but itself (existing ones are
+  upgraded on start or resume), the root `.gitignore` covers this repository,
+  and this PR removes the committed run-folder copies on the base, including a
+  committed `runner-comparison.key`, without a history rewrite. Reason: once
+  this feature lands, each review adds a raw event stream of several MiB to
+  `objects/`, and an accidental commit would publish it. Relocating the run
+  store outside the worktree, harvester changes and a harvest-gated worktree
+  sweep are separate issues.

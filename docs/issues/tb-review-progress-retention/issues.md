@@ -50,3 +50,14 @@ Operational task breakdown derived from the plan. GitHub issue #147.
 - **PR:** -
 
 `PROTOCOL.md`, CLI help and the user guide, the desktop projection, and the plugin build.
+
+## I-5 - Run folders never committed (amendment A1)
+
+- **Status:** open
+- **Estimate:** 1h
+- **Plan steps:** P8
+- **Rubric criteria:** R9
+- **Depends on:** none
+- **PR:** -
+
+Per-run `.gitignore` ignores all but itself; root `.gitignore`; remove committed run-folder files, including the committed key.

@@ -283,3 +283,38 @@ test('R6: an unknown progress directory entry and an empty store list nothing', 
   const watched = await reviewProgress(f.core);
   assert.deepEqual(watched.attempts.filter(row => row.provider !== 'unknown'), []);
 });
+
+test('R9: the run folder ignores everything but its .gitignore, and an old .gitignore is upgraded on resume', async t => {
+  const { mkdtemp, realpath, readFile } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { git } = await import('../../plugin-src/shared/resources/protocol/current/evidence.js');
+  const { executeCurrentRequest, RUN_FOLDER_IGNORE } = await import('../../plugin-src/shared/resources/protocol/current/adapter.js');
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'gatereeve-ignore-')));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await git(root, ['init', '-b', 'main']);
+  await git(root, ['config', 'user.email', 'fixture@example.test']); await git(root, ['config', 'user.name', 'Fixture']); await git(root, ['config', 'commit.gpgsign', 'false']);
+  await writeFile(join(root, 'app.js'), 'export const answer = 41;\n');
+  await git(root, ['add', '-A']); await git(root, ['commit', '-m', 'fixture']);
+  await git(root, ['checkout', '-b', 'feature-x']);
+  const runtime = { entryPoints: { adapter: null, cli: null } };
+  const run = async (operation, input) => {
+    const result = await executeCurrentRequest({ operation, input, operationId: `${operation.replace(".", "-")}-${Date.now()}`, cwd: root }, runtime);
+    assert.ok(result.ok, result.error?.message);
+  };
+  const ignoreFile = join(root, 'docs/issues/feature-x/.gatereeve-current/.gitignore');
+  await run('run.start', { runId: 'run-ignore', implementers: ['implementer'] });
+  const fresh = (await readFile(ignoreFile, 'utf8')).split('\n');
+  for (const line of RUN_FOLDER_IGNORE) assert.ok(fresh.includes(line), `fresh .gitignore has ${line}`);
+  // Retained objects, a key-like file and progress exist, yet only .gitignore is visible to git.
+  await mkdir(join(root, 'docs/issues/feature-x/.gatereeve-current/progress'), { recursive: true });
+  await writeFile(join(root, 'docs/issues/feature-x/.gatereeve-current/progress/x.codex.jsonl'), '{}\n');
+  await writeFile(join(root, 'docs/issues/feature-x/.gatereeve-current/runner-comparison.key'), 'k');
+  const visible = (await git(root, ['status', '--porcelain', '--untracked-files=all'])).split('\n').filter(line => line.includes('.gatereeve-current'));
+  assert.deepEqual(visible, ['?? docs/issues/feature-x/.gatereeve-current/.gitignore']);
+  // A run folder written before this change keeps its line and gains the two.
+  await writeFile(ignoreFile, '/workflow.sqlite*\n# local note\n');
+  await run('run.resume-current', { implementers: ['implementer'] });
+  assert.equal(await readFile(ignoreFile, 'utf8'), '/workflow.sqlite*\n# local note\n/*\n!/.gitignore\n');
+  await run('run.resume-current', { implementers: ['implementer'] });
+  assert.equal(await readFile(ignoreFile, 'utf8'), '/workflow.sqlite*\n# local note\n/*\n!/.gitignore\n', 'no duplicate lines');
+});
