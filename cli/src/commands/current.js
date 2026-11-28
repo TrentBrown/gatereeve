@@ -28,7 +28,8 @@ async function run(options, operation, input = {}, detail = {}) {
   }
   else if (operation === 'followup.list') {
     for (const record of result.data.records) console.log(`${record.id} ${record.finding.severity} ${record.status}${record.decision ? ` (${record.decision.authorityKind})` : ''}: ${record.finding.class ?? record.origin.kind}`);
-    if (!result.data.records.length) console.log('No follow-ups.');
+    if (result.data.unavailable?.length) console.log(`Unavailable: ${result.data.unavailable.length} unreadable review record(s); the list is incomplete.`);
+    else if (!result.data.records.length) console.log('No follow-ups.');
     if (result.data.next) console.log(`Next: ${result.data.next}`);
   }
   else if (result.data?.contract && result.data?.featureId && result.data?.milestones) {

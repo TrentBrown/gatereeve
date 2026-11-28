@@ -30,3 +30,7 @@ Append pull-request review boundary entries here.
   claude-code FAIL (medium: no test of `present` after `fixed`; medium: no
   test that decide writes follow-ups.md; five lows). Fixed all, including the
   lows on observation-time churn and non-review unavailable results.
+- 2026-11-28 boundary round 2 (head 8408c33): claude-code PASS (low: docs
+  drift); codex FAIL (high: feature ID in the follow-ups.md title; medium:
+  follow-ups.md and the CLI list read "none" with unavailable records; two
+  lows on local receipts that hosted CI covers). Fixed the three and the docs.

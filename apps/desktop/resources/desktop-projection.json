@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:02c1f0c6a4f2075a6f72a42a047e95f5bbc10ef9bc2f0d376e4f5e2fe9aabe3a",
+  "protocolHash": "sha256:acd1cc3da614a4514e66e06db2ae14e502dddd47ef36ff250c30a1f4a92299ca",
   "contract": "gatereeve/current/8",
   "contractSha256": "1df0afc21301595b72a5f9bdad3ab2aade7452ad1c5a4f97455bde354bf1120a",
   "files": [
@@ -112,8 +112,8 @@
     },
     {
       "path": "current/follow-ups.js",
-      "size": 31721,
-      "sha256": "b5e9e75fd24bff71ac9f519cec257f9a40c2e47de023040021209a2b2f84fe02"
+      "size": 32034,
+      "sha256": "200a90d2339b2f619c19434c52b07d16ba627165a737989449d36573e736282b"
     },
     {
       "path": "current/generated-inputs.js",
