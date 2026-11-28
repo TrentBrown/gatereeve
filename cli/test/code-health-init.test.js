@@ -90,11 +90,11 @@ test('init leaves existing lint and TypeScript configs alone and says what to ad
   assert.equal(read(root, 'tsconfig.json'), '{}\n');
 });
 
-test('dot-directories and minified files are outside the scan, as they are outside the TypeScript program (CH-S2-02)', async () => {
+test('dot-files, dot-directories and minified files are outside the scan, as they are outside the TypeScript program (CH-S2-02, CH-S3-01)', async () => {
   const root = repository({ 'src/a.js': 'x\n' });
   await initCodeHealth({ cwd: root, preset: 'moderate' });
   const scoped = selector((await parseToml(read(root, '.habit-hooks/config.toml'))).files);
-  for (const path of ['.github/actions/x/index.js', 'site/.storybook/main.js', '.habit-hooks/gatereeve/sensors/ruff_s110.py', 'vendor/lib.min.js']) assert.equal(scoped(path), false, path);
+  for (const path of ['.prettierrc.js', 'src/.build-helper.ts', '.mocharc.cjs', '.github/actions/x/index.js', 'site/.storybook/main.js', '.habit-hooks/gatereeve/sensors/ruff_s110.py', 'vendor/lib.min.js']) assert.equal(scoped(path), false, path);
   for (const path of ['src/a.js', 'tool/run.py', 'scripts/smoke.cjs']) assert.equal(scoped(path), true, path);
 });
 

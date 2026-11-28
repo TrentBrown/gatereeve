@@ -59,3 +59,11 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
 - **Alternatives:** `sudo sysctl kernel.io_uring_disabled=2` on the host (needs Trent); a Node/libuv upgrade; fixing the abort upstream.
 - **Reversibility:** high; test-environment only.
 - **Follow-up:** worth its own issue: the abort is pre-existing and affects `main`.
+
+## S8 — Init writes the full preset; dot-paths and minified files are out of scope
+
+- **Answered by:** agent (mandated autonomy, 2026-11-28)
+- **Decision:** `code-health init --preset moderate` writes every starting file (all four plugins, JS/TS and Python scan globs, ESLint, `tsconfig.json`, Ruff and the S110 sensor) whatever the repository already tracks, an empty repository included, because AC6/R9 require it and files added later must be covered (S2 round 1, R9-INIT-1 and CH-S2-01). Each language's sensors keep their own `files` globs, so Ruff never parses JavaScript. Detected languages only shape the report. The scan excludes dot-files, dot-directories and `*.min.js` (`!**/.*`, `!**/.*/**`, `!**/*.min.js`), because TypeScript's `include` wildcards skip them, and a scanned file outside the TypeScript program is a parse error that blocks the check (CH-S2-02, CH-S3-01).
+- **Alternatives:** per-language init (the round 1 behaviour, which leaves later files unchecked); listing dot-paths explicitly in the `tsconfig.json` `include` (keeps CI and config scripts in scope, but `**/.*` patterns are fragile across TypeScript versions and pull in unrelated tool configs).
+- **Consequence:** a JavaScript-only project also needs `ruff` and `deptry` for the configured python plugin, or the check is UNAVAILABLE. Init's follow-up message and the doctor name the installs.
+- **Reversibility:** high; the scope is governed configuration a project can widen with an approval.

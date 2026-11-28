@@ -15,12 +15,13 @@ const JS_FILE = /\.(?:[cm]?[jt]sx?)$/;
 const PY_FILE = /\.pyi?$/;
 const JS_GLOBS = ['**/*.js', '**/*.mjs', '**/*.cjs', '**/*.jsx', '**/*.ts', '**/*.tsx', '**/*.mts', '**/*.cts'];
 const PY_GLOBS = ['**/*.py', '**/*.pyi'];
-// Dot-directories (.github/, .storybook/, .habit-hooks/) and minified files
-// are out of scope: TypeScript's include wildcards skip both, so a file there
-// would be a parse error to the type-aware rules (CH-S2-02).
+// Dot-files (.prettierrc.js), dot-directories (.github/, .habit-hooks/) and
+// minified files are out of scope: TypeScript's include wildcards skip them,
+// so a file there would be a parse error to the type-aware rules (CH-S2-02,
+// CH-S3-01).
 export const EXCLUDED_GLOBS = Object.freeze([
   '!**/node_modules/**', '!**/.venv/**', '!**/venv/**', '!**/dist/**', '!**/build/**', '!**/coverage/**',
-  '!**/fixtures/**', '!**/test/**', '!**/tests/**', '!**/*.test.*', '!**/*.spec.*', '!**/.*/**', '!**/*.min.js',
+  '!**/fixtures/**', '!**/test/**', '!**/tests/**', '!**/*.test.*', '!**/*.spec.*', '!**/.*', '!**/.*/**', '!**/*.min.js',
 ]);
 export const SCAN_GLOBS = Object.freeze([...JS_GLOBS, ...PY_GLOBS, ...EXCLUDED_GLOBS]);
 
