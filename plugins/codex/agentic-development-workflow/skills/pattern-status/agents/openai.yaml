@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pattern Status"
+  short_description: "Inspect pattern-review scope status"
+  default_prompt: "Report pattern-review status for this repo."

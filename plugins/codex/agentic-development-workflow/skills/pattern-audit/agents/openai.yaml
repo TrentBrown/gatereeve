@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pattern Audit"
+  short_description: "Audit pattern rule health"
+  default_prompt: "Audit the pattern-review rule set."

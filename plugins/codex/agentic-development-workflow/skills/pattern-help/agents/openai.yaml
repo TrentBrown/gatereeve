@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pattern Help"
+  short_description: "Explain pattern-review commands"
+  default_prompt: "Explain how to use the pattern-review command family."

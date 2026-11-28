@@ -1,0 +1,4 @@
+interface:
+  display_name: "Workflow Spec Validate"
+  short_description: "Validate spec readiness for planning"
+  default_prompt: "Validate this spec for planning readiness."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "PR Explainer"
+  short_description: "Explain a change for a human engineering reviewer"
+  default_prompt: "Use $pr-explainer to create a visual HTML walkthrough of this change using its source, intent, and existing evidence."
