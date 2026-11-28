@@ -3,7 +3,7 @@
 // one issue per `SMELL:<smell>:<source>` marker. Like the real tools it honors
 // inline suppressions, so neutralization is observable.
 import { execFileSync } from 'node:child_process';
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
@@ -87,8 +87,18 @@ if (process.env.FAKE_PYTHON_MODE === 'fail') process.exit(1);
 console.log(process.env.FAKE_PLUGINS || JSON.stringify({ 'habit-hooks': '9.9.9', 'habit-hooks-generic': '9.9.9', 'habit-hooks-python': '9.9.9', 'habit-hooks-typescript': '9.9.9' }));
 `;
 
+// Every directory a code-health test creates is removed when its process
+// exits; /tmp may be memory-backed.
+const created = [];
+process.once('exit', () => { for (const path of created) rmSync(path, { recursive: true, force: true }); });
+export function temporary(prefix) {
+  const path = mkdtempSync(join(tmpdir(), prefix));
+  created.push(path);
+  return path;
+}
+
 export function fakeTools() {
-  const directory = mkdtempSync(join(tmpdir(), 'gatereeve-code-health-tools-'));
+  const directory = temporary('gatereeve-code-health-tools-');
   const sensors = join(directory, 'habit-sensors');
   const mapper = join(directory, 'habit-mapper');
   const eslintDirectory = join(directory, 'eslint-bin');
@@ -124,7 +134,7 @@ export function commit(root, message) {
 // A repository with a committed code-health setup on `main` and a `feature`
 // branch checked out at the same commit.
 export function fixtureRepository({ config = BASE_CONFIG, files = {} } = {}) {
-  const root = mkdtempSync(join(tmpdir(), 'gatereeve-code-health-repo-'));
+  const root = temporary('gatereeve-code-health-repo-');
   gitIn(root, 'init', '-q', '-b', 'main');
   write(root, {
     ...(config === null ? {} : { '.habit-hooks/config.toml': config, '.habit-hooks/gatereeve/config.toml': 'sensors = []\n' }),
