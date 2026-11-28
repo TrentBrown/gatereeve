@@ -9,7 +9,7 @@ Operational task breakdown derived from the plan. GitHub issue #147.
 
 ## I-1 - Streamed capture in the runner and adapters
 
-- **Status:** open
+- **Status:** in-review
 - **Estimate:** 2h
 - **Plan steps:** P1, P2
 - **Rubric criteria:** R1, R7
@@ -20,7 +20,7 @@ Operational task breakdown derived from the plan. GitHub issue #147.
 
 ## I-2 - Progress log and activity retention
 
-- **Status:** open
+- **Status:** in-review
 - **Estimate:** 4h
 - **Plan steps:** P3, P4
 - **Rubric criteria:** R2, R3, R5, R8
@@ -31,7 +31,7 @@ Operational task breakdown derived from the plan. GitHub issue #147.
 
 ## I-3 - Reconstruction and watch
 
-- **Status:** open
+- **Status:** in-review
 - **Estimate:** 3h
 - **Plan steps:** P5, P6
 - **Rubric criteria:** R4, R5, R6
@@ -42,7 +42,7 @@ Operational task breakdown derived from the plan. GitHub issue #147.
 
 ## I-4 - Docs and projection
 
-- **Status:** open
+- **Status:** in-review
 - **Estimate:** 1h
 - **Plan steps:** P7
 - **Rubric criteria:** R8
@@ -53,7 +53,7 @@ Operational task breakdown derived from the plan. GitHub issue #147.
 
 ## I-5 - Run folders never committed (amendment A1)
 
-- **Status:** open
+- **Status:** in-review
 - **Estimate:** 1h
 - **Plan steps:** P8
 - **Rubric criteria:** R9
