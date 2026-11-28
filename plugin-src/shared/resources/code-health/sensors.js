@@ -2,7 +2,7 @@
 // file list, and `habit-mapper` for coaching. Anything short of a clean JSON
 // array of findings makes the result UNAVAILABLE.
 import { realpath, rm, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, posix } from 'node:path';
 import { run, stringifyToml, Unavailable } from './process.js';
 
 // Habit Hooks 1.5.0 `catalogue.DEFAULT_SEVERITY`. Project `[smells.<name>]`
@@ -66,18 +66,24 @@ function validFindings(value) {
     && Array.isArray(finding.issues) && finding.issues.every(validIssue));
 }
 
-// Habit Hooks may report a file as './x' or as an absolute path; compare and
-// scope by the repository-relative path only.
-function relativeFile(file, worktree) {
+// Habit Hooks may report a file as './x', 'a/../x' or as an absolute path
+// under the worktree as given or as resolved; compare and scope by the
+// normalized repository-relative path only (round 10 codex/F20, CH-R10-02).
+function relativeFile(file, roots) {
   if (typeof file !== 'string') return file;
   let path = file.replace(/\\/g, '/');
-  const root = worktree.replace(/\\/g, '/').replace(/\/$/, '');
-  if (path.startsWith(`${root}/`)) path = path.slice(root.length + 1);
-  return path.replace(/^(\.\/)+/, '');
+  for (const root of roots.map(item => item.replace(/\\/g, '/').replace(/\/$/, ''))) {
+    if (path.startsWith(`${root}/`)) {
+      path = path.slice(root.length + 1);
+      break;
+    }
+  }
+  return path.startsWith('/') ? path : posix.normalize(path).replace(/^\.\//, '').replace(/\/$/, '');
 }
 
 export async function sense({ executable, worktree, configPath, env, timeoutMs, side, probes = [] }) {
   const result = await run(executable, ['--all', '--config', configPath], { cwd: worktree, env, timeoutMs });
+  const roots = [worktree, await realpath(worktree).catch(() => worktree)];
   const tail = (result.stderr || '').trim().split('\n').slice(-3).join(' | ');
   if (result.timedOut) throw new Unavailable('sensor-failed', `habit-sensors timed out on the ${side} after ${timeoutMs} ms`);
   if (result.code !== 0) throw new Unavailable('sensor-failed', `habit-sensors exited ${result.code ?? result.signal} on the ${side}${tail ? `: ${tail}` : ''}`);
@@ -89,22 +95,24 @@ export async function sense({ executable, worktree, configPath, env, timeoutMs, 
   }
   if (!validFindings(findings)) throw new Unavailable('sensor-failed', `habit-sensors emitted JSON on the ${side} that is not a findings array`);
   for (const finding of findings) for (const issue of finding.issues) {
-    if (issue.details?.file) issue.details.file = relativeFile(issue.details.file, worktree);
-    else if (typeof issue.key === 'string' && !issue.details?.content) issue.key = relativeFile(issue.key, worktree);
-    // Validated again after normalization: './', the worktree itself or any
-    // path still absolute (outside the worktree) names no file in scope, and an issue without one would be dropped from scope, not
-    // counted (round 8 codex/F17).
+    if (issue.details?.file) issue.details.file = relativeFile(issue.details.file, roots);
+    else if (typeof issue.key === 'string' && !issue.details?.content) issue.key = relativeFile(issue.key, roots);
+    // Validated again after normalization: './', the worktree itself, a path
+    // still absolute or one climbing out with '..' names no file in scope,
+    // and such an issue would be dropped, not counted (codex/F17, F20).
     const file = issue.details?.file ?? issue.key;
-    if (!nonEmpty(file) || file === '.' || file === worktree || file.startsWith('/') || /^[A-Za-z]:[\\/]/.test(file)) throw new Unavailable('sensor-failed', `habit-sensors emitted JSON on the ${side} with an issue that names no file`);
+    if (!nonEmpty(file) || file === '.' || file === '..' || file.startsWith('../') || file.startsWith('/') || /^[A-Za-z]:[\\/]/.test(file)) throw new Unavailable('sensor-failed', `habit-sensors emitted JSON on the ${side} with an issue that names no file`);
   }
-  // A probe file only shows that the tools run; its own parse errors are not
-  // this change's concern. Tooling failures (incomplete-run) still count.
-  const ignored = new Set(probes);
-  const broken = findings
-    .map(finding => ({ ...finding, issues: finding.issues.filter(issue => !(finding.smell === 'parse-error' && ignored.has(issue.details?.file ?? issue.key))) }))
-    .filter(finding => BROKEN_RUN_SMELLS.includes(finding.smell) && finding.issues.length);
+  // Any parse error or incomplete run is UNAVAILABLE, a probe file's included
+  // (design §3, AC2; round 10 codex/F21): a tool that cannot read the probe
+  // has not shown that it runs.
+  const probed = new Set(probes);
+  const broken = findings.filter(finding => BROKEN_RUN_SMELLS.includes(finding.smell) && finding.issues.length);
   if (broken.length) {
-    const detail = broken.flatMap(finding => finding.issues.map(issue => `${finding.smell}: ${issue.details?.file ?? ''} ${issue.details?.message ?? issue.details?.content ?? issue.key}`.trim()));
+    const detail = broken.flatMap(finding => finding.issues.map(issue => {
+      const file = issue.details?.file ?? issue.key;
+      return `${finding.smell}: ${issue.details?.file ?? ''} ${issue.details?.message ?? issue.details?.content ?? issue.key}${probed.has(file) ? ' (an untouched file probed to show the tools run)' : ''}`.trim();
+    }));
     throw new Unavailable('incomplete-run', `The ${side} run did not complete cleanly:\n  ${detail.slice(0, 10).join('\n  ')}`, { issues: detail });
   }
   return findings;

@@ -66,7 +66,7 @@ test('effective ESLint thresholds come from the resolved tool and tool versions 
   const first = await check(root, { useCache: true, env });
   assert.deepEqual(first.thresholds.eslint, { functionLines: 40, parameters: 5, complexity: 15, depth: 4, fileLines: 500 });
   assert.equal(first.tools.eslint, 'v9.0.0');
-  assert.equal(first.tools.wrapper, 'gatereeve-code-health/7');
+  assert.equal(first.tools.wrapper, 'gatereeve-code-health/8');
   assert.equal(first.tools.habitSensors, 'habit-sensors 9.9.9-fake');
   assert.equal((await check(root, { useCache: true, env })).cache.hit, true);
   const upgraded = await check(root, { useCache: true, env: { ...env, FAKE_ESLINT_VERSION: '10.0.0' } });
@@ -185,7 +185,8 @@ test('round 2: prototype keys, vendored plugin, reported paths and probe parse e
   write(probeBroken, { 'src/a.js': 'y\n' });
   commit(probeBroken, 'js only');
   const probed = await check(probeBroken, { env: { FAKE_SENSORS_MODE: 'parse' } });
-  assert.equal(probed.verdict, 'PASS', 'a parse error in an untouched probe file does not block the change');
+  assert.equal(probed.verdict, 'UNAVAILABLE', 'any parse error, a probe file\'s included, is UNAVAILABLE (round 10 codex/F21)');
+  assert.match(probed.reasons[0].message, /src\/legacy\.py.*probed to show the tools run/);
 });
 
 test('round 3: malformed issues, a symlinked run-config path, and tools checked with nothing in scope', async () => {
@@ -366,7 +367,7 @@ test('a custom plugin\'s declared analysers are reported with their versions (ro
   const detectors = JSON.stringify([{ plugin: 'custom', name: 'eslint', kind: 'command', install: 'npm i eslint', missing: false }, { plugin: 'custom', name: 'some-lib', kind: 'node-module', install: 'npm i some-lib', missing: false }]);
   const result = await check(root, { env: { PATH: `${tools.eslintDirectory}${delimiter}${process.env.PATH}`, FAKE_DETECTORS: detectors, FAKE_ESLINT_VERSION: '9.1.0' } });
   assert.equal(result.verdict, 'PASS', JSON.stringify(result.reasons));
-  assert.deepEqual(result.tools.declared, { 'custom/eslint': 'v9.1.0', 'custom/some-lib': 'node-module (see nodeModules)' });
+  assert.deepEqual(result.tools.declared, { 'custom/eslint': 'v9.1.0', 'custom/some-lib': null });
 });
 
 test('a known plugin whose vendored copy adds an unknown sensor is asked of Habit Hooks (CH-R9-01)', async () => {
@@ -380,7 +381,7 @@ test('a known plugin whose vendored copy adds an unknown sensor is asked of Habi
 });
 
 test('an empty smell or a file outside the worktree is malformed output (round 9 codex/F19, CH-R9-02)', async () => {
-  for (const mode of ['emptysmell', 'rootfile']) {
+  for (const mode of ['emptysmell', 'rootfile', 'escape']) {
     const root = fixtureRepository({ files: { 'src/a.js': 'x\n' } });
     write(root, { 'src/a.js': 'y\n' });
     commit(root, 'touch');
@@ -388,6 +389,24 @@ test('an empty smell or a file outside the worktree is malformed output (round 9
     assert.equal(result.verdict, 'UNAVAILABLE', mode);
     assert.equal(result.reasons[0].cause, 'sensor-failed', mode);
   }
+});
+
+test('a path with ".." segments is normalized before scoping (round 10 codex/F20)', async () => {
+  const root = fixtureRepository({ files: { 'src/a.js': 'SMELL:oversized-function:eslint:x\n' } });
+  write(root, { 'src/a.js': 'SMELL:oversized-function:eslint:x\nSMELL:oversized-function:eslint:x\n' });
+  commit(root, 'regression');
+  const result = await check(root, { env: { FAKE_SENSORS_MODE: 'dotdot' } });
+  assert.equal(result.verdict, 'FAIL');
+  assert.deepEqual(result.groups.map(group => [group.file, group.base, group.head]), [['src/a.js', 1, 2]]);
+});
+
+test('a malformed vendored plugin config is UNAVAILABLE even with nothing in scope (codex/F22)', async () => {
+  const root = fixtureRepository({ files: { 'src/a.js': 'x\n', '.habit-hooks/gatereeve/config.toml': 'sensors = "not a list"\n' } });
+  write(root, { 'README.md': 'docs\n' });
+  commit(root, 'docs');
+  const result = await check(root);
+  assert.equal(result.verdict, 'UNAVAILABLE');
+  assert.match(result.reasons[0].message, /readable \.habit-hooks\/gatereeve\/config\.toml/);
 });
 
 test.after(() => rmSync(tools.directory, { recursive: true, force: true }));

@@ -28,6 +28,7 @@ if (mode === 'emptykey') { console.log('[{"smell":"oversized-function","issues":
 if (mode === 'badfile') { console.log('[{"smell":"oversized-function","issues":[{"key":"src/a.js","details":{"file":123}}]}]'); process.exit(0); }
 if (mode === 'emptysmell') { console.log('[{"smell":"","issues":[{"key":"src/a.js","details":{"file":"src/a.js"}}]}]'); process.exit(0); }
 if (mode === 'rootfile') { console.log(JSON.stringify([{ smell: 'oversized-function', issues: [{ key: 'src/a.js', details: { file: process.cwd() } }] }])); process.exit(0); }
+if (mode === 'escape') { console.log('[{"smell":"oversized-function","issues":[{"key":"src/a.js","details":{"file":"../outside.js"}}]}]'); process.exit(0); }
 if (mode === 'dotfile') { console.log('[{"smell":"oversized-function","issues":[{"key":"src/a.js","details":{"file":"./"}}]}]'); process.exit(0); }
 if (mode === 'hang') { setTimeout(() => {}, 600000); return; }
 if (mode === 'emptyfile') { console.log('[{"smell":"oversized-function","issues":[{"key":"src/a.js","details":{"file":""}}]}]'); process.exit(0); }
@@ -46,7 +47,7 @@ for (const file of files) {
     if (!marker || disabled) return;
     if (/eslint-disable-line|#\\s*noqa/.test(line)) return;
     if (index > 0 && /eslint-disable-next-line/.test(lines[index - 1])) return;
-    const reported = mode === 'dotslash' ? './' + file : mode === 'absolute' ? require('node:path').join(process.cwd(), file) : file;
+    const reported = mode === 'dotslash' ? './' + file : mode === 'dotdot' ? file.split('/')[0] + '/../' + file : mode === 'absolute' ? require('node:path').join(process.cwd(), file) : file;
     add(marker[1], { key: reported, details: { file: reported, line: index + 1, column: 1, message: line.trim(), source: marker[2] } });
   });
 }

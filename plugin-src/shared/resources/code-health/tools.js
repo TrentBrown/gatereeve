@@ -11,7 +11,7 @@ import { environmentLinks } from './worktree.js';
 
 // Bump when the comparison, neutralization or scoping rules change, so cached
 // baselines from an earlier wrapper are never reused.
-export const WRAPPER_VERSION = 'gatereeve-code-health/7';
+export const WRAPPER_VERSION = 'gatereeve-code-health/8';
 
 const COMMANDS = ['eslint', 'ruff', 'knip', 'deptry', 'jscpd'];
 const PACKAGES = ['typescript', 'typescript-eslint', '@typescript-eslint/parser', '@typescript-eslint/eslint-plugin', 'ts-morph'];
@@ -165,12 +165,13 @@ export async function toolVersions({ root, head, config, sensors, sensorsVersion
   // reported version (null when it reports none), each node module through
   // the nodeModules trees below (round 9 codex/F16).
   const { unknown } = await pluginCoverage({ root, head, config });
+  const nodeDetectors = [];
   if (unknown.length) {
     versions.declared = {};
     for (const detector of await declaredDetectors(sensors, env, unknown, root) ?? []) {
       const key = `${detector.plugin}/${detector.name}`;
       if (detector.kind !== 'command') {
-        versions.declared[key] = 'node-module (see nodeModules)';
+        nodeDetectors.push([key, detector.name]);
         continue;
       }
       const executable = await resolveTool(detector.name, { root, env });
@@ -196,6 +197,15 @@ export async function toolVersions({ root, head, config, sensors, sensorsVersion
     }
     versions[name] = Object.keys(found).length ? found : null;
   }
+  // A declared node module's version wherever it is installed (CH-R10-01).
+  for (const [key, name] of nodeDetectors) {
+    const found = {};
+    for (const directory of directories) {
+      const version = await packageVersion(directory, name);
+      if (version !== null) found[label(root, directory)] = version;
+    }
+    versions.declared[key] = Object.keys(found).length ? found : null;
+  }
   versions.nodeModules = {};
   for (const directory of directories) versions.nodeModules[label(root, directory)] = await installedTree(directory);
   return versions;
@@ -218,11 +228,15 @@ async function vendoredSensors(root, head, plugin) {
   if (text === null) return null;
   try {
     const sensors = (await parseToml(text)).sensors ?? [];
-    return Array.isArray(sensors) ? sensors : [];
+    return Array.isArray(sensors) && sensors.every(name => typeof name === 'string') ? sensors : MALFORMED;
   } catch {
-    return [];
+    return MALFORMED;
   }
 }
+
+// A vendored plugin config that cannot be read declares nothing GateReeve can
+// check: the run is UNAVAILABLE, never a plugin with no sensors (codex/F22).
+const MALFORMED = Symbol('malformed');
 
 // Which plugins GateReeve's sensor table fully describes. A plugin without a
 // table, or a vendored copy declaring a sensor the table does not know, may
@@ -232,6 +246,10 @@ export async function pluginCoverage({ root, head, config }) {
   for (const plugin of config.plugins ?? []) {
     const vendored = await vendoredSensors(root, head, plugin);
     vendoredPlugins.set(plugin, vendored);
+    if (vendored === MALFORMED) {
+      unknown.push(plugin);
+      continue;
+    }
     const table = SENSOR_TOOLS[plugin];
     const known = table && (vendored === null || vendored.every(sensor => table.some(([name]) => name === sensor)));
     if (known) tools.push(...table.filter(([sensor]) => vendored === null || vendored.includes(sensor)));
@@ -255,6 +273,7 @@ export async function missingTooling({ root, head, config, env, sensors }) {
   if (!installed) missing.push('the Habit Hooks plugin inventory (could not find the Python that runs habit-sensors; set GATEREEVE_HABIT_PYTHON to it)');
   const { tools, unknown, vendored } = await pluginCoverage({ root, head, config });
   for (const plugin of config.plugins ?? []) {
+    if (vendored.get(plugin) === MALFORMED) missing.push(`a readable .habit-hooks/${plugin}/config.toml (its \`sensors\` list could not be read)`);
     if (vendored.get(plugin) === null && installed && !installed[`habit-hooks-${plugin}`]) missing.push(`Habit Hooks plugin ${plugin} (pip install habit-hooks-${plugin})`);
   }
   // A plugin GateReeve cannot fully describe is asked of Habit Hooks; an
