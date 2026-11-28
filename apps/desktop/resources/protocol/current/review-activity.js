@@ -22,9 +22,11 @@ import { gate, requireThat } from './contracts.js';
 export const PROGRESS_FORMAT = 'gatereeve.progress/1';
 export const PROGRESS_TYPE = 'gatereeve.progress';
 export const ACTIVITY_CONTRACT = 'review-activity/1';
-// The record of a planning review attempt that ended after launch without a
-// planning-review record; an artifact observation in the journal links it.
-export const PLANNING_ATTEMPT_KIND = 'planning-review-attempt';
+// A planning review attempt that ended after launch is recorded as a
+// `planning-review` record marked `failedAttempt`, linked from the journal by
+// an artifact observation. It is never a PLANNING_REVIEWED event, so planning
+// rounds and delegated decisions read exactly as before.
+export const PLANNING_ATTEMPT_KIND = 'planning-review';
 export const PROGRESS_DIRECTORY = '.gatereeve-current/progress';
 export const PROGRESS_RETENTION_MS = 24 * 60 * 60 * 1000;
 export const ACTIVITY_TEXT_LIMIT = 120;
@@ -155,6 +157,8 @@ export class ReviewCapture {
   // The provider process has ended; GateReeve is checking the verdict.
   exited() { this.marker({ event: 'exited', at: this.now().toISOString() }); }
   async finish({ outcome }) {
+    if (this.finished) return { file: this.file, written: !this.progressError };
+    this.finished = true;
     this.marker({ event: 'end', state: 'done', outcome: String(outcome), endedAt: this.now().toISOString() });
     await this.queue;
     if (this.handle) { await this.handle.close().catch(error => { this.progressError ??= error; }); this.handle = null; }
@@ -185,19 +189,17 @@ export class ReviewCapture {
   }
 }
 
-// Split a stream into complete lines that parse as JSON (`events`) and every
-// other non-empty line (`unparsed`, 1-based line numbers). A final line
-// without a newline is an incomplete write and is always unparsed.
+// Split a retained stream into the lines that parse as JSON (`events`, in
+// order) and every other non-empty line (`unparsed`, 1-based line numbers).
+// A retained stream is complete, so a final line without a newline is judged
+// like any other line.
 export function streamLines(text) {
-  const parts = String(text).split('\n');
-  const tail = parts.pop();
   const events = [], unparsed = [];
-  parts.forEach((line, index) => {
+  String(text).split('\n').forEach((line, index) => {
     const value = line.endsWith('\r') ? line.slice(0, -1) : line;
     if (!value.trim()) return;
     try { events.push(JSON.parse(value)); } catch { unparsed.push({ line: index + 1, text: value }); }
   });
-  if (tail && tail.trim()) unparsed.push({ line: parts.length + 1, text: tail });
   return { events, unparsed };
 }
 
@@ -249,7 +251,7 @@ export async function activityRecordRef(core, hash) {
   });
   const ref = { hash, bytes: bytes.length, format: 'json' };
   const record = JSON.parse((await core.store.get(ref)).toString('utf8'));
-  requireThat(record.kind === PLANNING_ATTEMPT_KIND, 'The linked object is not a planning review attempt');
+  requireThat(record.kind === PLANNING_ATTEMPT_KIND && record.failedAttempt === true, 'The linked object is not a failed planning review attempt');
   return ref;
 }
 
@@ -340,7 +342,8 @@ export async function reviewProgress(core, { job = null } = {}, now = Date.now()
   for (const [jobId, value] of Object.entries(state.jobs ?? {})) {
     if (!reviewerJob(value)) continue;
     const known = [...attempts.values()].some(item => item.jobId === jobId);
-    if (known) { for (const item of attempts.values()) if (item.jobId === jobId) item.journal = value; continue; }
+    // A file whose header write failed still takes its start from the journal.
+    if (known) { for (const item of attempts.values()) if (item.jobId === jobId) { item.journal = value; item.journalStartedAt = journal.get(jobId) ?? null; } continue; }
     let configuration = {};
     try { configuration = (await store.json(value.input)).configuration ?? {}; } catch { /* unreadable input: shown without model */ }
     attempts.set(`${jobId}.${configuration.provider ?? 'unknown'}`, { jobId, provider: configuration.provider ?? 'unknown', model: configuration.model ?? null,

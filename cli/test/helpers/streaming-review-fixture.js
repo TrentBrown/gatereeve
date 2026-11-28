@@ -45,7 +45,7 @@ export const chunks = text => { const bytes = Buffer.from(text); const size = Ma
 
 // Modes: pass | rejected | malformed | provider-failure | timeout | limit | refused.
 // `during(provider, options)` runs after the stream is emitted, before exit.
-export function streamingAdapters(f, { mode = {}, during = null, trailingNewline = true } = {}) {
+export function streamingAdapters(f, { mode = {}, during = null, trailingNewline = true, noise = false } = {}) {
   const seen = { prompts: {}, streams: {}, cwd: {}, sentinels: {} };
   let count = 0;
   const runnerFor = provider => async (executable, args, options) => {
@@ -57,6 +57,8 @@ export function streamingAdapters(f, { mode = {}, during = null, trailingNewline
     let output = verdictOutput(input);
     if (modeOf === 'rejected') output = { verdicts: output.verdicts?.map(({ summary, ...rest }) => rest) ?? output };
     let stream = provider === 'claude-code' ? claudeEvents(output, sentinel, { result: modeOf !== 'malformed' }) : codexEvents(sentinel);
+    // A non-JSON line, as a provider's warning would be.
+    if (noise) stream = stream.replace('\n', '\nprovider warning: not JSON\n');
     if (!trailingNewline) stream = stream.slice(0, -1);
     seen.prompts[provider] = options.input; seen.streams[provider] = stream; seen.cwd[provider] = options.cwd; seen.sentinels[provider] = sentinel;
     for (const chunk of chunks(stream)) options.onOutput?.(chunk);

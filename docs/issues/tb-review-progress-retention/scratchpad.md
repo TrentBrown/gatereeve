@@ -55,11 +55,25 @@ their alternatives and **Reversibility:**; goal runs publish them on the PR.
 
 - **Answered by:** agent
 - **Decision:** A planning review that fails after launch still throws as
-  before and writes no `PLANNING_REVIEWED` event. Its activity goes into a
-  `planning-review-attempt` object, linked from the journal by an existing
-  `OBSERVATION` (kind `artifact`) event. That keeps planning-round and
+  before and writes no `PLANNING_REVIEWED` event. Its activity is referenced from a `kind:
+  planning-review` record marked `failedAttempt: true` (spec AC3 names that
+  kind; boundary round 1, codex/F2), linked from the journal by an existing
+  `OBSERVATION` (kind `artifact`) event, never a `PLANNING_REVIEWED` event. That keeps planning-round and
   delegated-decision semantics unchanged: a later UNAVAILABLE record would
   otherwise supersede a cited PASS. Older readers also accept the event type.
 - **Alternatives:** record a `PLANNING_REVIEWED` UNAVAILABLE (changes
   planning semantics); a new event type (older readers refuse unknown events).
+- **Reversibility:** easy.
+
+## [7] Boundary round 1 fixes
+
+- **Answered by:** agent
+- **Decision:** Fixed every blocking round-1 finding:
+  - over-limit output keeps the in-allowance part of the crossing chunk (codex/F1);
+  - failed planning attempts use `kind: planning-review` plus `failedAttempt` (codex/F2);
+  - a retained stream's unterminated final line is parsed like any other (codex/F3);
+  - a refused planning review still writes its trailer (claude/F1);
+  - provider-failure categories come from stderr and the stream's error/result events only, for both adapters, since Claude's and Codex's event streams carry what the reviewer read (claude/F2);
+  - a header-less journal job takes its start time from the journal (claude/F3);
+  - evidence: hosted CI plan declared as `ciRequiredChecks`, the additional suites the reviewers named plus `stage-protocol`, a process-runner 64 MiB test, CLI `review watch` and `read activity` tests, and an R9 receipt check (codex/F4, F5; claude/F4–F9).
 - **Reversibility:** easy.

@@ -321,7 +321,9 @@ export async function reviewPlanning(core, input, operation) {
     // activity in a planning-review-attempt record, linked from the journal by
     // an artifact observation (issue #147). The failure itself is unchanged.
     if (capture && launched) await retainFailedPlanningAttempt(core, state, input.artifact, subject, configuration, capture, retained, operation, error)
-      .catch(cause => { error.activityRetention = cause.message; });
+      .catch(async cause => { error.activityRetention = cause.message; await capture.finish({ outcome: 'UNAVAILABLE' }).catch(() => {}); });
+    // Refused before launch: no activity, but the progress file still ends.
+    else if (capture) await capture.finish({ outcome: 'UNAVAILABLE' }).catch(() => {});
     throw error;
   }
   finally { await view.close(); }
@@ -329,7 +331,7 @@ export async function reviewPlanning(core, input, operation) {
 
 async function retainFailedPlanningAttempt(core, state, artifact, subject, configuration, capture, retained, operation, error) {
   const activity = await capture.retain({ receipt: retained[0] ?? null, output: retained[1] ?? null });
-  const attempt = await core.store.putJson({ contract: CONTRACT, kind: PLANNING_ATTEMPT_KIND, runId: state.runId, featureId: state.featureId,
+  const attempt = await core.store.putJson({ contract: CONTRACT, kind: PLANNING_ATTEMPT_KIND, failedAttempt: true, runId: state.runId, featureId: state.featureId,
     artifact, subject, provider: configuration.provider, model: configuration.model, outcome: 'UNAVAILABLE',
     summary: String(error?.message ?? error).slice(0, 2000), activity });
   const note = { kind: 'artifact', reason: `Planning review attempt (${artifact}) ended without a review record; its retained review activity is linked`,

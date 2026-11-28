@@ -22,7 +22,7 @@ identity and exact input after an uncertain response. Conflicting reuse fails.
 | Operation | Input and purpose |
 | --- | --- |
 | `status`, `snapshot`, `next` | Current phase, commitment hashes, obligations, applicability, exceptions and milestone blockers |
-| `read` | Top-level `kind` = artifact/events/model/result/activity; artifact/result `id` must come from status. `activity` takes a review record hash (a review result, a planning review, or a planning review attempt linked by an `artifact` observation) and rebuilds that review from the run store alone (see Review progress and retained activity) |
+| `read` | Top-level `kind` = artifact/events/model/result/activity; artifact/result `id` must come from status. `activity` takes a review record hash (a review result, a planning review, or a failed planning review attempt linked by an `artifact` observation) and rebuilds that review from the run store alone (see Review progress and retained activity) |
 | `review.progress` | Optional `job` (a review job or planning review operation ID). Read-only: one row per review attempt with provider, model, elapsed time, files read, current activity, tokens and state (see Review progress and retained activity) |
 | `run.start` | `implementers`: actual implementing context IDs; optional `runId`, `optionalGates: ["whiteboard"]`, `rigor`/`autonomy` choices `{value, authority?, reason?}` (defaults `full`/`supervised`; every explicit choice needs `authority` or `reason`, and a non-default value needs an observed human `authority`; `delegated` and `autonomous` also need the protected release branch; autonomous additionally needs a fixed human mandate); optional `workspace: {confirmFeature, authority}` or `{replace: true, authority}` (see Workspace configuration). In a repository with a GitHub remote and no workspace configuration it writes a minimal one and records it in `STARTED.workspace` |
 | `workspace.configure` | Optional `{confirmFeature, authority}` or `{replace: true, authority}`. For an existing run without a workspace configuration, write it under the run-start rules and record `WORKSPACE_CONFIGURED`; reports `written: false` when the configuration already names the feature |
@@ -983,16 +983,20 @@ and output when the attempt got that far. It also records the provider, stage
 and byte counts. A review result or planning-review record references it from
 its `activity` field, never from `artifacts`, so it is never copied into a later
 reviewer's evidence. A planning review that fails after launch still fails as
-before and writes no planning-review record; its activity is kept in a
-`planning-review-attempt` object, linked from the journal by an `artifact`
-observation. An attempt refused before launch retains no activity. Records
+before and writes no `PLANNING_REVIEWED` event, so planning rounds and
+delegated decisions read as before; its activity is referenced from a
+`planning-review` record marked `failedAttempt: true` (outcome UNAVAILABLE),
+linked from the journal by an `artifact` observation. An attempt refused before launch retains no activity. Records
 written before this change have no `activity` and read, qualify and count as
 before. `read` kind `activity` rebuilds a review from the database and `objects/`
 alone: it returns the retained prompt, instructions, input, schema, output and
 stream, the stream's JSON lines as `events` and its other non-empty lines as
 `unparsed`, and checks the receipt's instruction, input and output digests. A
 missing or corrupt object fails naming it. The provider output limit is 64 MiB
-per attempt (stdout and stderr together), the run store's object limit.
+per attempt (stdout and stderr together), the run store's object limit; output
+up to the limit is kept. A failed provider run's category is read from stderr
+and the stream's error and result events only, never from tool calls or the
+text the reviewer read.
 
 A run folder (`.gatereeve-current/`) is never committed. The `.gitignore` that
 `run.start` and `run.resume-current` write ignores everything in the folder

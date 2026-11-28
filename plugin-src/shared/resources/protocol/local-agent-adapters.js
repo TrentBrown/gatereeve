@@ -109,7 +109,10 @@ function killIfSame({ pid, started }) {
 // `onOutput`, when given, receives each stdout chunk as it arrives, within
 // the output limit (issue #147). It is the caller's live progress and
 // retention feed; an error it throws never ends the reviewer.
-export async function runAgentProcess(executable, args, { cwd, input, env = process.env, timeoutSeconds, idleLock = null, inhibitor = systemIdleInhibitor, onSpawn = null, onOutput = null }) {
+// `diagnosticOutput` chooses which part of stdout a failed run's category is
+// read from: an event-stream provider passes its error and result events
+// only, never the transcript of what the reviewer read (issue #147).
+export async function runAgentProcess(executable, args, { cwd, input, env = process.env, timeoutSeconds, idleLock = null, inhibitor = systemIdleInhibitor, onSpawn = null, onOutput = null, diagnosticOutput = text => text }) {
   const launch = await idleInhibitedLaunch(executable, args, idleLock, inhibitor);
   assertArgumentSizes(launch.args);
   // `onSpawn` runs once the reviewer process has actually started, so callers
@@ -180,19 +183,26 @@ export async function runAgentProcess(executable, args, { cwd, input, env = proc
       timedOut = true;
       terminate();
     }, timeoutSeconds * 1000);
-    child.stdout.on('data', (chunk) => {
+    // Output up to the limit is kept, including the part of the chunk that
+    // crosses it; the run then ends as over the limit.
+    const within = chunk => {
+      const room = Math.max(0, MAX_OUTPUT_BYTES - size);
       size += chunk.length;
-      if (size > MAX_OUTPUT_BYTES) terminate();
-      else {
-        stdout.push(chunk);
-        if (onOutput) try { onOutput(chunk); } catch { /* progress never ends the reviewer */ }
+      if (size <= MAX_OUTPUT_BYTES) return chunk;
+      terminate();
+      return room ? chunk.subarray(0, room) : null;
+    };
+    child.stdout.on('data', (chunk) => {
+      const kept = within(chunk);
+      if (kept) {
+        stdout.push(kept);
+        if (onOutput) try { onOutput(kept); } catch { /* progress never ends the reviewer */ }
       }
       if (marked) report();
     });
     child.stderr.on('data', (chunk) => {
-      size += chunk.length;
-      if (size > MAX_OUTPUT_BYTES) terminate();
-      else stderr.push(chunk);
+      const kept = within(chunk);
+      if (kept) stderr.push(kept);
       if (marker && !marked && Buffer.concat(stderr).toString('utf8').includes(marker)) marked = true;
     });
     child.on('error', reject);
@@ -213,7 +223,7 @@ export async function runAgentProcess(executable, args, { cwd, input, env = proc
         completedAt,
       };
       if (code !== 0 || exitSignal !== null) {
-        const diagnostic = `${result.stderr}\n${result.stdout}`;
+        const diagnostic = `${result.stderr}\n${diagnosticOutput(result.stdout)}`;
         const transient = /rate.?limit|\b429\b|\b50[234]\b|temporar(?:y|ily)|connection reset|timed out/iu.test(diagnostic);
         const category = /credit balance|insufficient credit/iu.test(diagnostic) ? 'credit-unavailable'
           : /model.*not supported|unsupported.*model/iu.test(diagnostic) ? 'unsupported-model'
@@ -333,6 +343,21 @@ function receiptFor(request, descriptor, output, contextId, method, processResul
       snapshot: request.snapshotDigest,
     },
   };
+}
+
+// The part of an event-stream provider's stdout that can explain a failure:
+// lines that are not JSON, and error or result events. Tool calls and their
+// results are what the reviewer read, so they never decide the category.
+const DIAGNOSTIC_EVENTS = new Set(['result', 'error', 'turn.failed']);
+export function providerDiagnostic(stdout) {
+  return String(stdout).split(/\r?\n/u).filter(Boolean).flatMap(line => {
+    let event;
+    try { event = JSON.parse(line); } catch { return [line]; }
+    if (!event || typeof event !== 'object' || !DIAGNOSTIC_EVENTS.has(event.type)) return [];
+    const { type, subtype, is_error: isError, api_error_status: status, error, message } = event;
+    const result = typeof event.result === 'string' ? event.result.slice(0, 4096) : undefined;
+    return [JSON.stringify({ type, subtype, isError, status, error, message, result })];
+  }).join('\n');
 }
 
 function jsonLines(value) {
@@ -545,6 +570,7 @@ export function createCodexAgentAdapter({
           idleLock: { why: idleInhibitorWhy({ provider: 'codex', stage: request.stage.id, feature: request.featureId ?? request.runId }) },
           ...(hooks.onSpawn ? { onSpawn: hooks.onSpawn } : {}),
           ...(hooks.onOutput ? { onOutput: hooks.onOutput } : {}),
+          diagnosticOutput: providerDiagnostic,
         });
         // Prose around one JSON object is unwrapped only for a caller that
         // records the correction (issue #141).
@@ -627,6 +653,7 @@ export function createClaudeCodeAgentAdapter({
         idleLock: { why: idleInhibitorWhy({ provider: 'claude-code', stage: request.stage.id, feature: request.featureId ?? request.runId }) },
         ...(hooks.onSpawn ? { onSpawn: hooks.onSpawn } : {}),
         ...(hooks.onOutput ? { onOutput: hooks.onOutput } : {}),
+        diagnosticOutput: providerDiagnostic,
       });
       const parsed = parseClaudeStream(processResult.stdout, { unwrap: Boolean(hooks.onNormalized) });
       if (parsed.normalized) hooks.onNormalized(parsed.normalized);

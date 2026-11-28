@@ -204,7 +204,8 @@ test('R3: planning reviews retain activity; a failed attempt is linked from the 
   assert.equal(note.payload.kind, 'artifact');
   const ref = await activityRecordRef(f.core, note.payload.links[0]);
   const attempt = await reconstructReview(f.core.store, ref);
-  assert.equal(attempt.record.kind, 'planning-review-attempt');
+  assert.equal(attempt.record.kind, 'planning-review');
+  assert.equal((await f.core.store.json(ref)).failedAttempt, true);
   assert.equal(attempt.stream, failing.streams['claude-code']);
   assert.equal(attempt.digests.checked, false);
   await assert.rejects(activityRecordRef(f.core, `sha256:${'0'.repeat(64)}`), /Unknown review record/);
@@ -317,4 +318,102 @@ test('R9: the run folder ignores everything but its .gitignore, and an old .giti
   assert.equal(await readFile(ignoreFile, 'utf8'), '/workflow.sqlite*\n# local note\n/*\n!/.gitignore\n');
   await run('run.resume-current', { implementers: ['implementer'] });
   assert.equal(await readFile(ignoreFile, 'utf8'), '/workflow.sqlite*\n# local note\n/*\n!/.gitignore\n', 'no duplicate lines');
+});
+
+test('R4: reconstruction keeps a non-JSON line as unparsed and a final JSON line without a newline as an event', async t => {
+  const f = await prepared(t, 'full');
+  const seen = streamingAdapters(f, { noise: true, trailingNewline: false });
+  const { event } = await f.request('gate.execute', reviewJob({ provider: 'codex', model: 'fixture' }), 'mixed');
+  const rebuilt = await reconstructReview(f.core.store, event.payload.results[0]);
+  assert.equal(rebuilt.stream, seen.streams.codex);
+  assert.deepEqual(rebuilt.unparsed, [{ line: 2, text: 'provider warning: not JSON' }]);
+  assert.equal(rebuilt.events.length, 5);
+  assert.equal(rebuilt.events.at(-1).type, 'turn.completed', 'the unterminated final JSON line is an event');
+});
+
+test('R2/R6: a planning review refused before launch ends its progress file and retains no activity', async t => {
+  const f = await prepared(t, 'full');
+  streamingAdapters(f, { mode: 'refused' });
+  f.core.runtime.evaluator = f.core.runtime.evaluators['claude-code'];
+  await assert.rejects(f.request('planning.review', { artifact: 'spec', configuration: { provider: 'claude-code', model: 'fixture' } }, 'plan-refused'), /could not start/);
+  const text = await readProgress(f.home, 'plan-refused.claude-code.jsonl');
+  assert.equal(JSON.parse(text.trim().split('\n').at(-1)).event, 'end');
+  const watched = await reviewProgress(f.core, { job: 'plan-refused' });
+  assert.equal(watched.attempts[0].state, 'done: UNAVAILABLE');
+  assert.ok(watched.final, '--follow would exit');
+  const { events } = await f.core.state();
+  assert.ok(!events.some(item => item.type === 'OBSERVATION'), 'no activity record for a refusal');
+});
+
+test('R6: a journal job whose header write failed is listed with its journal start time in the newest launch', async t => {
+  const f = await prepared(t, 'full');
+  streamingAdapters(f);
+  await f.request('review.execute', {}, 'round-1');
+  const name = (await progressFiles(f.home)).find(item => item.endsWith('.codex.jsonl'));
+  await writeFile(join(f.home, PROGRESS, name), '');
+  const watched = await reviewProgress(f.core);
+  assert.equal(watched.attempts.length, 2, 'both reviewers of the pair');
+  const codex = watched.attempts.find(row => row.provider === 'codex');
+  assert.equal(codex.state, 'progress unavailable');
+  assert.ok(Number.isFinite(Date.parse(codex.startedAt)), 'start time from the journal');
+});
+
+test('R6: review.progress writes nothing', async t => {
+  const f = await prepared(t, 'full');
+  streamingAdapters(f);
+  await f.request('review.execute', {}, 'round-1');
+  const before = JSON.stringify(await treeText(join(f.home, '.gatereeve-current')));
+  await reviewProgress(f.core);
+  await readCurrent(f.context, 'events', null, f.core.runtime);
+  assert.equal(JSON.stringify(await treeText(join(f.home, '.gatereeve-current'))), before);
+});
+
+test('R6: gatereeve review watch prints one snapshot, or redraws every 2 seconds until every attempt is final', async () => {
+  const { watchReviews, WATCH_INTERVAL_MS, progressLines } = await import('../../cli/src/commands/current.js');
+  assert.equal(WATCH_INTERVAL_MS, 2000);
+  const row = state => ({ job: 'abcdef0123456789', provider: 'codex', model: 'gpt-test', elapsedMs: 65_000, filesRead: 3, filesReadBasis: 'commands', tokens: { input: 10, output: 2 }, activity: 'run: rg x', state });
+  const snapshots = [{ attempts: [row('running')], final: false }, { attempts: [row('finished, validating')], final: false }, { attempts: [row('done: PASS')], final: true }];
+  const make = () => { let i = 0; const calls = [];
+    return { calls, request: async request => { calls.push(request); return { ok: true, data: snapshots[Math.min(i++, snapshots.length - 1)] }; } }; };
+  // One snapshot.
+  let fake = make(), out = [], sleeps = [];
+  await watchReviews({ cwd: process.cwd() }, { request: fake.request, write: line => out.push(line), sleep: async ms => { sleeps.push(ms); }, clear: () => {} });
+  assert.equal(fake.calls.length, 1);
+  assert.equal(fake.calls[0].operation, 'review.progress');
+  assert.deepEqual(out, ['codex gpt-test | job abcdef012345 | 1m05s | 3 commands | 10 in / 2 out tokens | last: run: rg x | running']);
+  // --follow: redraws until final, waiting the rest of each 2-second interval.
+  fake = make(); out = []; sleeps = [];
+  const data = await watchReviews({ cwd: process.cwd(), follow: true, job: 'abc' }, { request: fake.request, write: line => out.push(line), sleep: async ms => { sleeps.push(ms); }, clear: () => {} });
+  assert.equal(fake.calls.length, 3);
+  assert.deepEqual(fake.calls[0].input, { job: 'abc' });
+  assert.equal(sleeps.length, 2);
+  for (const ms of sleeps) assert.ok(ms >= 1500 && ms <= 2000, `waits within 0.5 s of 2 s (${ms})`);
+  assert.equal(data.final, true);
+  assert.ok(out.at(-1).endsWith('done: PASS'));
+  // --json --follow prints one JSON document per redraw.
+  fake = make(); out = [];
+  await watchReviews({ cwd: process.cwd(), follow: true, json: true }, { request: fake.request, write: line => out.push(line), sleep: async () => {}, clear: () => {} });
+  assert.deepEqual(out.map(line => JSON.parse(line).final), [false, false, true]);
+  assert.deepEqual(progressLines({ attempts: [] }), ['No review attempts recorded.']);
+  // A refused request is reported and ends the watch.
+  await assert.rejects(watchReviews({ cwd: process.cwd(), json: true }, { request: async () => ({ ok: false, error: { code: 'CONTRACT_INVALID', message: 'No review attempt has ID x' } }), write: () => {} }), /No review attempt has ID x/);
+});
+
+test('R4: gatereeve read activity rebuilds a review through the CLI', async t => {
+  const { spawnSync } = await import('node:child_process');
+  const f = await prepared(t, 'full');
+  const seen = streamingAdapters(f);
+  const { event } = await f.request('gate.execute', reviewJob({ provider: 'codex', model: 'fixture' }), 'cli-read');
+  const [ref] = event.payload.results;
+  // The fixture's workspace, as a configuration the CLI resolves from --cwd.
+  await writeFile(join(f.root, '.agentic-workflow.json'), JSON.stringify({ schemaVersion: 1, featureId: 'feature',
+    repositories: { app: { path: 'app', remote: 'origin', featureBaseSha: f.base, integrationBranch: f.integration, releaseBranch: f.release } } }));
+  const cli = join(process.cwd(), 'cli/bin/workflow.js');
+  const run = spawnSync(process.execPath, [cli, 'read', 'activity', ref.hash, '--cwd', f.root, '--json'], { encoding: 'utf8', env: { ...process.env, GATEREEVE_METRICS: 'off' } });
+  const result = JSON.parse(run.stdout);
+  assert.equal(result.ok, true, run.stdout + run.stderr);
+  assert.equal(result.data.data.stream, seen.streams.codex);
+  assert.equal(result.data.data.prompt, seen.prompts.codex);
+  const missing = spawnSync(process.execPath, [cli, 'read', 'activity', `sha256:${'1'.repeat(64)}`, '--cwd', f.root, '--json'], { encoding: 'utf8', env: { ...process.env, GATEREEVE_METRICS: 'off' } });
+  assert.match(JSON.parse(missing.stdout).error.message, /Unknown review record/);
 });
