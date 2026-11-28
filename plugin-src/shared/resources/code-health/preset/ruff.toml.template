@@ -1,0 +1,9 @@
+# Copied to the repository root as ruff.toml by `gatereeve code-health init`.
+# GateReeve code-health preset (moderate). Habit Hooks selects the rules it
+# coaches; these settings set their thresholds.
+[lint.mccabe]
+max-complexity = 15
+
+[lint.pylint]
+max-args = 5
+max-statements = 40

@@ -1,0 +1,4 @@
+# Ruff S110 (try/except/pass), reported as `swallowed-exception`. Habit Hooks'
+# python plugin already maps BLE001 to that smell; this adds the bare-pass form.
+files = ["**/*.py", "**/*.pyi"]
+argv = ["${python}", "${dir}/ruff_s110.py", "${detector:ruff}", "${files}"]
