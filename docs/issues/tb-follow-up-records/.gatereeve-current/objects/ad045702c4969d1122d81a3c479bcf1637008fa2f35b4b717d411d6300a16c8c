@@ -1,0 +1,41 @@
+✔ R1: finding rows carry severity, class, criterion, effective and reviewer blocking, demotion and round, and no scenario text (28.822083ms)
+✔ a finding of a class swept by an earlier fixed claim is recorded as blocking, as qualification judges it (#144) (50.37875ms)
+✔ R2: review result rows carry scope, round, band, reviewer status, UNAVAILABLE reason and failure category (11.900667ms)
+✔ R3: round, pair, per-reviewer, adjudication and waiver rows (35.635667ms)
+✔ R4: the observation schema accepts valid convergence fields and rejects invalid ones (1.014584ms)
+✔ R5: an earlier-version workflow is replayed with the new fields; earlier rows are not otherwise converted or duplicated (25.215208ms)
+✔ R6: rounds to PASS, adjudicated passes, open scopes as lower bounds, waived scopes and waives after a FAIL streak (1.154875ms)
+✔ R6: scope instances, one waiver per latest scope, re-reviews and reused results (0.3615ms)
+✔ R7: demoted findings are counted by severity, recorded and decided parts reported separately (0.29975ms)
+✔ R8: escaped defects traced to demoted findings, with follow-up counts and the qualified statement (0.49125ms)
+✔ R9: second opinion per provider over final per-round outcomes; the class proxy never affects met (12.199666ms)
+✔ R10: per provider and model: statuses, UNAVAILABLE reasons, rule counts and severities (12.570792ms)
+✔ R11: rows without the new fields are not recorded, never zero, and make the measure incomplete (0.573292ms)
+✔ R12: metrics convergence over the local store and a dataset, filters, Markdown, reevaluation, HTML and MCP (587.982458ms)
+✔ R9: a marked run projects followUp on finding rows and one follow-up row per record, re-emitted as the status changes (49.156209ms)
+✔ R9: a reopened follow-up reads undecided again in the store (16.241583ms)
+✔ R9: a follow-up whose finding blocks again is withdrawn from the store (32.671333ms)
+✔ R9: an unmarked run projects no followUp, and measure 2 decided is met, unmet or incomplete from follow-up rows (14.7285ms)
+✔ R9: the Completion milestone retains the final follow-up list (3478.367125ms)
+✔ R1: non-blocking findings become follow-ups with their origin, finding and reason; blocking ones never do (3499.398125ms)
+✔ R1: round 4 demotes a medium and keeps a low; a regression-path finding, a missed swept site and a latest blocking report are not follow-ups (12094.510334ms)
+✔ R1: a waived or adjudicated blocking finding is not a follow-up; a path outside every alias belongs to the first repository (5135.047625ms)
+✔ R1: resolved makes a follow-up fixed, unsupported leaves it, a peer still present keeps it open, and a re-report reopens it as undecided (0.390208ms)
+✔ R1: a decided follow-up keeps its decision across rounds and status reports the derived status end to end (6691.766958ms)
+✔ R2: a non-review origin records one follow-up per dedup key and returns each input's ID in order; bad input is refused with nothing recorded (1349.323708ms)
+✔ R3: decisions by IDs and by select, supersession, policy defaults skipping human decisions, and eight refusals (2797.349792ms)
+✔ R3, R5: a bulk new-work call whose second filing fails records nothing; the retry reuses the first issue, even before search sees it (2560.2795ms)
+✔ R4: defaults and who may apply them (13402.346792ms)
+✔ R5: filing creates a marked, backlinked issue in the follow-up's repository, reuses an open one, seeds without GitHub, and keeps local names out (3430.952833ms)
+✔ R6: Completion and the release merge wait on follow-ups; status reports them; unmarked runs and unreadable records (8988.116083ms)
+✔ R6: goal readiness and park advice; a decision or a new record makes a ready record stale; a light run is blocked the same way (7954.629125ms)
+✔ R7, R8: follow-ups.md and the PR summary list every follow-up with its details and decision (6589.653208ms)
+✔ R10: the follow-ups CLI lists, decides and renders (4495.83175ms)
+ℹ tests 33
+ℹ suites 0
+ℹ pass 33
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 79080.793667

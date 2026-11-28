@@ -265,9 +265,13 @@ export async function redactedRecords(core, state, records) {
   const redactFor = await publicRedaction(core, state);
   return Promise.all(records.map(async record => {
     const redact = await redactFor(record), clean = value => typeof value === 'string' ? redact(value) : value;
-    return { ...record, origin: Object.fromEntries(Object.entries(record.origin).map(([key, value]) => [key, clean(value)])),
+    // Every free-text field, the repository alias included (an alias can be
+    // a client name listed in followUpRedactions).
+    return { ...record, repository: clean(record.repository), dedupKey: clean(record.dedupKey), origin: Object.fromEntries(Object.entries(record.origin).map(([key, value]) => [key, clean(value)])),
       finding: Object.fromEntries(Object.entries(record.finding).map(([key, value]) => [key, clean(value)])),
-      decision: record.decision ? { ...record.decision, reason: clean(record.decision.reason) } : null };
+      // The issue URL is the issue's own public location and stays.
+      decision: record.decision ? { ...record.decision, reason: clean(record.decision.reason),
+        tracking: record.decision.tracking ? { ...record.decision.tracking, repository: clean(record.decision.tracking.repository) } : null } : null };
   }));
 }
 function issueText(record, redact, pr) {

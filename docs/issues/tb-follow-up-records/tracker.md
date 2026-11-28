@@ -38,3 +38,8 @@ Append pull-request review boundary entries here.
   test had a known record); codex FAIL (high: a one-segment absolute path
   such as /srv escaped redaction). Every absolute path is now redacted; the
   CLI test uses a run with no known follow-up.
+- 2026-11-28 boundary round 4 (head d0f4f41): claude-code PASS (low: an
+  absolute path with a space outside the configured roots is partly kept;
+  out-of-contract reviewer text); codex FAIL (high: a repository alias that
+  is a listed client name appeared in follow-ups.md). The alias, dedup key
+  and tracking repository are now redacted on public surfaces.

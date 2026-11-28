@@ -341,6 +341,13 @@ test('R5: filing creates a marked, backlinked issue in the follow-up\'s reposito
     for (const secret of [f.root, f.home, basename(f.root), state.runId, hostname(), 'Acme Corp', '/Users/someone', '/srv', other])
       assert.ok(!surface.includes(secret), `${label} must not contain ${secret}`);
   assert.ok(view.includes('<redacted> import breaks') && followUpSection.includes('<redacted> import breaks'));
+  // A repository alias that is itself a listed client name is redacted on the public surfaces too.
+  const { redactedRecords } = await import('../../plugin-src/shared/resources/protocol/current/follow-ups.js');
+  f.core.sourceContext.repositories[1].followUpRedactions = ['tools'];
+  const [clientRecord] = await redactedRecords(f.core, state, [(await records(f)).find(row => row.repository === 'tools')]);
+  assert.equal(clientRecord.repository, '<redacted>');
+  const { url, ...tracking } = clientRecord.decision.tracking;
+  assert.ok(!JSON.stringify({ ...clientRecord, decision: { ...clientRecord.decision, tracking } }).includes('tools'), JSON.stringify(clientRecord));
 });
 
 test('R6: Completion and the release merge wait on follow-ups; status reports them; unmarked runs and unreadable records', async t => {
