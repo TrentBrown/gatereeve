@@ -1,5 +1,5 @@
-// Review progress visibility and reviewer activity retention (issue #147).
 import './helpers/private-scratch.js';
+// Review progress visibility and reviewer activity retention (issue #147).
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { mkdir, readdir, rm, utimes, writeFile } from 'node:fs/promises';
