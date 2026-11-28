@@ -28,6 +28,9 @@ if (mode === 'emptykey') { console.log('[{"smell":"oversized-function","issues":
 if (mode === 'badfile') { console.log('[{"smell":"oversized-function","issues":[{"key":"src/a.js","details":{"file":123}}]}]'); process.exit(0); }
 if (mode === 'emptysmell') { console.log('[{"smell":"","issues":[{"key":"src/a.js","details":{"file":"src/a.js"}}]}]'); process.exit(0); }
 if (mode === 'rootfile') { console.log(JSON.stringify([{ smell: 'oversized-function', issues: [{ key: 'src/a.js', details: { file: process.cwd() } }] }])); process.exit(0); }
+if (mode === 'contentkey') { console.log(!fs.readFileSync('src/a.js', 'utf8').includes('y') ? '[]' : '[{"smell":"oversized-function","issues":[{"key":"src/../src/a.js","details":{"content":"new issue"}}]}]'); process.exit(0); }
+if (mode === 'contentescape') { console.log('[{"smell":"oversized-function","issues":[{"key":"src/../../outside.js","details":{"content":"x"}}]}]'); process.exit(0); }
+if (mode === 'brokenabsolute') { console.log('[{"smell":"incomplete-run","issues":[{"key":"/home/u/.venv/bin/ruff: not executable","details":{"content":"/home/u/.venv/bin/ruff: not executable"}}]}]'); process.exit(0); }
 if (mode === 'escape') { console.log('[{"smell":"oversized-function","issues":[{"key":"src/a.js","details":{"file":"../outside.js"}}]}]'); process.exit(0); }
 if (mode === 'dotfile') { console.log('[{"smell":"oversized-function","issues":[{"key":"src/a.js","details":{"file":"./"}}]}]'); process.exit(0); }
 if (mode === 'hang') { setTimeout(() => {}, 600000); return; }

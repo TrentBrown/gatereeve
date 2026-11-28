@@ -95,8 +95,13 @@ export async function sense({ executable, worktree, configPath, env, timeoutMs, 
   }
   if (!validFindings(findings)) throw new Unavailable('sensor-failed', `habit-sensors emitted JSON on the ${side} that is not a findings array`);
   for (const finding of findings) for (const issue of finding.issues) {
+    // An issue's file identity is details.file, else key, always; only a
+    // broken-run issue (whose key is often a message) is exempt, since it
+    // makes the run UNAVAILABLE with its own detail (codex/F20, CH-R11-01).
+    const broken = BROKEN_RUN_SMELLS.includes(finding.smell);
     if (issue.details?.file) issue.details.file = relativeFile(issue.details.file, roots);
-    else if (typeof issue.key === 'string' && !issue.details?.content) issue.key = relativeFile(issue.key, roots);
+    else if (!broken) issue.key = relativeFile(issue.key, roots);
+    if (broken) continue;
     // Validated again after normalization: './', the worktree itself, a path
     // still absolute or one climbing out with '..' names no file in scope,
     // and such an issue would be dropped, not counted (codex/F17, F20).

@@ -409,4 +409,23 @@ test('a malformed vendored plugin config is UNAVAILABLE even with nothing in sco
   assert.match(result.reasons[0].message, /readable \.habit-hooks\/gatereeve\/config\.toml/);
 });
 
+test('a content issue keyed by a file is normalized and scoped like any other (round 11 codex/F20, CH-R11-01)', async () => {
+  const fresh = () => {
+    const root = fixtureRepository({ files: { 'src/a.js': 'x\n' } });
+    write(root, { 'src/a.js': 'y\n' });
+    commit(root, 'touch');
+    return root;
+  };
+  const counted = await check(fresh(), { env: { FAKE_SENSORS_MODE: 'contentkey' } });
+  assert.equal(counted.verdict, 'FAIL', 'src/../src/a.js is the scoped src/a.js');
+  assert.deepEqual(counted.groups.map(group => [group.file, group.base, group.head]), [['src/a.js', 0, 1]]);
+  const escaped = await check(fresh(), { env: { FAKE_SENSORS_MODE: 'contentescape' } });
+  assert.equal(escaped.verdict, 'UNAVAILABLE');
+  assert.equal(escaped.reasons[0].cause, 'sensor-failed');
+  const broken = await check(fresh(), { env: { FAKE_SENSORS_MODE: 'brokenabsolute' } });
+  assert.equal(broken.verdict, 'UNAVAILABLE');
+  assert.equal(broken.reasons[0].cause, 'incomplete-run', 'a broken-run message keeps its own cause');
+  assert.match(broken.reasons[0].message, /ruff: not executable/);
+});
+
 test.after(() => rmSync(tools.directory, { recursive: true, force: true }));
