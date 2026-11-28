@@ -1,13 +1,16 @@
 import './helpers/private-scratch.js';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { chmodSync, mkdtempSync, rmSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { main } from '../../plugin-src/shared/resources/code-health/cli.js';
 import { initCodeHealth, renderInit } from '../../plugin-src/shared/resources/code-health/init.js';
 import { runCodeHealth } from '../../plugin-src/shared/resources/code-health/run.js';
-import { parseToml } from '../../plugin-src/shared/resources/code-health/process.js';
+import { parseToml, selector } from '../../plugin-src/shared/resources/code-health/process.js';
 import { commit, fakeTools, gitIn, read, write } from './helpers/code-health-fixture.js';
 
 function repository(files) {
@@ -56,18 +59,43 @@ test('init writes the moderate preset for JavaScript and Python and never overwr
   assert.equal(read(root, 'eslint.config.mjs'), '// mine\n');
 });
 
-test('init adapts to a JavaScript-only repository and to existing lint configs', async () => {
-  const root = repository({ 'index.mjs': 'export {};\n', 'eslint.config.js': 'export default [];\n' });
+test('init writes the full preset on an empty repository, so files added later are covered (R9)', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'gatereeve-code-health-init-'));
+  gitIn(root, 'init', '-q', '-b', 'main');
+  const report = await initCodeHealth({ cwd: root, preset: 'moderate' });
+  assert.deepEqual(report.languages, { javascript: false, python: false });
+  for (const path of ['.habit-hooks/config.toml', '.habit-hooks/gatereeve/config.toml', '.habit-hooks/gatereeve/sensors/ruff-s110.toml',
+    '.habit-hooks/gatereeve/sensors/ruff_s110.py', 'eslint.config.mjs', 'tsconfig.json', 'ruff.toml']) {
+    assert.ok(report.written.includes(path), path);
+  }
+  const config = await parseToml(read(root, '.habit-hooks/config.toml'));
+  assert.deepEqual(config.plugins, ['gatereeve', 'typescript', 'python', 'generic']);
+  for (const glob of ['**/*.js', '**/*.cjs', '**/*.ts', '**/*.py']) assert.ok(config.files.includes(glob), glob);
+  assert.deepEqual(config.sensors.ruff.files, ['**/*.py', '**/*.pyi'], 'Ruff never sees JavaScript');
+  assert.ok(config.sensors.eslint.files.includes('**/*.cjs'));
+  assert.deepEqual((await parseToml(read(root, '.habit-hooks/gatereeve/config.toml'))).sensors, ['ruff-s110']);
+  assert.match(renderInit(report), /detected: no language yet/);
+  assert.match(renderInit(report), /npm install --save-dev eslint/);
+});
+
+test('init leaves existing lint and TypeScript configs alone and says what to add (CH-S2-03)', async () => {
+  const root = repository({ 'index.mjs': 'export {};\n', 'eslint.config.js': 'export default [];\n', 'tsconfig.json': '{}\n', 'ruff.toml': '\n' });
   const report = await initCodeHealth({ cwd: root, preset: 'moderate' });
   assert.deepEqual(report.languages, { javascript: true, python: false });
-  assert.ok(!report.written.includes('ruff.toml'));
-  assert.ok(!report.written.some(path => path.includes('ruff_s110')));
-  assert.ok(!report.written.includes('eslint.config.mjs'));
-  assert.match(report.notes.join('\n'), /ESLint config already exists/);
-  const plugin = await parseToml(read(root, '.habit-hooks/gatereeve/config.toml'));
-  assert.deepEqual(plugin.sensors, []);
-  assert.ok(!('detectors' in plugin));
-  assert.deepEqual((await parseToml(read(root, '.habit-hooks/config.toml'))).plugins, ['gatereeve', 'typescript', 'generic']);
+  for (const path of ['eslint.config.mjs', 'tsconfig.json', 'ruff.toml']) assert.ok(!report.written.includes(path), path);
+  const notes = report.notes.join('\n');
+  assert.match(notes, /ESLint config already exists/);
+  assert.match(notes, /tsconfig\.json already exists; make sure it sets allowJs, checkJs and noEmit/);
+  assert.match(notes, /Ruff config already exists/);
+  assert.equal(read(root, 'tsconfig.json'), '{}\n');
+});
+
+test('dot-directories and minified files are outside the scan, as they are outside the TypeScript program (CH-S2-02)', async () => {
+  const root = repository({ 'src/a.js': 'x\n' });
+  await initCodeHealth({ cwd: root, preset: 'moderate' });
+  const scoped = selector((await parseToml(read(root, '.habit-hooks/config.toml'))).files);
+  for (const path of ['.github/actions/x/index.js', 'site/.storybook/main.js', '.habit-hooks/gatereeve/sensors/ruff_s110.py', 'vendor/lib.min.js']) assert.equal(scoped(path), false, path);
+  for (const path of ['src/a.js', 'tool/run.py', 'scripts/smoke.cjs']) assert.equal(scoped(path), true, path);
 });
 
 test('init output satisfies the wrapper plugin check and is itself a governed change to approve', async () => {
@@ -75,6 +103,12 @@ test('init output satisfies the wrapper plugin check and is itself a governed ch
   await initCodeHealth({ cwd: root, preset: 'moderate' });
   // The typescript plugin's tools, as installed project dependencies.
   for (const name of ['eslint', 'knip', 'ts-morph']) write(root, { [`node_modules/${name}/package.json`]: '{"version":"0.0.0"}\n' });
+  // and the python plugin's, as executables in the project's .venv.
+  write(root, { '.gitignore': 'node_modules\n.venv\n' });
+  for (const name of ['ruff', 'deptry']) {
+    write(root, { [`.venv/bin/${name}`]: '#!/bin/sh\necho 0.0.0\n' });
+    chmodSync(join(root, '.venv', 'bin', name), 0o755);
+  }
   commit(root, 'set up code health');
   gitIn(root, 'checkout', '-q', '-b', 'feature');
   write(root, { 'src/app.js': 'export const a = 2;\n' });
@@ -104,4 +138,13 @@ test('init CLI argument handling', async () => {
   let out = '';
   assert.equal(await main(['init', '--preset', 'moderate', '--cwd', root, '--json'], { stdout: { write: text => { out += text; } }, stderr: sink }), 0);
   assert.deepEqual(JSON.parse(out).languages, { javascript: false, python: true });
+});
+
+test('gatereeve code-health init runs through the CLI command (CH-S2-04)', () => {
+  const root = repository({ 'a.py': 'x = 1\n' });
+  const cli = join(dirname(fileURLToPath(import.meta.url)), '..', 'bin', 'workflow.js');
+  const result = spawnSync(process.execPath, [cli, 'code-health', 'init', '--preset', 'moderate', '--cwd', root, '--json'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(JSON.parse(result.stdout).written.includes('.habit-hooks/config.toml'));
+  assert.equal(spawnSync(process.execPath, [cli, 'code-health', 'init', '--preset', 'strict', '--cwd', root], { encoding: 'utf8' }).status, 2);
 });
