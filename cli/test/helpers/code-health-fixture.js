@@ -26,6 +26,8 @@ if (mode === 'notarray') { console.log('{"smell":"x"}'); process.exit(0); }
 if (mode === 'badissue') { console.log('[{"smell":"oversized-function","issues":[{}]}]'); process.exit(0); }
 if (mode === 'emptykey') { console.log('[{"smell":"oversized-function","issues":[{"key":""}]}]'); process.exit(0); }
 if (mode === 'badfile') { console.log('[{"smell":"oversized-function","issues":[{"key":"src/a.js","details":{"file":123}}]}]'); process.exit(0); }
+if (mode === 'dotfile') { console.log('[{"smell":"oversized-function","issues":[{"key":"src/a.js","details":{"file":"./"}}]}]'); process.exit(0); }
+if (mode === 'hang') { setTimeout(() => {}, 600000); return; }
 if (mode === 'emptyfile') { console.log('[{"smell":"oversized-function","issues":[{"key":"src/a.js","details":{"file":""}}]}]'); process.exit(0); }
 const bySmell = new Map();
 const add = (smell, issue) => { if (!bySmell.has(smell)) bySmell.set(smell, []); bySmell.get(smell).push(issue); };

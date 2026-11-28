@@ -323,4 +323,39 @@ test('a custom plugin\'s missing tools are UNAVAILABLE even with nothing in scop
   assert.match(unknown.reasons[0].message, /tools declared by plugin custom \(Habit Hooks could not report them\)/);
 });
 
+test('a file path that normalizes to nothing is UNAVAILABLE, never dropped (round 8 codex/F17)', async () => {
+  const root = fixtureRepository({ files: { 'src/a.js': 'x\n' } });
+  write(root, { 'src/a.js': 'y\n' });
+  commit(root, 'touch');
+  const result = await check(root, { env: { FAKE_SENSORS_MODE: 'dotfile' } });
+  assert.equal(result.verdict, 'UNAVAILABLE');
+  assert.match(result.reasons[0].message, /names no file/);
+});
+
+test('a hanging sensor is stopped at the timeout and reported UNAVAILABLE (round 8 codex/F18)', async () => {
+  const root = fixtureRepository({ files: { 'src/a.js': 'x\n' } });
+  write(root, { 'src/a.js': 'y\n' });
+  commit(root, 'touch');
+  const started = Date.now();
+  const result = await check(root, { timeoutMs: 1500, env: { FAKE_SENSORS_MODE: 'hang' } });
+  assert.equal(result.verdict, 'UNAVAILABLE');
+  assert.equal(result.reasons[0].cause, 'sensor-failed');
+  assert.match(result.reasons[0].message, /timed out on the head after 1500 ms/);
+  assert.ok(Date.now() - started < 60000, 'the sensor is killed, not waited for');
+  assert.ok(result.reasons[0].remedy, 'the failure carries recovery guidance');
+});
+
+test('a plugin GateReeve cannot identify never reuses a cached baseline (round 8 codex/F16)', async () => {
+  const root = fixtureRepository({ config: BASE_CONFIG.replace('plugins = ["generic", "gatereeve"]', 'plugins = ["generic", "gatereeve", "custom"]'),
+    files: { 'src/a.js': 'x\n', '.habit-hooks/custom/config.toml': 'sensors = ["custom-analyser"]\n' } });
+  write(root, { 'src/a.js': 'y\n' });
+  commit(root, 'touch');
+  const env = { GATEREEVE_CODE_HEALTH_CACHE: join(tools.directory, `cache-custom-${Date.now()}`) };
+  const first = await check(root, { useCache: true, env });
+  assert.equal(first.verdict, 'PASS', JSON.stringify(first.reasons));
+  const second = await check(root, { useCache: true, env });
+  assert.equal(second.cache.hit, false);
+  assert.match(second.cache.reason, /cannot identify/);
+});
+
 test.after(() => rmSync(tools.directory, { recursive: true, force: true }));

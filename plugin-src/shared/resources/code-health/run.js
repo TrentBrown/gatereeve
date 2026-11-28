@@ -7,7 +7,7 @@ import { governedChange, identity } from './governed.js';
 import { git, resolveTool, selector, Unavailable } from './process.js';
 import { changedFiles, readCommitted, readConfig, resolveRevisions } from './scope.js';
 import { coach, sense, toolVersion, writeRunConfig } from './sensors.js';
-import { missingTooling, toolVersions } from './tools.js';
+import { identifiable, missingTooling, toolVersions } from './tools.js';
 import { thresholds } from './thresholds.js';
 import { Worktrees } from './worktree.js';
 import { withScratch } from '../storage/scratch.js';
@@ -145,7 +145,8 @@ async function evaluate(result, { cwd, base, approved, env, habitSensors, habitM
     if (basePaths.length) {
       const key = identity({ policy: POLICY, mergeBase: result.mergeBase, files: files.filter(file => file.base), governed: governed.hashes, tools: result.tools, config });
       const path = join(await cacheDirectory(root, env), `${key.slice(7)}.json`);
-      const hit = useCache ? await cached(path) : null;
+      const reusable = useCache && identifiable(config);
+      const hit = reusable ? await cached(path) : null;
       if (hit) {
         baseFindings = hit;
         result.cache = { hit: true, key };
@@ -155,8 +156,8 @@ async function evaluate(result, { cwd, base, approved, env, habitSensors, habitM
         await trees.neutralize(baseTree, basePaths);
         const baseConfig = await writeRunConfig(baseTree, config, basePaths);
         baseFindings = await sense({ executable: sensors, worktree: baseTree, configPath: baseConfig, env, timeoutMs, side: 'merge base' });
-        result.cache = { hit: false, key };
-        if (useCache) await store(path, baseFindings).catch(() => {});
+        result.cache = reusable ? { hit: false, key } : { hit: false, key, reason: useCache ? 'a configured plugin runs analysers GateReeve cannot identify' : 'disabled' };
+        if (reusable) await store(path, baseFindings).catch(() => {});
       }
     }
 

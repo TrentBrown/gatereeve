@@ -192,6 +192,12 @@ export const INSTALL = Object.freeze({
   ruff: 'pip install ruff', deptry: 'pip install deptry', jscpd: 'npm install --save-dev jscpd',
 });
 
+// The cache key can only name analysers GateReeve knows how to identify: a
+// plugin without a sensor table may run any external command, so its base is
+// always recomputed rather than reused under a key that cannot see an
+// upgrade (round 8 codex/F16).
+export const identifiable = config => (config.plugins ?? []).every(plugin => Boolean(SENSOR_TOOLS[plugin]));
+
 async function vendoredSensors(root, head, plugin) {
   const text = await readCommitted(root, head, `.habit-hooks/${plugin}/config.toml`);
   if (text === null) return null;
