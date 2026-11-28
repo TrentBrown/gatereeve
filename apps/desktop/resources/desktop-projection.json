@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:b4634b2a494745daa7e3138fac81720eea27074452c95115788d0546d2d04ee4",
+  "protocolHash": "sha256:6d4f8bd63930ba923ea969322dc7d991aa53c71da4ae0114e2d0f28522dcb56e",
   "contract": "gatereeve/current/8",
   "contractSha256": "1df0afc21301595b72a5f9bdad3ab2aade7452ad1c5a4f97455bde354bf1120a",
   "files": [
@@ -17,8 +17,8 @@
     },
     {
       "path": "context.js",
-      "size": 16961,
-      "sha256": "9a3cc065037f5a6654aca73870615fa6b03d0713401706c6aad7d70fa4e6a62c"
+      "size": 17557,
+      "sha256": "9f92523b1dc3f0b4eb38676463eb6e1de49aa5a2e0e74f85019ea99c6b48a331"
     },
     {
       "path": "current/actions.js",
@@ -62,8 +62,8 @@
     },
     {
       "path": "current/core.js",
-      "size": 116335,
-      "sha256": "019d5242da4b5361bc9e65e6e24515a08db1f5afe4294b5400be76a521cb01fc"
+      "size": 118934,
+      "sha256": "e017de6d0c18acf3e3d1393e3c266d77695aef248c9e6136df563b7c40c5b12a"
     },
     {
       "path": "current/coverage.js",
@@ -111,6 +111,11 @@
       "sha256": "303d8bf2d33af54b9ecd471be56f40bf766fafebece1ed7f3a8862f4e8d2126e"
     },
     {
+      "path": "current/follow-ups.js",
+      "size": 29303,
+      "sha256": "063e4960fc1f3c147206cbd686cd757460252c4edec278abbb7d6be2d70ae380"
+    },
+    {
       "path": "current/generated-inputs.js",
       "size": 2681,
       "sha256": "45a949ceaa60520fd0f4b9e4ff36a1a102c011bed45da8c3b5c0906cffcd646d"
@@ -122,8 +127,8 @@
     },
     {
       "path": "current/goal.js",
-      "size": 9490,
-      "sha256": "e267186fdc04c8a21bc036d68045dfc423528f9a8b63634f3ad9845961dfcb83"
+      "size": 10373,
+      "sha256": "a879d1c03934bf1c9e3268f395a1aef50bf7a4b89ea414ee5f6602964501b4c1"
     },
     {
       "path": "current/observation.js",
@@ -152,8 +157,8 @@
     },
     {
       "path": "current/publication.js",
-      "size": 18867,
-      "sha256": "6e0106530960c776c514366a19ace8e23ce68d297f9fd739480b1c83865e320b"
+      "size": 19352,
+      "sha256": "f4008a7c58ae64d9f9b5347c37d24abdf2e689498eecf837861a3f0ad0308c7e"
     },
     {
       "path": "current/review-findings.js",

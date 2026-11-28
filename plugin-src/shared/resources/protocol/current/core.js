@@ -18,7 +18,8 @@ import { requirements, sourceCandidate, assertSourceIsolation, checkCandidate, c
 import { validatePlanning, assertPlanningProof, planningBinding, grandfatheredSpecification } from './planning.js';
 import { executeGates, reviewContract, coreEvidence, retainedContractQualifies } from './execution.js';
 import { prepareMerge, merge, observeIntegration } from './actions.js';
-import { captureStanding, applyStanding, standingValidity, standingReleaseRefusal, qualifyingDecisions, requireUnexpired } from './authorization.js';
+import { captureStanding, applyStanding, standingValidity, standingReleaseRefusal, qualifyingDecisions, requireUnexpired, deliveryBranches } from './authorization.js';
+import { followUpRecords, followUpSummary, decideFollowUps, renderFollowUps } from './follow-ups.js';
 import { publishReview, requirePublishedReview } from './publication.js';
 import { selectReviewers, executeBoundaryReviews, boundaryReviews } from './boundary-review.js';
 import { qualifyCi, isCiVerification } from './ci-qualification.js';
@@ -38,7 +39,7 @@ const admissions = new WeakMap();
 const lightRun = state => state.dials.rigor.value === 'light';
 // The decisions log a full-rigor paired review reads as supporting input (execution.js).
 const REVIEW_SUPPORT_DOCUMENTS = ['decisions.md'];
-const GOAL_READY_STALE = new Set(['DECIDED', 'SPEC_VALIDATED', 'REVIEWERS_SELECTED', 'REVIEW_ROUND_STARTED', 'BOUNDARY_REVIEWED', 'REVIEW_ADJUDICATED', 'CANDIDATE', 'JOB_FINISHED', 'INTEGRATED', 'DIAL_SET']);
+const GOAL_READY_STALE = new Set(['DECIDED', 'FOLLOW_UP_RECORDED', 'FOLLOW_UP_DECIDED', 'SPEC_VALIDATED', 'REVIEWERS_SELECTED', 'REVIEW_ROUND_STARTED', 'BOUNDARY_REVIEWED', 'REVIEW_ADJUDICATED', 'CANDIDATE', 'JOB_FINISHED', 'INTEGRATED', 'DIAL_SET']);
 // A human stay-light decision covers the current tripwire hits only when every
 // current hit was named in it; a new hit needs a new decision (spec AC4).
 function stayLightCovers(state, hits) {
@@ -185,6 +186,9 @@ export function project(events) {
       case 'RESUMED': state.paused = false; state.park = null; break;
       case 'PARKED': state.park = { ...value, at: event.recordedAt, event: event.hash }; break;
       case 'GOAL_READY': state.goalReady = { ...value, at: event.recordedAt, event: event.hash }; break;
+      // Follow-up records and decisions (issue #148) are read by follow-ups.js
+      // from the journal; they carry no phase or authority state.
+      case 'FOLLOW_UP_RECORDED': case 'FOLLOW_UP_DECIDED': break;
       default: throw new Error(`Unsupported current event: ${event.type}`);
     }
     // A published ready summary describes one review state; any later change
@@ -266,7 +270,7 @@ export class CurrentCore {
       const recorded = prepared?.record ? await this.retainWorkspace(prepared) : null;
       // No legacy files are read or overwritten. STARTED is durable before activation.
       await this.store.append(input.runId, 0, 'STARTED', { featureId: this.context.featureId,
-        implementers: [...new Set(input.implementers)], optionalGates: [...new Set(optionalGates)], dials, ...(replacement ? { priorActive: await this.store.put(replacement.bytes) } : {}),
+        implementers: [...new Set(input.implementers)], optionalGates: [...new Set(optionalGates)], dials, followUps: 1, ...(replacement ? { priorActive: await this.store.put(replacement.bytes) } : {}),
         ...(recorded ? { workspace: recorded } : {}) }, operation);
     } catch (error) { await prepared?.rollback?.(); throw error; }
     if (replacement) await this.store.supersedeActive(input.runId, replacement);
@@ -1216,6 +1220,19 @@ export class CurrentCore {
       if (authorizations.length && authorizations.every(item => item.standingGrant || item.delegation)
         && outcomes.some(item => item.required !== false && !allowedRunOutcome(state, item))) missing.push('standing or delegated merge requires every required gate to PASS');
     }
+    // Follow-ups (issue #148): Completion needs every follow-up decided; the
+    // release merge needs no open high review follow-up.
+    if (['merge', 'completion'].includes(name)) {
+      try {
+        const followUps = followUpSummary(await followUpRecords(this, (await this.state()).events));
+        if (name === 'completion') {
+          if (followUps.unavailable.length) missing.push(`follow-ups unavailable: ${followUps.unavailable.join('; ')}`);
+          if (followUps.undecided.length) missing.push(`follow-ups: ${followUps.undecided.length} undecided (${followUps.undecided.join(', ')})`);
+        }
+        const release = candidate?.scope === 'FEATURE' || candidate?.repositories.some(repo => !deliveryBranches(this.context.repositories.find(item => item.alias === repo.alias)).distinct);
+        if (name === 'merge' && release && followUps.openHigh.length) missing.push(`open high follow-up (${followUps.openHigh.join(', ')})`);
+      } catch (error) { missing.push(`follow-ups unavailable: ${error.message}`); }
+    }
     if (name === 'completion') {
       if (candidate?.scope !== 'FEATURE') missing.push('complete-feature review scope');
       for (const repository of candidate?.repositories ?? []) {
@@ -1247,7 +1264,10 @@ export class CurrentCore {
     requireThat(name !== 'completion' || ['INTEGRATED', 'COMPLETE'].includes(state.phase), 'Completion requires observed integration');
     requireThat(name !== 'implementation' || state.phase === 'IMPLEMENTING', 'Implementation phase is not authorized');
     await this.assertLiveInputs(state, name, check.liveInputs);
-    const recorded = await this.append(state, 'MILESTONE', { name, candidate: state.candidate, outcomes: check.outcomes ?? [] }, operation);
+    // Completion retains the final follow-up list (issue #148, spec AC9).
+    const followUps = name === 'completion' ? (await followUpRecords(this)).records.map(record => ({ id: record.id, status: record.status, dedupKey: record.dedupKey,
+      ...(record.decision ? { decision: record.decision.decision, authorityKind: record.decision.authorityKind } : {}) })) : null;
+    const recorded = await this.append(state, 'MILESTONE', { name, candidate: state.candidate, outcomes: check.outcomes ?? [], ...(followUps ? { followUps } : {}) }, operation);
     if (name === 'completion') await this.cleanupSource();
     return recorded;
   }
@@ -1299,10 +1319,13 @@ export class CurrentCore {
         : candidateUnavailable ? { allowed: false, reason: 'Current candidate evidence is unavailable or invalid' }
           : await standingValidity(this, state, grant, candidate, null, { allowIntegratedTargets: true })),
     })));
-    return { ...state, temporaryViews: await viewStatus(this.store), commitments, standingAuthorizations, delegation: delegationStatus(this, state),
+    let followUps;
+    try { followUps = followUpSummary(await followUpRecords(this)); }
+    catch (error) { followUps = { records: [], unavailable: [error.message], undecided: [], openHigh: [], defaults: [], counts: { byStatus: {}, bySeverity: {} }, next: `Follow-ups unavailable: ${error.message}` }; }
+    return { ...state, followUps, temporaryViews: await viewStatus(this.store), commitments, standingAuthorizations, delegation: delegationStatus(this, state),
       rounds: roundStatus(state, { light: lightRun(state), goal: isGoal(state) }), historyGaps: await this.historyGaps(state, memo), obligations: GATES.filter(item => !item.supplemental && (!item.optional || state.optionalGates.includes(item.id))),
       enforcement: ENFORCEMENT, ...await (async () => { const milestones = await Promise.all(MILESTONES.map(name => this.check(name, null, memo)));
-        return { milestones, goal: goalStatus(state, milestones, isGoal(state) ? await agentDecisions(this.context.featureHome) : []) }; })() };
+        return { milestones, goal: goalStatus(state, milestones, isGoal(state) ? await agentDecisions(this.context.featureHome) : [], followUps) }; })() };
   }
   async coverageStatus() {
     const { state } = await this.state();
@@ -1430,13 +1453,13 @@ export class CurrentCore {
           ...(request.input.configuration?.model?{model:request.input.configuration.model}:{}),...(request.input.configuration?.provider?{provider:request.input.configuration.provider}:{})}:{} )},
       label, category, command: operation, worker: false }, async () => {
       try { return await this.executeObserved(request); }
-      finally { if (!['status','snapshot','database.inspect','database.history','milestone.check','coverage.status'].includes(operation)) await projectWorkflow(this); }
+      finally { if (!['status','snapshot','database.inspect','database.history','milestone.check','coverage.status','followup.list'].includes(operation)) await projectWorkflow(this); }
     });
   }
   async executeObserved(request) {
     const input = request.input ?? {};
     const operation = { id: identifier(request.operationId ?? randomUUID(), 'operation'), hash: identity({ operation: request.operation, input }) };
-    const mutating = !['status', 'snapshot', 'database.inspect', 'database.history', 'milestone.check', 'coverage.status'].includes(request.operation);
+    const mutating = !['status', 'snapshot', 'database.inspect', 'database.history', 'milestone.check', 'coverage.status', 'followup.list'].includes(request.operation);
     if (mutating) { await this.assertContext(); await this.store.activationHead({ repair: true }); }
     if (request.operation === 'database.inspect') return this.store.inspect();
     if (request.operation === 'database.history') return this.store.history(input);
@@ -1491,6 +1514,13 @@ export class CurrentCore {
           await this.append(state, 'GOAL_READY', ready, { id: `${operation.id}-goal-ready`, hash: identity(ready) });
         return published;
       }
+      case 'followup.list':
+        requireThat(!Object.keys(input).length, 'followup.list accepts no input');
+        return followUpSummary(await followUpRecords(this));
+      case 'followup.decide': return decideFollowUps(this, input, operation);
+      case 'followup.render':
+        requireThat(!Object.keys(input).length, 'followup.render accepts no input');
+        return renderFollowUps(this);
       case 'goal.park': {
         const { observePullRequest } = await import('./publication.js');
         return parkGoal(this, input, operation, observePullRequest);

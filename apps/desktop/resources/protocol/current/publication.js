@@ -6,6 +6,7 @@ import { boundaryReviews } from './boundary-review.js';
 import { currentAdjudication } from './autonomous.js';
 import { finalHandoff, requireFinalHandoff } from './final-handoff.js';
 import { agentDecisions } from './goal.js';
+import { followUpRecords, followUpSummary, followUpLines } from './follow-ups.js';
 
 // The independent review summary is published into a delimited section of the
 // PR description (spec AC6/R9). The section is rendered deterministically from
@@ -134,6 +135,11 @@ export function withDecisions(section, decisions) {
   for (const entry of decisions) lines.push(`- \`${inline(entry.file)}\` ${inline(entry.heading)}`);
   return section.replace(SUMMARY_END, () => `${lines.join('\n')}\n${SUMMARY_END}`);
 }
+// Every follow-up of the run, accepted lows included (issue #148, spec AC8):
+// GitHub is the visible surface; the gates read the local record.
+export function withFollowUps(section, followUps) {
+  return section.replace(SUMMARY_END, () => `${followUpLines(followUps, inline).join('\n')}\n${SUMMARY_END}`);
+}
 export function publishedSection(body) {
   const text = normalize(body);
   if (!occurrences(text, SUMMARY_START) && !occurrences(text, SUMMARY_END)) return null;
@@ -160,8 +166,9 @@ async function reviewTarget(core, input) {
   const review = await currentReview(core, state, candidate);
   requireThat(review, 'No current independent review result for this candidate head; run the review gate on the current candidate before publishing or requesting merge authorization');
   const decisions = state.dials.autonomy.value === 'goal' ? await agentDecisions(core.context.featureHome) : null;
+  const followUps = followUpSummary(await followUpRecords(core));
   return { state, candidate, pin, repository, ownerRepo, review, number: input.number,
-    section: withDecisions(renderSummary({ candidateRef: state.candidate, candidate, pin, review }), decisions) };
+    section: withFollowUps(withDecisions(renderSummary({ candidateRef: state.candidate, candidate, pin, review }), decisions), followUps) };
 }
 async function readPullRequest(core, path, ownerRepo, number) {
   const run = core.runtime.gh ?? gh;

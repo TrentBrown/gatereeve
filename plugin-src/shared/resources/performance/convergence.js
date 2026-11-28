@@ -144,15 +144,25 @@ export function demotedMeasure(rows) {
   const complete = demoted.filter(row => row.severity !== 'unrated' && row.hasFailureScenario === true);
   const recorded = { denominator: demoted.length, bySeverity: tally(demoted, row => row.severity), withSeverityAndScenario: complete.length,
     met: demoted.length ? complete.length === demoted.length : null };
-  const tracked = demoted.filter(row => row.followUp != null);
-  const decided = tracked.length
-    ? { denominator: demoted.length, byFollowUp: tally(demoted, row => row.followUp), met: demoted.every(row => row.followUp != null && row.followUp !== 'undecided') }
-    : { denominator: demoted.length, byFollowUp: {}, met: null, statement: 'Follow-up decisions are not recorded by this version; this part is unmeasured, not passed.' };
+  // Decided (issue #148, spec amendment 1): one `follow-up` row per record of
+  // a follow-up-tracking run. A demoted finding of a run that did not track
+  // follow-ups is not recorded, so the part is incomplete, never met.
+  const tracking = new Set(rows.filter(row => row.check === 'STARTED' && row.followUpTracking === true).map(row => row.workflow));
+  const followUps = rows.filter(row => row.kind === 'follow-up');
+  const untracked = tracking.size ? demoted.filter(row => !tracking.has(row.workflow)).length : 0;
+  const decided = tracking.size
+    ? { denominator: followUps.length, byFollowUp: tally(followUps, row => row.followUp), untrackedDemoted: untracked, coverage: coverage(untracked),
+      met: untracked ? null : followUps.every(row => row.followUp != null && row.followUp !== 'undecided') }
+    // Without tracking rows, `followUp` on the demoted finding rows themselves
+    // (the #149 reading, kept for snapshots that carry it).
+    : demoted.some(row => row.followUp != null)
+      ? { denominator: demoted.length, byFollowUp: tally(demoted, row => row.followUp), met: demoted.every(row => row.followUp != null && row.followUp !== 'undecided') }
+      : { denominator: demoted.length, byFollowUp: {}, met: null, statement: 'Follow-up decisions are not recorded by this version; this part is unmeasured, not passed.' };
   let met;
   if (notRecorded || recorded.met === null || decided.met === null) met = null;
   else met = recorded.met && decided.met;
   return { target: 'every demoted finding is recorded with its severity and failure scenario, and decided at Completion',
-    denominator: { findings: findings.length, demoted: demoted.length }, recorded, decided, notRecorded, coverage: coverage(notRecorded), met };
+    denominator: { findings: findings.length, demoted: demoted.length }, recorded, decided, notRecorded, coverage: coverage(notRecorded + untracked), met };
 }
 
 // Measure 3 (AC8): confirmed escaped defects traced to a demoted finding.
@@ -269,7 +279,7 @@ export function renderConvergenceMarkdown(value) {
   }
   lines.push(`## 2. Demoted findings: ${met(demoted.met)}`, '', `Target: ${demoted.target}. Coverage: ${demoted.coverage} (${demoted.notRecorded} findings not recorded).`,
     `Demoted: ${demoted.denominator.demoted} of ${demoted.denominator.findings} findings (${counts(demoted.recorded.bySeverity)}). Recorded with severity and failure scenario: ${demoted.recorded.withSeverityAndScenario} (${met(demoted.recorded.met)}).`,
-    `Decided: ${demoted.decided.statement ?? `${counts(demoted.decided.byFollowUp)} (${met(demoted.decided.met)})`}`, '');
+    `Decided: ${demoted.decided.statement ?? `${demoted.decided.denominator} follow-ups: ${counts(demoted.decided.byFollowUp)} (${met(demoted.decided.met)})${demoted.decided.untrackedDemoted ? `; ${demoted.decided.untrackedDemoted} demoted findings from runs that did not track follow-ups are not recorded` : ''}`}`, '');
   lines.push(`## 3. Escaped defects traced to demoted findings: ${escaped.traced}`, '', `${escaped.threshold}`, `Confirmed escaped defects: ${escaped.denominator.confirmed} of ${escaped.denominator.escapedDefects}; traced to a demoted finding: ${escaped.traced} (${escaped.tracedFindings} linked demoted findings, ${escaped.tracedWithFollowUp} with a follow-up record). Coverage: ${escaped.coverage}.`, escaped.statement, '');
   lines.push(`## 4. Second opinion: ${met(secondOpinion.met)}`, '', `Target: ${secondOpinion.target}. Coverage: ${secondOpinion.coverage}. Reviewer rounds: ${secondOpinion.denominator.reviewerRounds}.`, '');
   if (secondOpinion.providers.length) {

@@ -224,3 +224,33 @@ Append spec amendments here. Do not remove or weaken original criteria.
   FAIL, three high rubric findings). AC9 defines measure 2 for a mixed
   cohort (incomplete, never met). R2, R4 and R9 test the returned IDs, the
   pre-existing low default and the mixed cohort.
+
+### Amendment 1: latest report, own repository name, follow-up rows (2026-11-27, mandated)
+
+Found while implementing, before the first candidate; recorded under the
+mandate (an in-mandate amendment of derived planning).
+
+- Latest report (AC1): A finding ID is a follow-up when its **latest**
+  report in the run (the latest retained review result that reports it as a
+  finding) did not block under the raise-time rule; the first raising result
+  stays the origin, and `reason` comes from that latest report. So a finding
+  that blocked when first raised and was demoted when re-reported in round 4
+  or 5 is a follow-up, and one whose latest report blocked is never a
+  follow-up, including one later waived or adjudicated. The R1 rubric row
+  is assessed against this rule and also requires a test of the
+  blocked-then-demoted case.
+- Own repository name (AC5): The workspace root's folder name is not
+  redacted when it equals the follow-up repository's own GitHub repository
+  name (case-insensitive), so a checkout folder named after its repository
+  does not redact the product name. The R5 rubric row is assessed against
+  this rule.
+- Follow-up rows (AC9): For a marked run the projection also writes one
+  `follow-up` row per record (`followUp` status, `severity`, `reason`,
+  `reviewScope`, `round`, `findingId`, the origin result hash as
+  `reference`), and the `STARTED` row carries `followUpTracking: true`.
+  Measure 2's `decided` part counts those rows by `followUp`; it reports
+  "not recorded by this version" when the cohort has no marked run; with a
+  demoted finding row from an unmarked run in the cohort, `decided.met` is
+  null with coverage `incomplete`; otherwise `met` is true exactly when no
+  row is `undecided`. Finding rows keep `followUp` as AC9 states, for
+  measure 3. The R9 rubric row is assessed against this rule.

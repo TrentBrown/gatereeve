@@ -26,6 +26,11 @@ async function run(options, operation, input = {}, detail = {}) {
       if (mutation.path) console.log(`[Mutineer report](<${mutation.path}>)`);
     }
   }
+  else if (operation === 'followup.list') {
+    for (const record of result.data.records) console.log(`${record.id} ${record.finding.severity} ${record.status}${record.decision ? ` (${record.decision.authorityKind})` : ''}: ${record.finding.class ?? record.origin.kind}`);
+    if (!result.data.records.length) console.log('No follow-ups.');
+    if (result.data.next) console.log(`Next: ${result.data.next}`);
+  }
   else if (result.data?.contract && result.data?.featureId && result.data?.milestones) {
     console.log(`${result.data.featureId}: ${result.data.current?.phase ?? result.data.phase ?? 'current run needed'}`);
     // Both run dials, or the built-in defaults a new run receives when none exists.
@@ -258,5 +263,14 @@ export function currentCommands() {
     .option('--merge <file>', 'Selected repository, PR number and merge method')
     .action(async options => run(options, 'delivery.resume', {
       ...(options.grant ? { grant: options.grant } : {}), ...(options.merge ? { merge: await readJsonFile(options.merge) } : {}) }));
-  return [status, coverage, database, ask, note, read, runCommand, workspace, spec, candidate, ready, gate, selectReviewers, reviewBoundary, adjudicateReview, abandonJob, decide, delegatedDecision, autonomousDecision, planningReview, apply, applyDelegation, milestone, merge, publish, observe, delivery];
+  // Follow-up records (issue #148): list, decide (bulk or by ID), regenerate follow-ups.md.
+  const followUps = new Command('follow-ups').description('List, decide or render the run\'s follow-up records (list is the default)');
+  followUps.addCommand(command('list', 'List the run\'s follow-up records and their decisions')
+    .action(options => run(options, 'followup.list')), { isDefault: true });
+  followUps.addCommand(command('decide', 'Decide follow-ups (accept-risk, new-work, reject, or the policy defaults); new work is filed as GitHub issues')
+    .argument('<file>', 'Exact followup.decide input: followUps or select, decision or defaults: true, reason, authority, optional pr')
+    .action(async (file, options) => run(options, 'followup.decide', await readJsonFile(file))));
+  followUps.addCommand(command('render', 'Regenerate follow-ups.md in the feature folder from the workflow records')
+    .action(options => run(options, 'followup.render')));
+  return [status, coverage, database, ask, note, read, runCommand, workspace, spec, candidate, ready, gate, selectReviewers, reviewBoundary, adjudicateReview, abandonJob, decide, delegatedDecision, autonomousDecision, planningReview, apply, applyDelegation, milestone, merge, publish, observe, delivery, followUps];
 }
