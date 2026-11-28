@@ -284,6 +284,7 @@
       "current/observation.js",
       "current/pattern-inputs.js",
       "current/pre-tool-use.js",
+      "current/review-activity.js",
       "current/review-history.js",
       "current/review-packet.js",
       "current/round-policy.js",

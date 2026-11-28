@@ -26,6 +26,7 @@ import { createCodexAgentAdapter, createClaudeCodeAgentAdapter, promptCharacters
 import { fitHistory, writeHistoryIndex, HISTORY_PRIORITY } from './review-history.js';
 import { findingObligations, reviewScope } from './review-findings.js';
 import { checkClaims, packetSweepRecords } from './sweep-records.js';
+import { ReviewCapture } from './review-activity.js';
 import { qualifyCi, isCiVerification } from './ci-qualification.js';
 import { sha256Digest, validateAgentWorkflowStageResult, AGENT_WORKFLOW_PROTOCOL_VERSION, HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-workflow.js';
 import { validateJsonSchema } from '../json-schema.js';
@@ -413,7 +414,9 @@ export function selfValidationContext(context) {
     replacements: context.replacements.map(claim => ({ id: claim.id })),
     repair: context.repair ? { original: context.repair.original, eligibleAffected: context.repair.eligibleAffected ?? null } : null } };
 }
-async function independent(core, state, candidate, prepared, configuration, packet, jobId, history = [], priorities = new Map(), ledgers = {}, contractContext = null, documents = [], onLaunch = async () => {}) {
+// `capture` (issue #147) receives the request, the exact prompt and each
+// stdout chunk; the caller retains it as the attempt's activity.
+async function independent(core, state, candidate, prepared, configuration, packet, jobId, history = [], priorities = new Map(), ledgers = {}, contractContext = null, documents = [], onLaunch = async () => {}, capture = null) {
   const provider = configuration.provider;
   requireThat(['codex', 'claude-code'].includes(provider), 'Select codex or claude-code for independent execution');
   text(configuration.model, 'Evaluator model');
@@ -477,9 +480,17 @@ async function independent(core, state, candidate, prepared, configuration, pack
     const launch = async () => { if (!launchReported) { launchReported = true; await onLaunch(); } };
     if (adapter.reportsSpawn !== true) await launch();
     const onNormalized = rows => { normalized.push(...rows); };
-    const result = await observe({category:'review',label:'provider-execution',project:core.context.workspaceRoot,feature:core.context.featureId,worker:true},
-      () => adapter.runStage(request, adapter.reportsSpawn === true ? { onSpawn: launch, onNormalized } : { onNormalized }));
+    // Progress and activity capture, for an adapter that reports its prompt
+    // and stream (issue #147). Progress goes to the human only.
+    const activityHooks = capture && adapter.reportsActivity === true ? capture.hooks() : {};
+    if (capture) { capture.setRequest({ instructions, input: packet, outputSchema }); await capture.start(); }
+    let result;
+    try {
+      result = await observe({category:'review',label:'provider-execution',project:core.context.workspaceRoot,feature:core.context.featureId,worker:true},
+        () => adapter.runStage(request, { ...(adapter.reportsSpawn === true ? { onSpawn: launch } : {}), onNormalized, ...activityHooks }));
+    } finally { capture?.exited(); }
     retained = [await core.store.putJson(result.receipt), await core.store.putJson(result.output)];
+    if (capture) [capture.receiptRef, capture.outputRef] = retained;
     let envelope;
     try { envelope = reviewEnvelope(result.output); }
     catch (error) { error.artifacts = retained; error.invalidVerdictContract = true; throw error; }
@@ -1258,7 +1269,7 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
   await preparationFinished('PASS');
   const startedAt = new Date().toISOString();
   const artifacts = [];
-  let evaluator = null, runner = null, verdicts = [], metrics = { tokens: null, cost: null }, launched = false;
+  let evaluator = null, runner = null, verdicts = [], metrics = { tokens: null, cost: null }, launched = false, capture = null;
   // Corrections that apply to every verdict of this execution (issue #141).
   const executionNormalized = [...claimDrops];
   try {
@@ -1291,11 +1302,13 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
       const contractContext = { gates: input.gates, candidate, changes, history, claims, reconsiderClosures: value.reconsiderClosures,
         replacements, mandate: Boolean(mandate), repair: value.repair, provider: configuration.provider, model: configuration.model,
         reviewerSelection: configuration.reviewerSelection ?? null, executionCorrections: claimDrops.map(row => row.rule) };
+      capture = new ReviewCapture(core.store, { runId: state.runId, featureId: state.featureId, jobId, provider: configuration.provider,
+        model: configuration.model, stage: input.gates.includes('review') ? 'review' : input.gates.join('+') });
       const reviewed = await independent(core, state, candidate, prepared, configuration, packet, jobId, history, priorities, ledgers, contractContext, value.incorporated?.documents ?? [], async () => {
         // Mark the launch first, so a failed count never hides a running reviewer.
         launched = progress.launched = true;
         if (roundPolicy) await countReviewRound(core, roundPolicy.scope, contentIdentity(candidate), state.candidate);
-      });
+      }, capture);
       evaluator = reviewed.evaluator; metrics = reviewed.metrics; artifacts.push(...reviewed.artifacts);
       executionNormalized.push(...reviewed.normalized);
       // The same contract the reviewer's validate_verdict tool applies (issue #142).
@@ -1392,10 +1405,15 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
   const attempt = role === 'independent' || role === 'assessment' ? reviewBaseline?.attempt ?? (input.repair ? 'repair' : 'initial') : null;
   const receipt = await core.store.putJson({ contract: CONTRACT, kind: 'execution', runId: state.runId,
     input: prepared.hash, jobId, gates: input.gates, role, evaluator, startedAt, completedAt: new Date().toISOString(), metrics, ...(attempt ? { attempt } : {}) });
+  // Every launched reviewer attempt retains its activity, whatever its ending
+  // (issue #147). It is referenced from `activity`, never from `artifacts`,
+  // so it never reaches a later reviewer's evidence.
+  const activity = capture && launched ? await capture.retain({ receipt: capture.receiptRef ?? null, output: capture.outputRef ?? null }) : null;
   const refs = [];
   for (const verdict of verdicts) refs.push(await core.store.putJson({ contract: CONTRACT, kind: 'result', featureId: state.featureId,
-    runId: state.runId, ...verdict, input: prepared, receipt, artifacts, ...(runner ? { runner } : {}),
+    runId: state.runId, ...verdict, input: prepared, receipt, artifacts, ...(runner ? { runner } : {}), ...(activity ? { activity } : {}),
     mode: input.prior ? 'delta' : 'full', prior: input.prior ?? null, priorCandidate }));
+  if (capture) await capture.finish({ outcome: verdicts.length === 1 ? verdicts[0].outcome : verdicts.map(item => `${item.gate} ${item.outcome}`).join(', ') });
   // Announce outcome publication in the journal before the service cache.
   // Milestone CAS then observes late completion even across a cache/event crash.
   while (true) {

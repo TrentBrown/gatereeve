@@ -9,7 +9,9 @@ import { delimiter, isAbsolute, join } from 'node:path';
 import { sha256Digest, AGENT_WORKFLOW_PROTOCOL_VERSION, validateEvaluatorCapability } from './agent-workflow.js';
 import { ContractError } from './errors.js';
 
-const MAX_OUTPUT_BYTES = 16 * 1024 * 1024;
+// Stdout and stderr together. Equal to the run store's object limit, so any
+// stream a reviewer may produce can also be retained (issue #147).
+export const MAX_OUTPUT_BYTES = 64 * 1024 * 1024;
 const MAX_PROMPT_CHARACTERS = 512 * 1024;
 
 function iso(value) {
@@ -104,7 +106,13 @@ function killIfSame({ pid, started }) {
   try { process.kill(pid, 'SIGKILL'); } catch { /* already gone */ }
 }
 
-export async function runAgentProcess(executable, args, { cwd, input, env = process.env, timeoutSeconds, idleLock = null, inhibitor = systemIdleInhibitor, onSpawn = null }) {
+// `onOutput`, when given, receives each stdout chunk as it arrives, within
+// the output limit (issue #147). It is the caller's live progress and
+// retention feed; an error it throws never ends the reviewer.
+// `diagnosticOutput` chooses which part of stdout a failed run's category is
+// read from: an event-stream provider passes its error and result events
+// only, never the transcript of what the reviewer read (issue #147).
+export async function runAgentProcess(executable, args, { cwd, input, env = process.env, timeoutSeconds, idleLock = null, inhibitor = systemIdleInhibitor, onSpawn = null, onOutput = null, diagnosticOutput = text => text }) {
   const launch = await idleInhibitedLaunch(executable, args, idleLock, inhibitor);
   assertArgumentSizes(launch.args);
   // `onSpawn` runs once the reviewer process has actually started, so callers
@@ -175,16 +183,26 @@ export async function runAgentProcess(executable, args, { cwd, input, env = proc
       timedOut = true;
       terminate();
     }, timeoutSeconds * 1000);
-    child.stdout.on('data', (chunk) => {
+    // Output up to the limit is kept, including the part of the chunk that
+    // crosses it; the run then ends as over the limit.
+    const within = chunk => {
+      const room = Math.max(0, MAX_OUTPUT_BYTES - size);
       size += chunk.length;
-      if (size > MAX_OUTPUT_BYTES) terminate();
-      else stdout.push(chunk);
+      if (size <= MAX_OUTPUT_BYTES) return chunk;
+      terminate();
+      return room ? chunk.subarray(0, room) : null;
+    };
+    child.stdout.on('data', (chunk) => {
+      const kept = within(chunk);
+      if (kept) {
+        stdout.push(kept);
+        if (onOutput) try { onOutput(kept); } catch { /* progress never ends the reviewer */ }
+      }
       if (marked) report();
     });
     child.stderr.on('data', (chunk) => {
-      size += chunk.length;
-      if (size > MAX_OUTPUT_BYTES) terminate();
-      else stderr.push(chunk);
+      const kept = within(chunk);
+      if (kept) stderr.push(kept);
       if (marker && !marked && Buffer.concat(stderr).toString('utf8').includes(marker)) marked = true;
     });
     child.on('error', reject);
@@ -205,7 +223,7 @@ export async function runAgentProcess(executable, args, { cwd, input, env = proc
         completedAt,
       };
       if (code !== 0 || exitSignal !== null) {
-        const diagnostic = `${result.stderr}\n${result.stdout}`;
+        const diagnostic = `${result.stderr}\n${diagnosticOutput(result.stdout)}`;
         const transient = /rate.?limit|\b429\b|\b50[234]\b|temporar(?:y|ily)|connection reset|timed out/iu.test(diagnostic);
         const category = /credit balance|insufficient credit/iu.test(diagnostic) ? 'credit-unavailable'
           : /model.*not supported|unsupported.*model/iu.test(diagnostic) ? 'unsupported-model'
@@ -234,6 +252,9 @@ export async function runAgentProcess(executable, args, { cwd, input, env = proc
 // shape bounded inputs measure against the same text with promptCharacters().
 export const MAX_PROMPT_CHARACTERS_LIMIT = MAX_PROMPT_CHARACTERS;
 export function promptCharacters(request) { return promptText(request).length; }
+// The prompt text built from a request's instructions, schema and input. Retained
+// activity keeps the prompt the adapter actually sent; this is for checking it.
+export function providerPrompt(request) { return promptText(request); }
 // Linux limits each argv element to MAX_ARG_STRLEN (32 pages, 128 KiB). Large
 // text belongs on standard input; anything else that large fails clearly here
 // instead of as spawn E2BIG.
@@ -244,6 +265,12 @@ export function assertArgumentSizes(args) {
       throw new ContractError(`An agent command-line argument exceeds the ${MAX_ARGUMENT_BYTES}-byte per-argument limit; pass large text on standard input`);
     }
   }
+}
+// The exact standard-input text, reported before launch so the caller can
+// retain what was sent rather than rebuild it (issue #147).
+function reportPrompt(hooks, prompt) {
+  if (hooks.onPrompt) hooks.onPrompt(prompt);
+  return prompt;
 }
 function promptFor(request) {
   const prompt = promptText(request);
@@ -316,6 +343,21 @@ function receiptFor(request, descriptor, output, contextId, method, processResul
       snapshot: request.snapshotDigest,
     },
   };
+}
+
+// The part of an event-stream provider's stdout that can explain a failure:
+// lines that are not JSON, and error or result events. Tool calls and their
+// results are what the reviewer read, so they never decide the category.
+const DIAGNOSTIC_EVENTS = new Set(['result', 'error', 'turn.failed']);
+export function providerDiagnostic(stdout) {
+  return String(stdout).split(/\r?\n/u).filter(Boolean).flatMap(line => {
+    let event;
+    try { event = JSON.parse(line); } catch { return [line]; }
+    if (!event || typeof event !== 'object' || !DIAGNOSTIC_EVENTS.has(event.type)) return [];
+    const { type, subtype, is_error: isError, api_error_status: status, error, message } = event;
+    const result = typeof event.result === 'string' ? event.result.slice(0, 4096) : undefined;
+    return [JSON.stringify({ type, subtype, isError, status, error, message, result })];
+  }).join('\n');
 }
 
 function jsonLines(value) {
@@ -402,6 +444,23 @@ export function parseClaudeStructuredOutput(stdout, { unwrap = false } = {}) {
   };
 }
 
+// Claude Code with `--output-format stream-json --verbose` (issue #147)
+// prints one JSON event per line; the last `type: result` event is the same
+// envelope `--output-format json` printed alone. A stream without one is
+// malformed output.
+export function claudeResultEnvelope(stdout) {
+  const envelope = jsonLines(String(stdout)).findLast(event => event && typeof event === 'object' && event.type === 'result');
+  if (!envelope) {
+    throw Object.assign(new ContractError('Claude Code returned no result event in its stream; request a fresh structured response.'), {
+      providerFailure: { category: 'malformed-output' },
+    });
+  }
+  return envelope;
+}
+export function parseClaudeStream(stdout, options = {}) {
+  return parseClaudeStructuredOutput(claudeResultEnvelope(stdout), options);
+}
+
 export function parseCodexContextId(stdout) {
   const events = jsonLines(stdout);
   const started = events.find((event) => event.type === 'thread.started');
@@ -476,6 +535,9 @@ export function createCodexAgentAdapter({
     reportsSpawn: true,
     // runStage offers GateReeve's validate_verdict tool when the request carries it.
     selfValidation: true,
+    // runStage reports the exact prompt it sends (hooks.onPrompt) and each
+    // stdout chunk as it arrives (hooks.onOutput), issue #147.
+    reportsActivity: true,
     async describe() { return structuredClone(details); },
     async runStage(request, hooks = {}) {
       validateEvaluatorCapability(request.capabilityProfile, reasoningEffort);
@@ -484,6 +546,7 @@ export function createCodexAgentAdapter({
         throw new ContractError('Evaluator request must use the current receipt and isolation contract');
       }
       const selfCheck = selfValidationLaunch(request);
+      const prompt = promptFor(request);
       return withScratch({ purpose: 'codex-evaluator' }, async scratchRun => {
         const scratch = scratchRun.path;
         const schemaPath = join(scratch, 'output.schema.json');
@@ -501,11 +564,13 @@ export function createCodexAgentAdapter({
           '--json', '-',
         ], {
           cwd: request.repositoryPath,
-          input: promptFor(request),
+          input: reportPrompt(hooks, prompt),
           env: await scratchEnvironment(scratchRun, environment),
           timeoutSeconds: request.timeoutSeconds,
           idleLock: { why: idleInhibitorWhy({ provider: 'codex', stage: request.stage.id, feature: request.featureId ?? request.runId }) },
           ...(hooks.onSpawn ? { onSpawn: hooks.onSpawn } : {}),
+          ...(hooks.onOutput ? { onOutput: hooks.onOutput } : {}),
+          diagnosticOutput: providerDiagnostic,
         });
         // Prose around one JSON object is unwrapped only for a caller that
         // records the correction (issue #141).
@@ -541,6 +606,9 @@ export function createClaudeCodeAgentAdapter({
     reportsSpawn: true,
     // runStage offers GateReeve's validate_verdict tool when the request carries it.
     selfValidation: true,
+    // runStage reports the exact prompt it sends (hooks.onPrompt) and each
+    // stdout chunk as it arrives (hooks.onOutput), issue #147.
+    reportsActivity: true,
     async describe() { return structuredClone(details); },
     async runStage(request, hooks = {}) {
       validateEvaluatorCapability(request.capabilityProfile, reasoningEffort);
@@ -550,6 +618,7 @@ export function createClaudeCodeAgentAdapter({
       }
       const selfCheck = selfValidationLaunch(request);
       const offered = claudeSelfValidation(selfCheck);
+      const prompt = promptFor(request);
       return withScratch({ purpose: 'claude-evaluator' }, async scratchRun => {
       const agentName = 'gatereeve-stage';
       const agents = {
@@ -562,7 +631,9 @@ export function createClaudeCodeAgentAdapter({
       // The prompt goes on standard input (`--print` reads it there when no
       // prompt argument is given; `--input-format text` is the default, stated
       // explicitly). As one argv element it hit Linux's 128 KiB per-argument
-      // limit (spawn E2BIG) well below the 512 KiB prompt bound.
+      // limit (spawn E2BIG) well below the 512 KiB prompt bound. The stream
+      // format prints each event as it happens and ends with the same result
+      // envelope the json format printed (issue #147).
       const args = [
         '--print', '--restricted', '--permission-mode', 'dontAsk',
         '--permission-prompts', 'none', '--no-session-persistence',
@@ -571,18 +642,20 @@ export function createClaudeCodeAgentAdapter({
         '--model', model, '--effort', reasoningEffort,
         '--agents', JSON.stringify(agents), '--agent', agentName,
         '--tools', 'Read,Glob,Grep', ...offered.allowed, '--json-schema', JSON.stringify(request.outputSchema),
-        '--output-format', 'json', '--input-format', 'text',
+        '--output-format', 'stream-json', '--verbose', '--input-format', 'text',
       ];
       assertArgumentSizes(args);
       const processResult = await runner(executable, args, {
         cwd: request.repositoryPath,
-        input: promptFor(request),
+        input: reportPrompt(hooks, prompt),
         env: await scratchEnvironment(scratchRun, environment),
         timeoutSeconds: request.timeoutSeconds,
         idleLock: { why: idleInhibitorWhy({ provider: 'claude-code', stage: request.stage.id, feature: request.featureId ?? request.runId }) },
         ...(hooks.onSpawn ? { onSpawn: hooks.onSpawn } : {}),
+        ...(hooks.onOutput ? { onOutput: hooks.onOutput } : {}),
+        diagnosticOutput: providerDiagnostic,
       });
-      const parsed = parseClaudeStructuredOutput(processResult.stdout, { unwrap: Boolean(hooks.onNormalized) });
+      const parsed = parseClaudeStream(processResult.stdout, { unwrap: Boolean(hooks.onNormalized) });
       if (parsed.normalized) hooks.onNormalized(parsed.normalized);
       if (typeof parsed.contextId !== 'string' || parsed.contextId === '') {
         throw new ContractError('Claude Code did not report a fresh context ID');

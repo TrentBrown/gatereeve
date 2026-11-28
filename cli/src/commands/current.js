@@ -67,6 +67,31 @@ async function run(options, operation, input = {}, detail = {}) {
   return result.data;
 }
 const collect = (value, values) => [...values, value];
+export const WATCH_INTERVAL_MS = 2000;
+// One line per review attempt of a review.progress result.
+export function progressLines(data) {
+  const elapsed = ms => ms === null ? '?' : `${Math.floor(ms / 60000)}m${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}s`;
+  if (!data.attempts.length) return ['No review attempts recorded.'];
+  return data.attempts.map(row => [`${row.provider} ${row.model ?? ''}`.trim(), `job ${row.job.slice(0, 12)}`, elapsed(row.elapsedMs),
+    `${row.filesRead} ${row.filesReadBasis === 'commands' ? 'commands' : 'files read'}`,
+    row.tokens ? `${row.tokens.input} in / ${row.tokens.output} out tokens` : 'tokens unknown',
+    row.activity ? `last: ${row.activity}` : 'no activity yet', row.state].join(' | '));
+}
+export async function watchReviews(options, { request = executeProtocolRequest, sleep = ms => new Promise(done => setTimeout(done, ms)), write = line => console.log(line), clear = () => { if (process.stdout.isTTY) process.stdout.write('\x1b[2J\x1b[H'); } } = {}) {
+  for (;;) {
+    const started = Date.now();
+    const result = await request({ ...context(options), operation: 'review.progress', input: options.job ? { job: options.job } : {} });
+    if (!result.ok) {
+      if (options.json) write(JSON.stringify(result, null, 2)); else console.error(`${result.error.code}: ${result.error.message}`);
+      const error = new Error(result.error.message); error.reported = true; throw error;
+    }
+    if (options.follow && !options.json) clear();
+    if (options.json) write(options.follow ? JSON.stringify(result.data) : JSON.stringify(result.data, null, 2));
+    else for (const line of progressLines(result.data)) write(line);
+    if (!options.follow || result.data.final) return result.data;
+    await sleep(Math.max(0, WATCH_INTERVAL_MS - (Date.now() - started)));
+  }
+}
 // Workspace instruction options (spec AC6): replacing another feature's
 // configuration, or confirming the run belongs to it, needs the human instruction.
 function workspaceOptions(item) {
@@ -101,7 +126,7 @@ export function currentCommands() {
   const note = command('workflow-note', 'Record strategy, friction, fixes or escaped defects without granting authority').argument('<file>');
   note.action(async (file,options) => run(options,'workflow.observe',await readJsonFile(file)));
   const read = command('read', 'Inspect a named artifact, current result, event history or model')
-    .argument('<kind>', 'artifact, result, events or model').argument('[id]', 'Advertised artifact ID or result hash')
+    .argument('<kind>', 'artifact, result, events, model or activity').argument('[id]', 'Advertised artifact ID, result hash, or for activity a review record hash')
     .action((kind, id, options) => run(options, 'read', {}, { kind, id: id ?? null }));
   const runCommand = new Command('run').description('Start or resume current work without replaying old protocol state');
   for (const action of ['start', 'resume-current']) {
@@ -135,6 +160,13 @@ export function currentCommands() {
     .requiredOption('--job <id>', 'Pending job ID from status')
     .requiredOption('--reason <text>', 'Why the job will never finish')
     .action(options => run(options, 'job.abandon', { jobId: options.job, reason: options.reason }));
+  // Live reviewer progress for the human (issue #147): one snapshot, or a
+  // redraw every two seconds until every listed reviewer is in a final state.
+  const review = new Command('review').description('Watch running reviewers; progress goes to the human only');
+  review.addCommand(command('watch', 'Show each review attempt: elapsed time, files read, current activity, tokens and state')
+    .option('--job <id>', 'One review job or planning operation ID')
+    .option('--follow', `Redraw every ${WATCH_INTERVAL_MS / 1000} seconds until every listed reviewer has finished`)
+    .action(options => watchReviews(options)));
   const workspace = new Command('workspace').description('Workspace configuration for delivery (.agentic-workflow.json)');
   workspace.addCommand(workspaceOptions(command('configure', 'For an existing run without one, write the minimal workspace configuration: the GitHub default branch as integration and release, excluded locally'))
     .action(options => run(options, 'workspace.configure', workspaceInput(options) ?? {})));
@@ -258,5 +290,5 @@ export function currentCommands() {
     .option('--merge <file>', 'Selected repository, PR number and merge method')
     .action(async options => run(options, 'delivery.resume', {
       ...(options.grant ? { grant: options.grant } : {}), ...(options.merge ? { merge: await readJsonFile(options.merge) } : {}) }));
-  return [status, coverage, database, ask, note, read, runCommand, workspace, spec, candidate, ready, gate, selectReviewers, reviewBoundary, adjudicateReview, abandonJob, decide, delegatedDecision, autonomousDecision, planningReview, apply, applyDelegation, milestone, merge, publish, observe, delivery];
+  return [status, coverage, database, ask, note, read, review, runCommand, workspace, spec, candidate, ready, gate, selectReviewers, reviewBoundary, adjudicateReview, abandonJob, decide, delegatedDecision, autonomousDecision, planningReview, apply, applyDelegation, milestone, merge, publish, observe, delivery];
 }

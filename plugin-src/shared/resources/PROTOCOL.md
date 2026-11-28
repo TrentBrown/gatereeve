@@ -22,7 +22,8 @@ identity and exact input after an uncertain response. Conflicting reuse fails.
 | Operation | Input and purpose |
 | --- | --- |
 | `status`, `snapshot`, `next` | Current phase, commitment hashes, obligations, applicability, exceptions and milestone blockers |
-| `read` | Top-level `kind` = artifact/events/model/result; artifact/result `id` must come from status |
+| `read` | Top-level `kind` = artifact/events/model/result/activity; artifact/result `id` must come from status. `activity` takes a review record hash (a review result, a planning review, or a failed planning review attempt linked by an `artifact` observation) and rebuilds that review from the run store alone (see Review progress and retained activity) |
+| `review.progress` | Optional `job` (a review job or planning review operation ID). Read-only: one row per review attempt with provider, model, elapsed time, files read, current activity, tokens and state (see Review progress and retained activity) |
 | `run.start` | `implementers`: actual implementing context IDs; optional `runId`, `optionalGates: ["whiteboard"]`, `rigor`/`autonomy` choices `{value, authority?, reason?}` (defaults `full`/`supervised`; every explicit choice needs `authority` or `reason`, and a non-default value needs an observed human `authority`; `delegated` and `autonomous` also need the protected release branch; autonomous additionally needs a fixed human mandate); optional `workspace: {confirmFeature, authority}` or `{replace: true, authority}` (see Workspace configuration). In a repository with a GitHub remote and no workspace configuration it writes a minimal one and records it in `STARTED.workspace` |
 | `workspace.configure` | Optional `{confirmFeature, authority}` or `{replace: true, authority}`. For an existing run without a workspace configuration, write it under the run-start rules and record `WORKSPACE_CONFIGURED`; reports `written: false` when the configuration already names the feature |
 | `run.set-dial` | `dial: rigor|autonomy`, `value`, `actor: human|agent`, `reason`, `authority` (required for `human`, forbidden for `agent`). Raising rigor or returning to supervised is open to either actor. Rigor never falls within a run: to work light, start a new light run on a new topic branch; this run and its evidence stay retained. Asking for `light` on a light run reports that it is already light Delegating (`autonomy: delegated`) is human-only, must name the run (`runId`) and needs the release branch observed as protected (see Delegated autonomy) |
@@ -943,6 +944,64 @@ automatically under its own operation identity on the round baseline, and is not
 a new round. Rejections name the offending field path or finding/claim ID.
 Events recorded before these statuses keep their `completed`/`unavailable` values
 and count exactly as before.
+
+### Review progress and retained activity
+
+While a reviewer runs, its standard output is appended as it arrives to
+`.gatereeve-current/progress/<job>.<provider>.jsonl` in the feature home (a
+planning review uses its operation ID as the job). The file starts with a
+`gatereeve.progress/1` header line naming the job, provider, model, stage and
+start time. It holds the provider's stdout unchanged, then an `exited` line
+when the provider process ends, and a trailer line with the final outcome. A
+GateReeve line always starts on its own line. When a review starts, finished
+progress files whose trailer is older than 24 hours are removed. The progress
+folder is scratch for the human: nothing reads it for proof, retention never
+depends on it, and it is never part of a reviewer's view or packet. Claude Code
+reviewers run with `--output-format stream-json --verbose`; the verdict, context
+ID, usage and cost come from the stream's last `type: result` event, and a
+stream without one is malformed output.
+
+`review.progress` (CLI `gatereeve review watch [--job <id>] [--follow]
+[--json]`) lists review attempts: review jobs the journal records as started,
+and progress files. Without `job` it lists the attempts not yet in a final
+state, or else the newest launch (attempts started within 60 seconds of the
+newest). Each row gives provider, model, elapsed time, files read (Claude:
+distinct `Read` paths; Codex: commands run), the last tool call (at most 120
+characters), tokens when the stream reports them, and a state: `starting`,
+`running`, `self-validating`, `finished, validating`, `done: <outcome>` or
+`progress unavailable` (a journal job whose outcome is recorded but whose
+progress file is missing or has no trailer). An incomplete last line is ignored;
+non-JSON and unknown lines are counted and change nothing. `--follow` redraws
+every 2 seconds until every listed attempt is in a final state.
+
+Every launched review attempt (initial, repair, delta, boundary, individual or
+planning; whatever its ending) retains a `review-activity/1` JSON object. It
+references, as content-addressed objects in `objects/`, the exact prompt the
+adapter wrote to the provider's standard input, the instructions, the input
+packet, the output schema and the raw stdout stream, plus the adapter receipt
+and output when the attempt got that far. It also records the provider, stage
+and byte counts. A review result or planning-review record references it from
+its `activity` field, never from `artifacts`, so it is never copied into a later
+reviewer's evidence. A planning review that fails after launch still fails as
+before and writes no `PLANNING_REVIEWED` event, so planning rounds and
+delegated decisions read as before; its activity is referenced from a
+`planning-review` record marked `failedAttempt: true` (outcome UNAVAILABLE),
+linked from the journal by an `artifact` observation. An attempt refused before launch retains no activity. Records
+written before this change have no `activity` and read, qualify and count as
+before. `read` kind `activity` rebuilds a review from the database and `objects/`
+alone: it returns the retained prompt, instructions, input, schema, output and
+stream, the stream's JSON lines as `events` and its other non-empty lines as
+`unparsed`, and checks the receipt's instruction, input and output digests. A
+missing or corrupt object fails naming it. The provider output limit is 64 MiB
+per attempt (stdout and stderr together), the run store's object limit; output
+up to the limit is kept. A failed provider run's category is read from stderr
+and the stream's error and result events only, never from tool calls or the
+text the reviewer read.
+
+A run folder (`.gatereeve-current/`) is never committed. The `.gitignore` that
+`run.start` and `run.resume-current` write ignores everything in the folder
+except that file (`/*`, `!/.gitignore`), and an existing one gains the missing
+lines on start or resume.
 
 ### Complete review packets
 

@@ -12,3 +12,6 @@ dist/
 
 # Local authoritative workflow state (documents remain trackable).
 **/.gatereeve-current/workflow.sqlite*
+# Run folders are never committed: only their .gitignore is (issue #147).
+**/.gatereeve-current/*
+!**/.gatereeve-current/.gitignore

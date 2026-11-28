@@ -269,6 +269,14 @@ providers and run in parallel with independent initial context. Each covers code
 requirements, evidence, scope and findings. Separate code/spec/Judge assessments
 remain optional; both boundary perspectives are required in full and light rigor.
 
+While reviewers run, `gatereeve review watch` shows one line per review attempt:
+elapsed time, files read, the last tool call, tokens and state (`--follow`
+redraws every 2 seconds until all have finished; `--json` prints the data).
+Progress goes to the human only and never reaches a reviewer. Every launched
+attempt retains its exact prompt, input, schema and event stream in the run
+store; `gatereeve read activity <review record hash>` rebuilds a finished review
+from the run store alone.
+
 Reviewer models are agent-selected from available capabilities, preferring
 suitable daily-driver models at high effort and honoring developer instructions.
 The selection JSON is an input to a recorded run decision, not persistent model

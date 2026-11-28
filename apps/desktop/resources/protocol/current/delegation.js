@@ -8,6 +8,7 @@ import { deliveryBranches, configuredGit } from './authorization.js';
 import { checkCandidate } from './evidence.js';
 import { newView } from './source-views.js';
 import { localPath } from './store.js';
+import { ReviewCapture, PLANNING_ATTEMPT_KIND } from './review-activity.js';
 import { HIGH_CAPABILITY_PROFILE, AGENT_WORKFLOW_PROTOCOL_VERSION, sha256Digest, validateAgentWorkflowStageResult, validateEvaluatorCapability } from '../agent-workflow.js';
 import { createCodexAgentAdapter, createClaudeCodeAgentAdapter } from '../local-agent-adapters.js';
 import { allowedRunOutcome } from './autonomous.js';
@@ -258,7 +259,7 @@ export async function reviewPlanning(core, input, operation) {
     ...(isGoal(state) ? { agentDecisions: { rule: AGENT_DECISION_RULE, entries: await agentDecisions(core.context.featureHome) } } : {}),
     documents: Object.entries(documents).map(([name, ref]) => ({ path: `requirements/${name}`, hash: ref.hash })) };
   const view = await newView(core.store, { runId: state.runId });
-  let retained = [];
+  let retained = [], capture = null, launched = false;
   try {
     await mkdir(join(view.root, 'requirements'));
     for (const [name, ref] of Object.entries(documents)) await writeFile(join(view.root, 'requirements', localPath(name)), await core.store.get(ref), { mode: 0o400, flag: 'wx' });
@@ -278,7 +279,17 @@ export async function reviewPlanning(core, input, operation) {
     // malformed output still uses it (spec AC6, failure model).
     assertRoundOpen((await core.state()).state, planningScope(input.artifact), subject, isGoal(state));
     await countReviewRound(core, planningScope(input.artifact), subject, null, documents);
-    const result = await adapter.runStage(request);
+    // Progress and activity capture (issue #147); the job is this operation.
+    capture = new ReviewCapture(core.store, { runId: state.runId, featureId: state.featureId, jobId: operation.id,
+      provider: configuration.provider, model: configuration.model, stage: 'planning-review' });
+    capture.setRequest({ instructions, input: packet, outputSchema });
+    await capture.start();
+    if (adapter.reportsSpawn !== true) launched = true;
+    let result;
+    try {
+      result = await adapter.runStage(request, { ...(adapter.reportsSpawn === true ? { onSpawn: () => { launched = true; } } : {}),
+        ...(adapter.reportsActivity === true ? capture.hooks() : {}) });
+    } finally { capture.exited(); }
     retained = [await core.store.putJson(result.receipt), await core.store.putJson(result.output)];
     validateAgentWorkflowStageResult(result);
     const receipt = result.receipt;
@@ -293,16 +304,41 @@ export async function reviewPlanning(core, input, operation) {
     const normalized = validateReview(result.output, documents, packet.mandate);
     await documentsCurrent(core, state, documents);
     const evaluator = { provider: descriptor.provider, model: descriptor.model, reasoningEffort, contextId: receipt.provider.contextId, freshContext: true, inheritedTurns: 0 };
-    const reference = await core.store.putJson({ contract: CONTRACT, kind: 'planning-review', runId: state.runId, featureId: state.featureId,
+    const activity = await capture.retain({ receipt: retained[0], output: retained[1] });
+    const reference = await core.store.putJson({ contract: CONTRACT, kind: 'planning-review', runId: state.runId, featureId: state.featureId, activity,
       artifact: input.artifact, subject, documents, reviewContract: planningReviewContract(input.artifact, raised), outcome: result.output.outcome,
       ...(result.output.outcome === 'UNAVAILABLE' ? { unavailableReason: 'missing-evidence' } : {}),
       ...(normalized.length ? { normalized } : {}),
       summary: result.output.summary, findings: result.output.findings, ...(packet.mandate ? { mandate: packet.mandate, mandateAssessment: result.output.mandateAssessment } : {}),
       ...(packet.agentDecisions ? { agentDecisions: packet.agentDecisions } : {}), evaluator, receipt: retained[0], output: retained[1] });
     // The round was counted at review start, so append on the current journal.
-    return core.append((await core.state()).state, 'PLANNING_REVIEWED', { artifact: input.artifact, subject, documents, outcome: result.output.outcome, result: reference, evaluator, roundPolicy: ROUND_POLICY }, operation);
-  } catch (error) { error.artifacts = [...new Set([...(error.artifacts ?? []), ...retained])]; throw error; }
+    const reviewed = await core.append((await core.state()).state, 'PLANNING_REVIEWED', { artifact: input.artifact, subject, documents, outcome: result.output.outcome, result: reference, evaluator, roundPolicy: ROUND_POLICY }, operation);
+    await capture.finish({ outcome: result.output.outcome });
+    return reviewed;
+  } catch (error) {
+    error.artifacts = [...new Set([...(error.artifacts ?? []), ...retained])];
+    // A launched attempt that ended without a PLANNING_REVIEWED event keeps its
+    // activity in a planning-review record marked failedAttempt, linked from the journal by
+    // an artifact observation (issue #147). The failure itself is unchanged.
+    if (capture && launched) await retainFailedPlanningAttempt(core, state, input.artifact, subject, configuration, capture, retained, operation, error)
+      .catch(async cause => { error.activityRetention = cause.message; await capture.finish({ outcome: 'UNAVAILABLE' }).catch(() => {}); });
+    // Refused before launch: no activity, but the progress file still ends.
+    else if (capture) await capture.finish({ outcome: 'UNAVAILABLE' }).catch(() => {});
+    throw error;
+  }
   finally { await view.close(); }
+}
+
+async function retainFailedPlanningAttempt(core, state, artifact, subject, configuration, capture, retained, operation, error) {
+  const activity = await capture.retain({ receipt: retained[0] ?? null, output: retained[1] ?? null });
+  const attempt = await core.store.putJson({ contract: CONTRACT, kind: PLANNING_ATTEMPT_KIND, failedAttempt: true, runId: state.runId, featureId: state.featureId,
+    artifact, subject, provider: configuration.provider, model: configuration.model, outcome: 'UNAVAILABLE',
+    summary: String(error?.message ?? error).slice(0, 2000), activity });
+  const note = { kind: 'artifact', reason: `Planning review attempt (${artifact}) ended without a review record; its retained review activity is linked`,
+    outcome: 'UNAVAILABLE', links: [attempt.hash] };
+  await core.append((await core.state()).state, 'OBSERVATION', note, { id: `activity_${operation.id}`.slice(0, 128), hash: identity(note) });
+  await capture.finish({ outcome: 'UNAVAILABLE' });
+  error.retainedActivity = attempt;
 }
 
 // The scope-bearing content of a brief: everything except its Findings log.

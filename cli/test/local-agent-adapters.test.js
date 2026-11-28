@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { MAX_ARGUMENT_BYTES, assertArgumentSizes, codexShellEnvironmentArgs } from '../../plugin-src/shared/resources/protocol/local-agent-adapters.js';
+import { MAX_ARGUMENT_BYTES, MAX_OUTPUT_BYTES, assertArgumentSizes, codexShellEnvironmentArgs, claudeResultEnvelope, providerDiagnostic } from '../../plugin-src/shared/resources/protocol/local-agent-adapters.js';
 import {
   createClaudeCodeAgentAdapter,
   createCodexAgentAdapter,
@@ -40,6 +40,10 @@ function request() {
     timeoutSeconds: 300,
   };
 }
+
+// Claude Code's stream-json output (issue #147): events, then the result
+// envelope as its last event.
+const claudeStream = envelope => `${JSON.stringify({ type: 'system', subtype: 'init', session_id: envelope.session_id })}\n${JSON.stringify({ type: 'result', subtype: 'success', ...envelope })}\n`;
 
 test('only Linux Codex adds the fixed distro helper path to the scrubbed shell', () => {
   const scrubbed = ['--config', 'shell_environment_policy.inherit="none"'];
@@ -92,7 +96,7 @@ test('Claude Code adapter launches a non-persistent restricted custom agent', as
       calls.push({ executable, args, options });
       return {
         code: 0, signal: null,
-        stdout: JSON.stringify({
+        stdout: claudeStream({
           session_id: 'claude-context-1',
           structured_output: { verdict: 'PASS' },
           usage: { input_tokens: 20, output_tokens: 9, cache_read_input_tokens: 3, cache_creation_input_tokens: 4 }, total_cost_usd: 0.03,
@@ -127,7 +131,7 @@ test('Claude Code adapter passes the prompt on standard input, never in argv, in
     model: 'claude-test',
     runner: async (executable, args, options) => {
       calls.push({ executable, args, options });
-      return { code: 0, signal: null, stdout: JSON.stringify({ session_id: 'claude-context-2', structured_output: { verdict: 'PASS' } }), stderr: '',
+      return { code: 0, signal: null, stdout: claudeStream({ session_id: 'claude-context-2', structured_output: { verdict: 'PASS' } }), stderr: '',
         startedAt: new Date('2026-09-24T12:00:00Z'), completedAt: new Date('2026-09-24T12:01:00Z') };
     },
   });
@@ -139,7 +143,7 @@ test('Claude Code adapter passes the prompt on standard input, never in argv, in
   assert.ok(options.input.includes('Review the pinned evidence.') && options.input.includes('x'.repeat(1024)));
   assert.ok(args.every(arg => !String(arg).includes('x'.repeat(1024)) && Buffer.byteLength(String(arg)) < MAX_ARGUMENT_BYTES), 'no argv element carries the prompt or exceeds the limit');
   assert.ok(!args.some(arg => String(arg).includes('<gatereeve-output-schema>')));
-  assert.deepEqual(args.slice(-4), ['--output-format', 'json', '--input-format', 'text']);
+  assert.deepEqual(args.slice(-5), ['--output-format', 'stream-json', '--verbose', '--input-format', 'text']);
   // The bounded prompt limit still applies on stdin.
   await assert.rejects(adapter.runStage({ ...request(), input: { diff: 'x'.repeat(600 * 1024) } }), /exceeds the bounded 524288-character provider limit/);
   assert.equal(calls.length, 1);
@@ -336,7 +340,7 @@ test('both local adapters advertise spawn reporting and forward onSpawn to their
   const onSpawn = async () => {};
   for (const [create, output] of [
     [createCodexAgentAdapter, async (args) => { await writeFile(args[args.indexOf('--output-last-message') + 1], '{"verdict":"PASS"}\n'); return '{"type":"thread.started","thread_id":"codex-context-1"}\n'; }],
-    [createClaudeCodeAgentAdapter, async () => JSON.stringify({ session_id: 'claude-context-1', structured_output: { verdict: 'PASS' } })],
+    [createClaudeCodeAgentAdapter, async () => claudeStream({ session_id: 'claude-context-1', structured_output: { verdict: 'PASS' } })],
   ]) {
     const received = [];
     const adapter = create({ model: 'model-test', runner: async (executable, args, options) => {
@@ -362,7 +366,7 @@ async function launchArgs(create, value) {
     const outputPath = args.includes('--output-last-message') ? args[args.indexOf('--output-last-message') + 1] : null;
     if (outputPath) await writeFile(outputPath, '{"verdict":"PASS"}\n');
     return { code: 0, signal: null, stderr: '', startedAt: new Date('2026-11-26T00:00:00Z'), completedAt: new Date('2026-11-26T00:01:00Z'),
-      stdout: outputPath ? '{"type":"thread.started","thread_id":"codex-context"}\n' : JSON.stringify({ session_id: 'claude-context', structured_output: { verdict: 'PASS' } }) };
+      stdout: outputPath ? '{"type":"thread.started","thread_id":"codex-context"}\n' : claudeStream({ session_id: 'claude-context', structured_output: { verdict: 'PASS' } }) };
   } });
   assert.equal(adapter.selfValidation, true);
   const result = await adapter.runStage(value);
@@ -422,4 +426,45 @@ test('both adapters refuse a malformed self-validation launch before starting a 
       await assert.rejects(adapter.runStage({ ...request(), selfValidation: launch }), /self-validation launch/u);
     }
   }
+});
+
+// Issue #147: the output limit equals the run store's 64 MiB object limit,
+// and output up to the limit reaches onOutput, including the part of the
+// chunk that crosses it.
+test('R7: runAgentProcess keeps stdout up to 64 MiB through onOutput, then fails as over the limit', async () => {
+  assert.equal(MAX_OUTPUT_BYTES, 64 * 1024 * 1024);
+  let seen = 0, last = null;
+  const script = `const chunk = Buffer.alloc(3 * 1024 * 1024 + 7, 97); let left = ${MAX_OUTPUT_BYTES + 5 * 1024 * 1024};
+    const pump = () => { while (left > 0) { const part = chunk.subarray(0, Math.min(chunk.length, left)); left -= part.length; if (!process.stdout.write(part)) return process.stdout.once('drain', pump); } };
+    pump();`;
+  await assert.rejects(runAgentProcess(process.execPath, ['-e', script], { cwd: process.cwd(), input: '', timeoutSeconds: 120,
+    onOutput: chunk => { seen += chunk.length; last = chunk; } }), /exceeded the output limit/);
+  assert.equal(seen, MAX_OUTPUT_BYTES, 'every byte up to the limit was delivered, and none beyond it');
+  assert.ok(last.length > 0);
+});
+
+test('R1: a stream with no result event is malformed output', () => {
+  assert.throws(() => claudeResultEnvelope('{"type":"system","subtype":"init"}\n{"type":"assistant","message":{}}\n'), error => error.providerFailure?.category === 'malformed-output');
+  const envelope = claudeResultEnvelope('{"type":"result","session_id":"a","result":"one"}\n{"type":"result","session_id":"b","structured_output":{"v":1}}\n');
+  assert.equal(envelope.session_id, 'b', 'the last result event is the envelope');
+});
+
+test('a failed streaming reviewer is classified from its error and result events, never from what it read', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'gatereeve-classify-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const fake = async (lines, code) => {
+    const path = join(root, `claude-${Math.random().toString(16).slice(2)}`);
+    await writeFile(path, `#!${process.execPath}\nprocess.stdin.resume(); process.stdin.on('end', () => { process.stdout.write(${JSON.stringify(lines.map(line => JSON.stringify(line)).join('\n') + '\n')}); process.exit(${code}); });\n`);
+    await chmod(path, 0o755);
+    return createClaudeCodeAgentAdapter({ executable: path, model: 'claude-test', runner: (executable, args, options) => runAgentProcess(executable, args, { ...options, cwd: root }) });
+  };
+  // The transcript mentions rate limits, credit and authentication (a rate
+  // limit event and a source file the reviewer read); the failure itself is not.
+  const read = { type: 'user', message: { content: [{ type: 'tool_result', content: 'credit balance; authentication required; HTTP 503; timed out' }] } };
+  const plain = await fake([{ type: 'rate_limit_event', rate_limit_info: {} }, read, { type: 'result', subtype: 'error_during_execution', is_error: true, result: 'Agent crashed' }], 1);
+  await assert.rejects(plain.runStage(request()), error => error.providerFailure?.category === 'configuration-or-execution');
+  const transient = await fake([read, { type: 'result', subtype: 'error', is_error: true, api_error_status: 529, result: 'API Error: 503 Service Unavailable' }], 1);
+  await assert.rejects(transient.runStage(request()), error => error.providerFailure?.category === 'transient-service-failure');
+  assert.equal(providerDiagnostic('not json\n{"type":"item.completed","item":{"aggregated_output":"credit balance"}}\n{"type":"error","message":"boom"}'),
+    'not json\n{"type":"error","message":"boom"}');
 });

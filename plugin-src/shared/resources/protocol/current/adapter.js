@@ -9,6 +9,7 @@ import { prepareWorkspace, workspaceStatus, startsFreshRun, WORKSPACE_PREPARED }
 import { CurrentStore, readSafe } from './store.js';
 import { CONTRACT, PHASES, GATES, ENFORCEMENT, DEFAULT_DIALS, identity, digest, requireThat, unattendedValue } from './contracts.js';
 import { resolveEntryPoints, operationCommand, recoveryText } from './entry-point.js';
+import { reconstructReview, activityRecordRef, reviewProgress } from './review-activity.js';
 
 // brief.md is a light run's commitment; it is listed only when present.
 const DOCUMENTS = ['brief.md', 'interview.md', 'design.md', 'spec.md', 'plan.md', 'issues.md', 'tracker.md', 'scratchpad.md', 'decisions.md'];
@@ -143,6 +144,8 @@ export async function currentSnapshot(context, options = {}, runtime = {}) {
       ? [{ id: 'configure-workspace', label: 'Write the workspace configuration delivery needs (GitHub default branch as integration and release)', operation: 'workspace.configure', ...operationCommand(entry, 'workspace.configure', { cwd }) }] : [])],
   };
 }
+// The per-run `.gitignore`: nothing in the run folder but this file is committed.
+export const RUN_FOLDER_IGNORE = Object.freeze(['/*', '!/.gitignore']);
 export async function readCurrent(context, kind, id, runtime = {}) {
   if (kind === 'artifact') {
     const artifact = (await documents(context)).find(item => item.id === id);
@@ -162,6 +165,8 @@ export async function readCurrent(context, kind, id, runtime = {}) {
     return { schemaVersion: 1, kind, id, data: { result, input: result.input ? await core.store.json(result.input) : null, receipt: await core.store.json(result.receipt),
       ...(result.kind === 'planning-review' ? { output: await core.store.json(result.output) } : {}) } };
   }
+  // A finished review rebuilt from the run store alone (issue #147).
+  if (kind === 'activity') return { schemaVersion: 1, kind, id, data: await reconstructReview(core.store, await activityRecordRef(core, id)) };
   throw new Error('Unsupported current detail kind');
 }
 async function executeObservedRequest(request, runtime = {}) {
@@ -185,6 +190,12 @@ async function executeObservedRequest(request, runtime = {}) {
     if (['run.start', 'run.resume-current'].includes(operation)) await ensureHome(context);
     if (['status', 'snapshot', 'next'].includes(operation)) return successResult(operation, await currentSnapshot(context, request.options, runtime));
     if (operation === 'read') return successResult(operation, await readCurrent(context, request.kind, request.id, runtime));
+    // Live reviewer progress for the human (issue #147). Read-only.
+    if (operation === 'review.progress') {
+      const input = request.input ?? {};
+      requireThat(input && typeof input === 'object' && Object.keys(input).every(key => key === 'job'), 'review.progress accepts only an optional job');
+      return successResult(operation, await reviewProgress(await CurrentCore.at(context, runtime), { job: input.job ?? null }));
+    }
     const core = await CurrentCore.at(context, runtime);
     if (prepared) core[WORKSPACE_PREPARED] = prepared;
     let input = request.input ?? {};
@@ -208,7 +219,11 @@ async function executeObservedRequest(request, runtime = {}) {
       let ignored = '';
       try { ignored = (await readSafe(context.featureHome, '.gatereeve-current/.gitignore')).toString(); }
       catch (error) { if (error.code !== 'ENOENT') throw error; }
-      if (!ignored.split('\n').includes('/workflow.sqlite*')) await appendFile(join(localStore,'.gitignore'), `${ignored && !ignored.endsWith('\n') ? '\n' : ''}/workflow.sqlite*\n`, {mode:0o600});
+      // The run folder is never committed (issue #147, amendment A1): it
+      // ignores everything except this file. An existing file is upgraded by
+      // appending the missing lines; its other lines are kept.
+      const missing = RUN_FOLDER_IGNORE.filter(line => !ignored.split('\n').includes(line));
+      if (missing.length) await appendFile(join(localStore,'.gitignore'), `${ignored && !ignored.endsWith('\n') ? '\n' : ''}${missing.join('\n')}\n`, {mode:0o600});
       input = { ...input, runId: input.runId ?? active?.runId ?? request.operationId ?? randomUUID() };
     }
     try { return successResult(operation, await core.execute({ ...request, input })); }
