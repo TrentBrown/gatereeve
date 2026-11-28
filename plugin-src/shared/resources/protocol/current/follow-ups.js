@@ -252,10 +252,11 @@ export function redactor(core, state, repository, ownName = null) {
   };
   return redact;
 }
-// How a public surface hosted in `host` (a repository alias, or null) refers
-// to a filed issue: `#N` in its own repository (GitHub links it and it names
-// nothing); otherwise the URL, unless the URL contains a name listed in a
-// followUpRedactions setting, which is withheld (the link would name it).
+// How a public surface refers to a filed issue. `host` is the PR's repository
+// for the PR summary (GitHub autolinks `#N` there and it names nothing), and
+// null for the committed follow-ups.md (a repository file does not autolink
+// `#N`, so it gets the URL). A URL containing a name listed in a
+// followUpRedactions setting is withheld (the link would name it).
 export function issueReference(core, tracking, host) {
   if (tracking?.kind === 'seed') return 'seed for the next feature';
   if (tracking?.kind !== 'issue') return null;
@@ -264,10 +265,7 @@ export function issueReference(core, tracking, host) {
   const named = listed.some(term => new RegExp(`(?<![A-Za-z0-9])${escape(term)}(?![A-Za-z0-9])`, 'iu').test(String(tracking.url ?? '')));
   return named ? `issue #${tracking.number} (repository name withheld)` : tracking.url;
 }
-// The repository holding the committed follow-ups.md, if a configured one does.
-export function featureHomeRepository(core) {
-  return core.context.repositories.find(item => typeof item.path === 'string' && core.context.featureHome.startsWith(`${item.path}/`))?.alias ?? null;
-}
+
 // One redactor per follow-up repository, for every public surface: filed
 // issues, the PR summary and the committed follow-ups.md.
 export async function publicRedaction(core, state) {
@@ -446,7 +444,7 @@ export function followUpsMarkdown(summary) {
 export async function renderFollowUps(core) {
   const { state, events } = await core.state();
   const found = await followUpRecords(core, events);
-  const summary = followUpSummary({ ...found, records: await redactedRecords(core, state, found.records, featureHomeRepository(core)) });
+  const summary = followUpSummary({ ...found, records: await redactedRecords(core, state, found.records, null) });
   const path = join(core.context.featureHome, FOLLOW_UPS_FILE);
   try { requireThat(!(await lstat(path)).isSymbolicLink(), `${FOLLOW_UPS_FILE} must not be a symbolic link`); }
   catch (error) { if (error.code !== 'ENOENT') throw error; }

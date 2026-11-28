@@ -254,3 +254,19 @@ mandate (an in-mandate amendment of derived planning).
   null with coverage `incomplete`; otherwise `met` is true exactly when no
   row is `undecided`. Finding rows keep `followUp` as AC9 states, for
   measure 3. The R9 rubric row is assessed against this rule.
+
+### Amendment 2: issue references on public surfaces (2026-11-28)
+
+Found in boundary rounds 5-7: AC7 and AC8 ask for the filed issue's link on
+public surfaces, while AC5 and the mandate keep client names out of public
+text. They conflict only when the issue's URL itself contains a name listed
+in `followUpRedactions`.
+
+- On the PR summary an issue in the PR's own repository reads `#N` (GitHub
+  links it). In `follow-ups.md` (a repository file, where `#N` does not
+  link) and for an issue in another repository, the reference is the
+  issue's URL.
+- When that URL contains a `followUpRedactions` name, the public surfaces
+  read `issue #N (repository name withheld)` instead of the link; the URL
+  stays in the local record (`gatereeve follow-ups --json`, `status`).
+  Rubric rows R5, R7 and R8 are assessed against this rule.

@@ -52,3 +52,8 @@ Append pull-request review boundary entries here.
   (medium: the URL redaction also removed unlisted folder and alias words).
   Replaced with issue references: `#N` in the surface's own repository, the
   URL otherwise, withheld only when it contains a listed name.
+- 2026-11-28 boundary round 7 (head 5cf0df3): codex FAIL (high: a withheld
+  link breaks AC7/AC8); claude-code FAIL (medium: `#N` does not link in the
+  committed follow-ups.md). follow-ups.md now always uses the URL; the link
+  conflict was settled by Trent as spec amendment 2 (withhold), which resets
+  the review counter.

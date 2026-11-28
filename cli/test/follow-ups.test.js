@@ -446,7 +446,11 @@ test('R7, R8: follow-ups.md and the PR summary list every follow-up with its det
   assert.match(markdown, /- \*\*Origin:\*\* review codex fixture, round 1 \(slice\)/u);
   assert.match(markdown, /- \*\*Failure scenario:\*\* Fixture input -> wrong observable output/u);
   assert.match(markdown, /- \*\*Decision:\*\* accept-risk by policy-default: Defaults\./u);
-  assert.ok(markdown.includes(`- **Decision:** new-work by policy-default (${host.issues[0].url}): Defaults.`));
+  assert.ok(markdown.includes(`- **Decision:** new-work by policy-default (${host.issues[0].url}): Defaults.`), 'follow-ups.md links the issue by URL (#N does not link in a file)');
+  const { redactedRecords: redactFor } = await import('../../plugin-src/shared/resources/protocol/current/follow-ups.js');
+  const filed = (await records(f)).find(row => row.decision?.tracking?.kind === 'issue');
+  const { state: current } = await f.core.state();
+  assert.equal((await redactFor(f.core, current, [filed], null))[0].decision.tracking.reference, host.issues[0].url, 'the committed view never uses #N, even for its own repository');
   // The published summary lists both, the accepted low included.
   const head = (await git(f.repo, ['rev-parse', 'HEAD'])).trim();
   openPr(f, 'topic', f.integration, head);

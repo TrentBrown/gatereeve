@@ -58,3 +58,13 @@ their alternatives and **Reversibility:**.
   the pure `deriveReviewRecords`, with an end-to-end test of decisions
   surviving later rounds.
 - **Reversibility:** high.
+
+## S7. Round 6 continue, and amendment 2 (issue references)
+
+- **Answered by:** human
+- **Decision:** At the round-6 hand-back Trent chose "Continue". Rounds 5-7
+  then cycled between "show the issue link" (AC7/AC8) and "no client names in
+  public text" (AC5, mandate) for an issue whose URL contains a listed client
+  name. Trent chose "Withhold: approve Amend. 2": such an issue reads
+  `issue #N (repository name withheld)` on public surfaces; `#N` in the PR
+  summary of its own repository; the URL in follow-ups.md otherwise.
