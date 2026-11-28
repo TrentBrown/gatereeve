@@ -409,7 +409,8 @@ test('R4: gatereeve read activity rebuilds a review through the CLI', async t =>
   // The fixture's workspace, as a configuration the CLI resolves from --cwd.
   await writeFile(join(f.root, '.agentic-workflow.json'), JSON.stringify({ schemaVersion: 1, featureId: 'feature',
     repositories: { app: { path: 'app', remote: 'origin', featureBaseSha: f.base, integrationBranch: f.integration, releaseBranch: f.release } } }));
-  const cli = join(process.cwd(), 'cli/bin/workflow.js');
+  // Resolved from this file: CI runs the suite from cli/, a local run from the root.
+  const cli = new URL('../bin/workflow.js', import.meta.url).pathname;
   const run = spawnSync(process.execPath, [cli, 'read', 'activity', ref.hash, '--cwd', f.root, '--json'], { encoding: 'utf8', env: { ...process.env, GATEREEVE_METRICS: 'off' } });
   const result = JSON.parse(run.stdout);
   assert.equal(result.ok, true, run.stdout + run.stderr);
