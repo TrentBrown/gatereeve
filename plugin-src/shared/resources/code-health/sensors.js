@@ -101,7 +101,7 @@ export async function sense({ executable, worktree, configPath, env, timeoutMs, 
     // still absolute or one climbing out with '..' names no file in scope,
     // and such an issue would be dropped, not counted (codex/F17, F20).
     const file = issue.details?.file ?? issue.key;
-    if (!nonEmpty(file) || file === '.' || file === '..' || file.startsWith('../') || file.startsWith('/') || /^[A-Za-z]:[\\/]/.test(file)) throw new Unavailable('sensor-failed', `habit-sensors emitted JSON on the ${side} with an issue that names no file`);
+    if (!nonEmpty(file) || file === '.' || file.split('/')[0] === '..' || file.startsWith('/') || /^[A-Za-z]:[\\/]/.test(file)) throw new Unavailable('sensor-failed', `habit-sensors emitted JSON on the ${side} with an issue that names no file`);
   }
   // Any parse error or incomplete run is UNAVAILABLE, a probe file's included
   // (design §3, AC2; round 10 codex/F21): a tool that cannot read the probe
