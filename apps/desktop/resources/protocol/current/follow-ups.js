@@ -241,15 +241,22 @@ export function redactor(core, state, repository, ownName = null) {
     ...core.context.repositories.filter(item => item.alias !== repository).map(item => item.alias),
     ...(core.context.repositories.find(item => item.alias === repository)?.followUpRedactions ?? [])]
     .filter(value => typeof value === 'string' && value.trim().length > 1);
-  return value => {
+  const terms = value => {
+    let result = String(value ?? '');
+    for (const word of words) result = result.replace(new RegExp(`(?<![\\w])${escape(word)}(?![\\w])`, 'giu'), '<redacted>');
+    return result;
+  };
+  const redact = value => {
     let result = String(value ?? '');
     for (const item of exact) result = result.split(item).join('<path>');
     // Every absolute or home path, one segment included (/srv): conservative,
     // since a repository-relative path never starts with a separator.
     result = result.replace(/(?<![\w.-])(?:~|[A-Za-z]:)?[\\/][^\s'"`<>()[\]]+/gu, '<path>');
-    for (const word of words) result = result.replace(new RegExp(`(?<![\\w])${escape(word)}(?![\\w])`, 'giu'), '<redacted>');
-    return result;
+    return terms(result);
   };
+  // A URL keeps its form; only listed names and identities are replaced.
+  redact.terms = terms;
+  return redact;
 }
 // One redactor per follow-up repository, for every public surface: filed
 // issues, the PR summary and the committed follow-ups.md.
@@ -269,9 +276,11 @@ export async function redactedRecords(core, state, records) {
     // a client name listed in followUpRedactions).
     return { ...record, repository: clean(record.repository), dedupKey: clean(record.dedupKey), origin: Object.fromEntries(Object.entries(record.origin).map(([key, value]) => [key, clean(value)])),
       finding: Object.fromEntries(Object.entries(record.finding).map(([key, value]) => [key, clean(value)])),
-      // The issue URL is the issue's own public location and stays.
+      // The issue URL keeps its form; a listed client or project name in it
+      // (a repository named after a client) is replaced.
       decision: record.decision ? { ...record.decision, reason: clean(record.decision.reason),
-        tracking: record.decision.tracking ? { ...record.decision.tracking, repository: clean(record.decision.tracking.repository) } : null } : null };
+        tracking: record.decision.tracking ? { ...record.decision.tracking, repository: clean(record.decision.tracking.repository),
+          ...(typeof record.decision.tracking.url === 'string' ? { url: redact.terms(record.decision.tracking.url) } : {}) } : null } : null };
   }));
 }
 function issueText(record, redact, pr) {

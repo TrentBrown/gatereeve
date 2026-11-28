@@ -346,8 +346,8 @@ test('R5: filing creates a marked, backlinked issue in the follow-up\'s reposito
   f.core.sourceContext.repositories[1].followUpRedactions = ['tools'];
   const [clientRecord] = await redactedRecords(f.core, state, [(await records(f)).find(row => row.repository === 'tools')]);
   assert.equal(clientRecord.repository, '<redacted>');
-  const { url, ...tracking } = clientRecord.decision.tracking;
-  assert.ok(!JSON.stringify({ ...clientRecord, decision: { ...clientRecord.decision, tracking } }).includes('tools'), JSON.stringify(clientRecord));
+  assert.ok(!JSON.stringify(clientRecord).includes('tools'), JSON.stringify(clientRecord));
+  assert.equal(clientRecord.decision.tracking.url, 'https://github.com/fixture/<redacted>/issues/7', 'the issue URL keeps its form');
 });
 
 test('R6: Completion and the release merge wait on follow-ups; status reports them; unmarked runs and unreadable records', async t => {

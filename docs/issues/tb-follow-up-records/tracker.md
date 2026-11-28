@@ -43,3 +43,7 @@ Append pull-request review boundary entries here.
   out-of-contract reviewer text); codex FAIL (high: a repository alias that
   is a listed client name appeared in follow-ups.md). The alias, dedup key
   and tracking repository are now redacted on public surfaces.
+- 2026-11-28 boundary round 5 (head 1f3bd5e): claude-code PASS (lows: the
+  kept issue URL needs a cross-repository filing; two receipt gaps hosted CI
+  covers); codex FAIL (high: a client-named GitHub repository in the issue
+  URL). The URL now gets the term redaction (it keeps its form).
