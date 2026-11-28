@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:b4634b2a494745daa7e3138fac81720eea27074452c95115788d0546d2d04ee4",
+  "protocolHash": "sha256:4b0f24bcecabe17039b7f2ec38f5d614ebadcd81e3da3013e9aaf72de7ffe9aa",
   "contract": "gatereeve/current/8",
   "contractSha256": "1df0afc21301595b72a5f9bdad3ab2aade7452ad1c5a4f97455bde354bf1120a",
   "files": [
@@ -27,8 +27,8 @@
     },
     {
       "path": "current/adapter.js",
-      "size": 18295,
-      "sha256": "3773f1d696195faa370d43a877e3ea5b67c0d0a1194d4685e9f4190e1b5e3398"
+      "size": 19475,
+      "sha256": "967a9a5b5add3ccc85c0095639b21badca65a7a490822990b4b0d7d9fadcaa6f"
     },
     {
       "path": "current/authorization.js",
@@ -72,8 +72,8 @@
     },
     {
       "path": "current/delegation.js",
-      "size": 51071,
-      "sha256": "c72959c1ea7a40794b60a22262435651029375a22253d4c791caceb3e1cdf0f6"
+      "size": 53508,
+      "sha256": "9e67c06caeaa84e3bb933654c8ad224d4cc81773573a8d6ffea7683a38985747"
     },
     {
       "path": "current/delivery.js",
@@ -102,8 +102,8 @@
     },
     {
       "path": "current/execution.js",
-      "size": 127757,
-      "sha256": "07eed7c94c84b5af802538e475d7611fe4b039e879fef87dd7960be35d4b291d"
+      "size": 129284,
+      "sha256": "2f5b5f2f539878cb9049a940f7bd5a8684f01c033474db0e8851a2aac95ce320"
     },
     {
       "path": "current/final-handoff.js",
@@ -154,6 +154,11 @@
       "path": "current/publication.js",
       "size": 18867,
       "sha256": "6e0106530960c776c514366a19ace8e23ce68d297f9fd739480b1c83865e320b"
+    },
+    {
+      "path": "current/review-activity.js",
+      "size": 21922,
+      "sha256": "c7ac75e948dfa73052be2dfd6ddea3613b646c7019c922ce8f399f8bf989bdb7"
     },
     {
       "path": "current/review-findings.js",
@@ -257,8 +262,8 @@
     },
     {
       "path": "local-agent-adapters.js",
-      "size": 29876,
-      "sha256": "073efa0019941b9635c075b58018346ae0c306b5e3576315fd3f9600a5dfc11f"
+      "size": 32369,
+      "sha256": "bcc4194d36e04c5d639041bd4d52834ab24cd351d9c10459597ad6864e0763c5"
     },
     {
       "path": "module-runtime.js",
