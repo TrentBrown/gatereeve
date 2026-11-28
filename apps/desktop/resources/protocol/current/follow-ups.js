@@ -73,11 +73,16 @@ function repositoryOf(repositories, path, candidate) {
 // no perspective of that round still marks it present or re-reports it.
 async function reviewRecords(core, events) {
   const reports = [], unavailable = [];
+  // An unreadable result counts as unavailable unless its job is known not to
+  // be a review (a lost verification result holds no follow-up).
+  const gates = new Map(events.filter(event => event.type === 'JOB_STARTED').map(event => [event.payload.jobId, event.payload.gates]));
   for (const [index, event] of events.entries()) {
     if (event.type !== 'JOB_FINISHED') continue;
+    const jobGates = gates.get(event.payload.jobId);
     for (const ref of event.payload.results ?? []) {
       let report;
-      try { report = await core.store.json(ref); } catch (error) { unavailable.push(`result ${ref.hash}: ${error.message}`); continue; }
+      try { report = await core.store.json(ref); }
+      catch (error) { if (!Array.isArray(jobGates) || jobGates.includes('review')) unavailable.push(`result ${ref.hash}: ${error.message}`); continue; }
       if (report?.gate !== 'review') continue;
       let input = null, candidate = null;
       try { input = await core.store.json(report.input); } catch (error) { unavailable.push(`review input of ${ref.hash}: ${error.message}`); continue; }
@@ -244,6 +249,25 @@ export function redactor(core, state, repository, ownName = null) {
     return result;
   };
 }
+// One redactor per follow-up repository, for every public surface: filed
+// issues, the PR summary and the committed follow-ups.md.
+export async function publicRedaction(core, state) {
+  const cache = new Map();
+  return async record => {
+    if (!cache.has(record.repository)) cache.set(record.repository, redactor(core, state, record.repository, (await ownerRepo(core, record.repository))?.split('/')[1] ?? null));
+    return cache.get(record.repository);
+  };
+}
+// The record's free text, redacted for a public surface.
+export async function redactedRecords(core, state, records) {
+  const redactFor = await publicRedaction(core, state);
+  return Promise.all(records.map(async record => {
+    const redact = await redactFor(record), clean = value => typeof value === 'string' ? redact(value) : value;
+    return { ...record, origin: Object.fromEntries(Object.entries(record.origin).map(([key, value]) => [key, clean(value)])),
+      finding: Object.fromEntries(Object.entries(record.finding).map(([key, value]) => [key, clean(value)])),
+      decision: record.decision ? { ...record.decision, reason: clean(record.decision.reason) } : null };
+  }));
+}
 function issueText(record, redact, pr) {
   const line = value => redact(value).replace(/\s+/gu, ' ').trim();
   const local = typeof record.finding.path === 'string' && record.finding.path.startsWith(`${record.repository}/`) ? record.finding.path.slice(record.repository.length + 1) : record.finding.path;
@@ -391,7 +415,8 @@ export function followUpsMarkdown(featureId, summary) {
 }
 export async function renderFollowUps(core) {
   const { state, events } = await core.state();
-  const summary = followUpSummary(await followUpRecords(core, events));
+  const found = await followUpRecords(core, events);
+  const summary = followUpSummary({ ...found, records: await redactedRecords(core, state, found.records) });
   const path = join(core.context.featureHome, FOLLOW_UPS_FILE);
   try { requireThat(!(await lstat(path)).isSymbolicLink(), `${FOLLOW_UPS_FILE} must not be a symbolic link`); }
   catch (error) { if (error.code !== 'ENOENT') throw error; }
@@ -403,11 +428,11 @@ export async function renderFollowUps(core) {
 // The PR summary section (spec AC8): every follow-up, accepted lows included.
 export function followUpLines(summary, inline = cell) {
   const lines = ['', '**Follow-ups**'];
-  if (!summary.records.length) { lines.push('- This run has no follow-ups.'); return lines; }
+  if (summary.unavailable.length) lines.push(`- **Unavailable:** ${summary.unavailable.length} unreadable review record(s); their follow-ups are unknown and Completion refuses until they are restored.`);
+  if (!summary.records.length) { if (!summary.unavailable.length) lines.push('- This run has no follow-ups.'); return lines; }
   for (const record of summary.records) {
     const tracking = record.decision?.tracking?.kind === 'issue' ? ` — ${record.decision.tracking.url}` : record.decision?.tracking?.kind === 'seed' ? ' — seed for the next feature' : '';
     lines.push(`- \`${record.id}\` ${record.finding.severity} ${record.status}${record.decision ? ` (${record.decision.authorityKind})` : ''}: ${inline(record.finding.class ?? record.origin.kind)}${tracking}`);
   }
-  if (summary.unavailable.length) lines.push(`- Unavailable: ${summary.unavailable.length} unreadable review record(s).`);
   return lines;
 }

@@ -110,6 +110,34 @@ test('R9: a reopened follow-up reads undecided again in the store', async t => {
   assert.deepEqual(followUps, { L1: 'rejected', M1: 'undecided' });
 });
 
+test('R9: a follow-up whose finding blocks again is withdrawn from the store', async t => {
+  const store = await metricsStore(t);
+  const { events } = journal();
+  const blocked = objects();
+  // Round 2 re-reports L1 as a blocking high: it is no longer a follow-up.
+  blocked.set(H(50), { gate: 'review', input: { hash: H(51) }, receipt: { hash: H(52) }, outcome: 'FAIL', dispositions: [], findings: [finding('L1', { severity: 'high' })] });
+  blocked.set(H(51), policy(2)); blocked.set(H(52), { evaluator: { provider: 'codex', model: 'gpt-x' } });
+  const all = [...events, { sequence: 7, hash: 'event-7', recordedAt: '2026-11-27T00:02:00.000Z', type: 'JOB_FINISHED', payload: { jobId: 'j5', results: [{ hash: H(50) }] } }];
+  const core = { context: { workspaceRoot: '/project/gatereeve', featureId: 'feature', repositories: [{ alias: 'app' }] }, store: { home: '/runs/feature', json: async ref => blocked.get(ref.hash) },
+    visible: events.length, state: async () => ({ state: { runId: 'run' }, events: all.slice(0, core.visible) }) };
+  await projectWorkflow(core, store);
+  const before = await rows(store);
+  assert.equal(before.find(row => row.kind === 'follow-up' && row.findingId === 'L1').followUp, 'rejected');
+  const versions = async () => (await reportingDatabase(store, false)).prepare('SELECT COUNT(*) AS n FROM reporting_observations').get().n;
+  const count = await versions();
+  // Projecting again with no new event re-emits nothing (no observation-time churn).
+  await projectWorkflow(core, store);
+  assert.equal(await versions(), count);
+  core.visible = all.length;
+  await projectWorkflow(core, store);
+  const after = await rows(store);
+  const withdrawn = after.find(row => row.kind === 'follow-up' && row.findingId === 'L1');
+  assert.deepEqual([withdrawn.followUp, withdrawn.outcome], [undefined, 'WITHDRAWN']);
+  assert.ok(after.filter(row => row.kind === 'finding' && row.findingId === 'L1').every(row => row.followUp === undefined), 'finding rows lose followUp');
+  const decided = demotedMeasure(after).decided;
+  assert.deepEqual(decided.byFollowUp, { fixed: 1 }, 'measure 2 no longer counts the withdrawn decision');
+});
+
 test('R9: an unmarked run projects no followUp, and measure 2 decided is met, unmet or incomplete from follow-up rows', async t => {
   const store = await metricsStore(t);
   await projectWorkflow(syntheticCore(journal({ marked: false }).events, '/runs/old'), store);

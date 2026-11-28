@@ -104,38 +104,47 @@ async function readResult(core, ref) {
 
 // Follow-up status (issue #148, spec AC9 and amendment 1): the current status
 // of each record on its finding rows (every retained report of that finding
-// ID) and on one follow-up row. Only rows whose stored status differs are
-// emitted, so a decision or a reopening re-emits exactly the changed rows.
-async function followUpRows(core, events, { base, source, workflow, latestBody, pending }) {
+// ID) and on one follow-up row. Only rows whose stored content differs are
+// emitted (a decision, a fix, a reopening), keeping the stored observation
+// time otherwise. A record that stopped being a follow-up (its latest report
+// blocked) is withdrawn: its row loses `followUp` and records outcome
+// WITHDRAWN, and its finding rows lose `followUp`.
+async function followUpRows(core, events, { base, source, workflow, latestBody, storedIds, pending }) {
   const { records } = await followUpRecords(core, events);
   const status = new Map(records.filter(record => record.origin.kind === 'review').map(record => [record.origin.findingId, record.status]));
   const observedAt = events.at(-1).recordedAt, rows = [];
-  const changed = (id, row) => {
+  // `next(existing)` returns the row's intended body; emitted only on a change.
+  const update = (id, next) => {
     const existing = latestBody.get(id);
-    const merged = observation(existing ? { ...JSON.parse(existing.body), ...row } : row);
-    return !existing || JSON.stringify(merged) !== JSON.stringify(observation(JSON.parse(existing.body))) ? merged : null;
+    const before = existing ? observation(JSON.parse(existing.body)) : null;
+    const after = next(before);
+    if (!after) return;
+    const kept = observation(before ? { ...after, observedAt: before.observedAt } : after);
+    if (before && JSON.stringify(kept) === JSON.stringify(before)) return;
+    rows.push(observation({ ...after, observedAt }));
   };
+  const withoutFollowUp = row => { const { followUp, ...rest } = row; return rest; };
   for (const event of events) if (event.type === 'JOB_FINISHED') for (const ref of event.payload.results ?? []) {
     let result;
     try { result = await core.store.json(ref); } catch { continue; }
     if (result?.gate !== 'review') continue;
     for (const finding of result.findings ?? []) {
       const id = `${source}:${ref.hash}:finding:${finding.id}`;
-      if (!status.has(finding.id)) continue;
       // A row projected in this pass gets the field before it is written.
-      if (pending.has(id)) { pending.get(id).followUp = status.get(finding.id); continue; }
-      if (!latestBody.get(id)) continue;
-      const row = changed(id, { followUp: status.get(finding.id) });
-      if (row) rows.push(row);
+      if (pending.has(id)) { if (status.has(finding.id)) pending.get(id).followUp = status.get(finding.id); continue; }
+      update(id, before => before && (status.has(finding.id) ? { ...before, followUp: status.get(finding.id) } : before.followUp !== undefined ? withoutFollowUp(before) : null));
     }
   }
+  const prefix = `${source}:${workflow}:follow-up:`, current = new Set();
   for (const record of records) {
-    const id = `${source}:${workflow}:follow-up:${record.id}`;
-    const row = changed(id, { ...base, id, observedAt, kind: 'follow-up', check: 'follow-up', followUp: record.status, severity: record.finding.severity === 'critical' ? 'high' : record.finding.severity,
-      reason: record.reason, findingId: record.finding.findingId ?? undefined, reference: record.origin.result ?? undefined,
-      ...defined({ reviewScope: text(record.origin.reviewScope), round: Number.isSafeInteger(record.origin.round) ? record.origin.round : undefined, classId: text(record.finding.classId) }) });
-    if (row) rows.push(row);
+    const id = `${prefix}${record.id}`;
+    current.add(id);
+    update(id, before => ({ ...(before ? withoutFollowUp(before) : {}), ...base, id, observedAt, kind: 'follow-up', check: 'follow-up', followUp: record.status,
+      severity: record.finding.severity === 'critical' ? 'high' : record.finding.severity, reason: record.reason, outcome: undefined,
+      ...defined({ findingId: record.finding.findingId, reference: record.origin.result, reviewScope: text(record.origin.reviewScope),
+        round: Number.isSafeInteger(record.origin.round) ? record.origin.round : undefined, classId: text(record.finding.classId) }) }));
   }
+  for (const id of storedIds(prefix)) if (!current.has(id)) update(id, before => before && before.outcome !== 'WITHDRAWN' ? { ...withoutFollowUp(before), outcome: 'WITHDRAWN' } : null);
   return rows;
 }
 
@@ -250,7 +259,8 @@ export async function projectWorkflow(core, store = new MetricsStore()) {
       return JSON.stringify(merged) === JSON.stringify(observation(JSON.parse(existing.body))) ? [] : [merged];
     });
     observations.splice(0, firstNew ?? observations.length, ...kept);
-    if (events[0]?.payload?.followUps === 1) observations.push(...await followUpRows(core, events, { base, source, workflow, latestBody,
+    const storedIds = prefix => db.prepare('SELECT id FROM reporting_latest WHERE id LIKE ? ESCAPE ?').all(`${prefix.replace(/[\\%_]/gu, '\\$&')}%`, '\\').map(row => row.id);
+    if (events[0]?.payload?.followUps === 1) observations.push(...await followUpRows(core, events, { base, source, workflow, latestBody, storedIds,
       pending: new Map(observations.filter(row => row.kind === 'finding').map(row => [row.id, row])) }));
     const body = { ...base, home: core.store.home, sequence: events.length, projection: PROJECTION_VERSION, projectId, featureId: await store.identity(core.context.featureId) };
     store.transaction(db, () => {

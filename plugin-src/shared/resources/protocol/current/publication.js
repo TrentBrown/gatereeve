@@ -6,7 +6,7 @@ import { boundaryReviews } from './boundary-review.js';
 import { currentAdjudication } from './autonomous.js';
 import { finalHandoff, requireFinalHandoff } from './final-handoff.js';
 import { agentDecisions } from './goal.js';
-import { followUpRecords, followUpSummary, followUpLines } from './follow-ups.js';
+import { followUpRecords, followUpSummary, followUpLines, redactedRecords } from './follow-ups.js';
 
 // The independent review summary is published into a delimited section of the
 // PR description (spec AC6/R9). The section is rendered deterministically from
@@ -166,7 +166,8 @@ async function reviewTarget(core, input) {
   const review = await currentReview(core, state, candidate);
   requireThat(review, 'No current independent review result for this candidate head; run the review gate on the current candidate before publishing or requesting merge authorization');
   const decisions = state.dials.autonomy.value === 'goal' ? await agentDecisions(core.context.featureHome) : null;
-  const followUps = followUpSummary(await followUpRecords(core));
+  const found = await followUpRecords(core);
+  const followUps = followUpSummary({ ...found, records: await redactedRecords(core, state, found.records) });
   return { state, candidate, pin, repository, ownerRepo, review, number: input.number,
     section: withFollowUps(withDecisions(renderSummary({ candidateRef: state.candidate, candidate, pin, review }), decisions), followUps) };
 }

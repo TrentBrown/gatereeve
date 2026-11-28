@@ -24,3 +24,9 @@
 ## Review Log
 
 Append pull-request review boundary entries here.
+- 2026-11-28 boundary round 1 (FEATURE, head c26be0b): codex FAIL (high:
+  PR summary text unredacted; high: withdrawn follow-ups stale in the metrics
+  store; medium: unavailable records published as "no follow-ups");
+  claude-code FAIL (medium: no test of `present` after `fixed`; medium: no
+  test that decide writes follow-ups.md; five lows). Fixed all, including the
+  lows on observation-time churn and non-review unavailable results.

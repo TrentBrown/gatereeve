@@ -148,7 +148,8 @@ export function demotedMeasure(rows) {
   // a follow-up-tracking run. A demoted finding of a run that did not track
   // follow-ups is not recorded, so the part is incomplete, never met.
   const tracking = new Set(rows.filter(row => row.check === 'STARTED' && row.followUpTracking === true).map(row => row.workflow));
-  const followUps = rows.filter(row => row.kind === 'follow-up');
+  // A withdrawn record (its finding blocked again) is no longer a follow-up.
+  const followUps = rows.filter(row => row.kind === 'follow-up' && row.followUp != null);
   const untracked = tracking.size ? demoted.filter(row => !tracking.has(row.workflow)).length : 0;
   const decided = tracking.size
     ? { denominator: followUps.length, byFollowUp: tally(followUps, row => row.followUp), untrackedDemoted: untracked, coverage: coverage(untracked),
