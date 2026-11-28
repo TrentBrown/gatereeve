@@ -317,8 +317,8 @@ export async function reviewPlanning(core, input, operation) {
     return reviewed;
   } catch (error) {
     error.artifacts = [...new Set([...(error.artifacts ?? []), ...retained])];
-    // A launched attempt that ended without a planning-review record keeps its
-    // activity in a planning-review-attempt record, linked from the journal by
+    // A launched attempt that ended without a PLANNING_REVIEWED event keeps its
+    // activity in a planning-review record marked failedAttempt, linked from the journal by
     // an artifact observation (issue #147). The failure itself is unchanged.
     if (capture && launched) await retainFailedPlanningAttempt(core, state, input.artifact, subject, configuration, capture, retained, operation, error)
       .catch(async cause => { error.activityRetention = cause.message; await capture.finish({ outcome: 'UNAVAILABLE' }).catch(() => {}); });

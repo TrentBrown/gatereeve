@@ -356,6 +356,7 @@ test('R6: a journal job whose header write failed is listed with its journal sta
   const codex = watched.attempts.find(row => row.provider === 'codex');
   assert.equal(codex.state, 'progress unavailable');
   assert.ok(Number.isFinite(Date.parse(codex.startedAt)), 'start time from the journal');
+  assert.equal(codex.model, 'fixture', 'model from the journal job input');
 });
 
 test('R6: review.progress writes nothing', async t => {

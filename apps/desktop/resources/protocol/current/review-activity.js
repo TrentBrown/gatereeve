@@ -339,13 +339,21 @@ export async function reviewProgress(core, { job = null } = {}, now = Date.now()
   const { state, events } = await core.state();
   const journal = new Map();
   for (const event of events) if (event.type === 'JOB_STARTED') journal.set(event.payload.jobId, event.recordedAt);
+  const configurationOf = async value => {
+    try { return (await store.json(value.input)).configuration ?? {}; } catch { return {}; } // unreadable input: shown without model
+  };
   for (const [jobId, value] of Object.entries(state.jobs ?? {})) {
     if (!reviewerJob(value)) continue;
-    const known = [...attempts.values()].some(item => item.jobId === jobId);
-    // A file whose header write failed still takes its start from the journal.
-    if (known) { for (const item of attempts.values()) if (item.jobId === jobId) { item.journal = value; item.journalStartedAt = journal.get(jobId) ?? null; } continue; }
-    let configuration = {};
-    try { configuration = (await store.json(value.input)).configuration ?? {}; } catch { /* unreadable input: shown without model */ }
+    const known = [...attempts.values()].filter(item => item.jobId === jobId);
+    // A file whose header write failed still takes its start and model from the journal.
+    if (known.length) {
+      for (const item of known) {
+        item.journal = value; item.journalStartedAt = journal.get(jobId) ?? null;
+        if (!item.summary?.header) item.model = (await configurationOf(value)).model ?? null;
+      }
+      continue;
+    }
+    const configuration = await configurationOf(value);
     attempts.set(`${jobId}.${configuration.provider ?? 'unknown'}`, { jobId, provider: configuration.provider ?? 'unknown', model: configuration.model ?? null,
       journal: value, journalStartedAt: journal.get(jobId) ?? null, summary: null });
   }
