@@ -5,13 +5,28 @@ import { createHash } from 'node:crypto';
 import { mkdtemp, open, readdir, readFile, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseToml, resolveTool, run } from './process.js';
 import { readCommitted } from './scope.js';
 import { environmentLinks } from './worktree.js';
 
-// Bump when the comparison, neutralization or scoping rules change, so cached
-// baselines from an earlier wrapper are never reused.
-export const WRAPPER_VERSION = 'gatereeve-code-health/8';
+// A readable label for the wrapper. The cache key also carries a hash of the
+// wrapper's own source (wrapperSource), so any change to how findings are
+// normalized or compared retires cached baselines without a manual bump
+// (round 12 codex/F23).
+export const WRAPPER_VERSION = 'gatereeve-code-health/9';
+const SOURCE_DIRECTORY = dirname(fileURLToPath(import.meta.url));
+let sourceIdentity = null;
+
+export async function wrapperSource() {
+  if (sourceIdentity) return sourceIdentity;
+  const hash = createHash('sha256');
+  for (const name of (await readdir(SOURCE_DIRECTORY)).filter(entry => entry.endsWith('.js')).sort()) {
+    hash.update(`${name}\0`).update(await readFile(join(SOURCE_DIRECTORY, name))).update('\0');
+  }
+  sourceIdentity = `sha256:${hash.digest('hex')}`;
+  return sourceIdentity;
+}
 
 const COMMANDS = ['eslint', 'ruff', 'knip', 'deptry', 'jscpd'];
 const PACKAGES = ['typescript', 'typescript-eslint', '@typescript-eslint/parser', '@typescript-eslint/eslint-plugin', 'ts-morph'];
@@ -159,7 +174,7 @@ async function commandVersion(executable, root, env) {
 }
 
 export async function toolVersions({ root, head, config, sensors, sensorsVersion, env }) {
-  const versions = { wrapper: WRAPPER_VERSION, habitSensors: sensorsVersion, plugins: await pluginVersions(sensors, env) };
+  const versions = { wrapper: WRAPPER_VERSION, wrapperSource: await wrapperSource(), habitSensors: sensorsVersion, plugins: await pluginVersions(sensors, env) };
   const executables = [];
   // Tools declared by plugins GateReeve has no table for: each command's
   // reported version (null when it reports none), each node module through
